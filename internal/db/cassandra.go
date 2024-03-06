@@ -410,7 +410,10 @@ func (c *Cassandra) InsertSubDoc(connStr, username, password, key string, keyVal
 		return newCouchbaseSubDocOperationResult(key, keyValues, errSessionCreate, false, extra.Cas, offset)
 	}
 	for _, x := range keyValues {
-		columnName := "subDoc"
+		columnName := extra.SubDocPath
+		if err := validateStrings(columnName); err != nil {
+			return newCouchbaseSubDocOperationResult(key, keyValues, errors.New("SubDocPath is missing"), false, extra.Cas, offset)
+		}
 		if !cassandraColumnExists(cassandraSession, keyspaceName, tableName, columnName) {
 			alterQuery := fmt.Sprintf("ALTER TABLE %s.%s ADD %s text", keyspaceName, tableName, columnName)
 			fmt.Println(alterQuery)
@@ -449,7 +452,10 @@ func (c *Cassandra) UpsertSubDoc(connStr, username, password, key string, keyVal
 		return newCouchbaseSubDocOperationResult(key, keyValues, errSessionCreate, false, extra.Cas, offset)
 	}
 	for _, x := range keyValues {
-		columnName := "subDoc"
+		columnName := extra.SubDocPath
+		if err := validateStrings(columnName); err != nil {
+			return newCouchbaseSubDocOperationResult(key, keyValues, errors.New("SubDocPath is missing"), false, extra.Cas, offset)
+		}
 		if !cassandraColumnExists(cassandraSession, keyspaceName, tableName, columnName) {
 			alterQuery := fmt.Sprintf("ALTER TABLE %s.%s ADD %s text", keyspaceName, tableName, columnName)
 			fmt.Println(alterQuery)
@@ -507,7 +513,10 @@ func (c *Cassandra) ReplaceSubDoc(connStr, username, password, key string, keyVa
 		return newCouchbaseSubDocOperationResult(key, keyValues, errSessionCreate, false, extra.Cas, offset)
 	}
 	for _, x := range keyValues {
-		columnName := "subDoc"
+		columnName := extra.SubDocPath
+		if err := validateStrings(columnName); err != nil {
+			return newCouchbaseSubDocOperationResult(key, keyValues, errors.New("SubDocPath is missing"), false, extra.Cas, offset)
+		}
 		if !cassandraColumnExists(cassandraSession, keyspaceName, tableName, columnName) {
 			alterQuery := fmt.Sprintf("ALTER TABLE %s.%s ADD %s text", keyspaceName, tableName, columnName)
 			err := cassandraSession.Query(alterQuery).Exec()
@@ -558,7 +567,10 @@ func (c *Cassandra) ReadSubDoc(connStr, username, password, key string, keyValue
 		return newCouchbaseSubDocOperationResult(key, keyValues, errSessionCreate, false, extra.Cas, offset)
 	}
 	for range keyValues {
-		columnName := "subdoc"
+		columnName := extra.SubDocPath
+		if err := validateStrings(columnName); err != nil {
+			return newCouchbaseSubDocOperationResult(key, keyValues, errors.New("SubDocPath is missing"), false, extra.Cas, offset)
+		}
 		var result map[string]interface{}
 		if !cassandraColumnExists(cassandraSession, keyspaceName, tableName, columnName) {
 			return newCouchbaseSubDocOperationResult(key, keyValues, errors.New("No subdocs field found."), false, extra.Cas, offset)
@@ -720,30 +732,32 @@ func (c *Cassandra) UpdateBulk(connStr, username, password string, keyValues []K
 		return result
 	}
 
-	cassBatchOp := cassandraSession.NewBatch(gocql.UnloggedBatch).WithContext(context.TODO())
 	for _, x := range keyValues {
-		// Converting the Document to JSON
-		jsonData, errDocToJSON := json.Marshal(x.Doc)
-		if errDocToJSON != nil {
-			log.Println("In Cassandra Update(), error marshaling JSON:", errDocToJSON)
+		cassBatchSize := 10
+		cassBatchOp := cassandraSession.NewBatch(gocql.LoggedBatch).WithContext(context.TODO())
+		var docArg []interface{}
+		for i := 0; i < cassBatchSize; i++ {
+			// Converting the Document to JSON
+			jsonData, errDocToJSON := json.Marshal(x.Doc)
+			if errDocToJSON != nil {
+				log.Println("In Cassandra UpdateBulk(), error marshaling JSON:", errDocToJSON)
+			}
+
+			docArg = append(docArg, jsonData)
+			cassBatchOp.Entries = append(cassBatchOp.Entries, gocql.BatchEntry{
+				Stmt:       "INSERT INTO " + extra.Table + " JSON ? DEFAULT UNSET",
+				Args:       docArg,
+				Idempotent: true,
+			})
+			docArg = nil
 		}
-
-		var docL []interface{}
-		//docL = append(docL, reflect.ValueOf(x.Doc).Elem().Interface())
-		docL = append(docL, jsonData)
-		cassBatchOp.Entries = append(cassBatchOp.Entries, gocql.BatchEntry{
-			Stmt:       "INSERT INTO " + extra.Table + " JSON ? DEFAULT UNSET",
-			Args:       docL,
-			Idempotent: true,
-		})
-
-	}
-
-	errBulkUpdate := cassandraSession.ExecuteBatch(cassBatchOp)
-	if errBulkUpdate != nil {
-		log.Println("In Cassandra UpdateBulk(), ExecuteBatch() Error:", errBulkUpdate)
-		result.failBulk(keyValues, errBulkUpdate)
-		return result
+		errBulkUpsert := cassandraSession.ExecuteBatch(cassBatchOp)
+		if errBulkUpsert != nil {
+			log.Println("In Cassandra UpdateBulk(), ExecuteBatch() Error:", errBulkUpsert)
+			result.failBulk(keyValues, errBulkUpsert)
+			return result
+		}
+		cassBatchOp = nil
 	}
 
 	for _, x := range keyValues {
@@ -827,21 +841,23 @@ func (c *Cassandra) DeleteBulk(connStr, username, password string, keyValues []K
 		return result
 	}
 
-	cassBatchOp := cassandraSession.NewBatch(gocql.UnloggedBatch).WithContext(context.TODO())
 	for _, x := range keyValues {
-		cassBatchOp.Entries = append(cassBatchOp.Entries, gocql.BatchEntry{
-			Stmt:       "DELETE FROM " + extra.Table + " WHERE ID=?",
-			Args:       []interface{}{x.Key},
-			Idempotent: true,
-		})
-
-	}
-
-	errBulkUpdate := cassandraSession.ExecuteBatch(cassBatchOp)
-	if errBulkUpdate != nil {
-		log.Println("In Cassandra DeleteBulk(), ExecuteBatch() Error:", errBulkUpdate)
-		result.failBulk(keyValues, errBulkUpdate)
-		return result
+		cassBatchSize := 10
+		cassBatchOp := cassandraSession.NewBatch(gocql.UnloggedBatch).WithContext(context.TODO())
+		for i := 0; i < cassBatchSize; i++ {
+			cassBatchOp.Entries = append(cassBatchOp.Entries, gocql.BatchEntry{
+				Stmt:       "DELETE FROM " + extra.Table + " WHERE ID=?",
+				Args:       []interface{}{x.Key},
+				Idempotent: true,
+			})
+		}
+		errBulkUpdate := cassandraSession.ExecuteBatch(cassBatchOp)
+		if errBulkUpdate != nil {
+			log.Println("In Cassandra DeleteBulk(), ExecuteBatch() Error:", errBulkUpdate)
+			result.failBulk(keyValues, errBulkUpdate)
+			return result
+		}
+		cassBatchOp = nil
 	}
 
 	for _, x := range keyValues {

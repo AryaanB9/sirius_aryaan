@@ -327,6 +327,7 @@ Description : Warming up a connection to database.
 | `Keyspace` | `string` | `json:keyspace,omitempty`  |
 | `Table` | `string` | `json:table,omitempty`  |
 | `NumOfConns` | `int` | `json:numOfConns,omitempty`  |
+| `SubDocPath` | `string` | `json:subDocPath,omitempty`  |
 | `ReplicationFactor` | `int` | `json:replicationFactor,omitempty`  |
 | `CassandraClass` | `string` | `json:cassandraClass,omitempty`  |
 
