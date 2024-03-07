@@ -586,7 +586,7 @@ func (c *Cassandra) ReadSubDoc(connStr, username, password, key string, keyValue
 				return newCouchbaseSubDocOperationResult(key, keyValues, errors.New("Unsuccessful READ operation."), false, extra.Cas, offset)
 			}
 		}
-		if result["subdoc"] == "" {
+		if result[columnName] == "" {
 			return newCouchbaseSubDocOperationResult(key, keyValues, errors.New("No subdocs found."), false, extra.Cas, offset)
 		}
 	}
@@ -733,7 +733,7 @@ func (c *Cassandra) UpdateBulk(connStr, username, password string, keyValues []K
 	}
 
 	for _, x := range keyValues {
-		cassBatchSize := 10
+		cassBatchSize := 2
 		cassBatchOp := cassandraSession.NewBatch(gocql.LoggedBatch).WithContext(context.TODO())
 		var docArg []interface{}
 		for i := 0; i < cassBatchSize; i++ {
