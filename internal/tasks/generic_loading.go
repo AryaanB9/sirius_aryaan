@@ -207,6 +207,7 @@ func loadDocumentsInBatches(task *GenericLoadingTask) {
 		numOfBatches = (task.OperationConfig.End - task.OperationConfig.Start) / batchSize
 	}
 	remainingItems := (task.OperationConfig.End - task.OperationConfig.Start) - (numOfBatches * batchSize)
+	log.Println("batchSize:", batchSize, "numOfBatches:", numOfBatches, "remainingItems:", remainingItems)
 
 	t1 := time.Now()
 	for i := int64(0); i < numOfBatches; i++ {
@@ -253,6 +254,7 @@ func loadDocumentsInBatches(task *GenericLoadingTask) {
 	wg.Wait()
 	log.Println("result ", task.ResultSeed, " time took: ", time.Now().Sub(t1))
 	log.Println("completed :- ", task.Operation, task.IdentifierToken, task.ResultSeed)
+	log.Println()
 
 }
 
