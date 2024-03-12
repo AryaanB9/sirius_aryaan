@@ -328,15 +328,14 @@ func (c *Cassandra) Read(connStr, username, password, key string, offset int64, 
 	result = make(map[string]interface{})
 	success := iter.MapScan(result)
 	if !success {
-		if result == nil {
-			return newCassandraOperationResult(key, nil,
-				fmt.Errorf("result is nil even after successful READ operation %s ", connStr), false,
-				offset)
-		} else if err := iter.Close(); err != nil {
-			return newCassandraOperationResult(key, nil,
-				fmt.Errorf("Unsuccessful READ operation %s ", connStr), false,
-				offset)
-		}
+		return newCassandraOperationResult(key, nil,
+			fmt.Errorf("Unsuccessful READ operation %s ", connStr), false,
+			offset)
+	}
+	if result == nil {
+		return newCassandraOperationResult(key, nil,
+			fmt.Errorf("result is nil even after successful READ operation %s ", connStr), false,
+			offset)
 	}
 	return newCassandraOperationResult(key, result, nil, true, offset)
 }
@@ -405,6 +404,7 @@ func (c *Cassandra) InsertSubDoc(connStr, username, password, key string, keyVal
 	}
 	columnName := extra.SubDocPath
 	if err := validateStrings(columnName); err != nil {
+
 		return newCassandraSubDocOperationResult(key, keyValues, errors.New("SubDocPath is missing"), false, offset)
 	}
 	cassandraSession, errSessionCreate := c.CassandraConnectionManager.GetCassandraKeyspace(connStr, username, password, nil, extra.Keyspace)
@@ -571,8 +571,8 @@ func (c *Cassandra) ReadSubDoc(connStr, username, password, key string, keyValue
 		log.Println(errSessionCreate)
 		return newCassandraSubDocOperationResult(key, keyValues, errSessionCreate, false, offset)
 	}
+	var result map[string]interface{}
 	for range keyValues {
-		var result map[string]interface{}
 		if !cassandraColumnExists(cassandraSession, keyspaceName, tableName, columnName) {
 			return newCassandraSubDocOperationResult(key, keyValues, errors.New("No subdocs field found."), false, offset)
 		}
@@ -581,16 +581,16 @@ func (c *Cassandra) ReadSubDoc(connStr, username, password, key string, keyValue
 		result = make(map[string]interface{})
 		success := iter.MapScan(result)
 		if !success {
-			if result == nil {
-				return newCassandraSubDocOperationResult(key, keyValues, errors.New("No documents found despite successful subdocread."), false, offset)
-			} else if err := iter.Close(); err != nil {
-				return newCassandraSubDocOperationResult(key, keyValues, errors.New("Unsuccessful READ operation."), false, offset)
-			}
+			return newCassandraSubDocOperationResult(key, keyValues, errors.New("Unsuccessful READ operation."), false, offset)
 		}
-		if result[columnName] == nil {
-			return newCassandraSubDocOperationResult(key, keyValues, errors.New("No subdocs found."), false, offset)
+		if result == nil {
+			return newCassandraSubDocOperationResult(key, keyValues, errors.New("No documents found despite successful subdocread."), false, offset)
+		}
+		if result[columnName].(string) == "" {
+			return newCassandraSubDocOperationResult(key, keyValues, errors.New("Subdocs field is null."), false, offset)
 		}
 	}
+	//fmt.Println("result == ", result[columnName].(string))
 	return newCassandraSubDocOperationResult(key, keyValues, nil, true, offset)
 }
 

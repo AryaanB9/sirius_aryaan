@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os/exec"
+	"strconv"
+	"strings"
 
 	"github.com/gocql/gocql"
 	"go.mongodb.org/mongo-driver/bson"
@@ -422,10 +425,10 @@ func CountOp(task *tasks.GenericLoadingTask) (string, int64, bool) {
 	case CouchbaseColumnar:
 		return "To be implemented for Columnar", count, false
 	case CassandraDb:
-		if task.ConnStr == "" || task.Password == "" || task.Username == "" {
-			resultString = "Connection String or Auth Params Empty"
-			break
-		}
+		//if task.ConnStr == "" || task.Password == "" || task.Username == "" {
+		//	resultString = "Connection String or Auth Params Empty"
+		//	break
+		//}
 		if task.Extra.Keyspace == "" {
 			resultString = "Keyspace name not provided"
 			break
@@ -434,29 +437,42 @@ func CountOp(task *tasks.GenericLoadingTask) (string, int64, bool) {
 			resultString = "Table name not provided"
 			break
 		}
-		cassClusterConfig := gocql.NewCluster(task.ConnStr)
-		cassClusterConfig.Authenticator = gocql.PasswordAuthenticator{Username: task.Username, Password: task.Password}
-		cassClusterConfig.Keyspace = task.Extra.Keyspace
-		cassandraSession, errCreateSession := cassClusterConfig.CreateSession()
-		if errCreateSession != nil {
-			log.Println("Unable to connect to Cassandra! err:", errCreateSession.Error())
-			resultString += "Unable to connect to Cassandra! err:" + errCreateSession.Error()
-			break
-		}
-		defer cassandraSession.Close()
-
-		countQuery := "SELECT COUNT(*) FROM " + task.Extra.Table
-		var rowCount int64
-		if errCount := cassandraSession.Query(countQuery).Scan(&rowCount); errCount != nil {
-			log.Println("Error while getting COUNT", errCount)
+		//cassClusterConfig := gocql.NewCluster(task.ConnStr)
+		//cassClusterConfig.Authenticator = gocql.PasswordAuthenticator{Username: task.Username, Password: task.Password}
+		//cassClusterConfig.Keyspace = task.Extra.Keyspace
+		//cassandraSession, errCreateSession := cassClusterConfig.CreateSession()
+		//if errCreateSession != nil {
+		//	log.Println("Unable to connect to Cassandra! err:", errCreateSession.Error())
+		//	resultString += "Unable to connect to Cassandra! err:" + errCreateSession.Error()
+		//	break
+		//}
+		//defer cassandraSession.Close()
+		//
+		//countQuery := "SELECT COUNT(*) FROM " + task.Extra.Table
+		//var rowCount int64
+		//if errCount := cassandraSession.Query(countQuery).Scan(&rowCount); errCount != nil {
+		//	log.Println("Error while getting COUNT", errCount)
+		//	resultString += "Error while getting COUNT"
+		//	status = false
+		//	break
+		//}
+		resultString += "Count Operation Successful. "
+		cmd := exec.Command("sh", "-c", "cqlsh -e \"copy "+task.Extra.Keyspace+"."+task.Extra.Table+" (id) to '/dev/null'\" | sed -n 5p | sed 's/ .*//'")
+		cmdOutput, err := cmd.Output()
+		if err != nil {
 			resultString += "Error while getting COUNT"
 			status = false
 			break
 		}
-		resultString += "Count Operation Successful. "
-		resultString += "Count = " + string(rowCount)
+		resultString += "Count = " + strings.TrimSpace(string(cmdOutput))
 		status = true
-		count = rowCount
+		rowCount, err := strconv.Atoi(strings.TrimSpace(string(cmdOutput)))
+		if err != nil {
+			resultString += "Error converting to integer"
+			status = false
+			break
+		}
+		count = int64(rowCount)
 	}
 	return resultString, count, status
 }
