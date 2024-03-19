@@ -112,7 +112,7 @@ func (h *Hotel) UpdateDocument(fieldsToChange []string, lastUpdatedDocument inte
 
 	hotel, ok := lastUpdatedDocument.(*Hotel)
 	if !ok {
-		return nil, fmt.Errorf("unable to decode last updated document to person template")
+		return nil, fmt.Errorf("unable to decode last updated document to hotel template")
 	}
 
 	checkFields := make(map[string]struct{})
@@ -177,11 +177,11 @@ func (h *Hotel) UpdateDocument(fieldsToChange []string, lastUpdatedDocument inte
 func (h *Hotel) Compare(document1 interface{}, document2 interface{}) (bool, error) {
 	p1, ok := document1.(*Hotel)
 	if !ok {
-		return false, fmt.Errorf("unable to decode first document to person template")
+		return false, fmt.Errorf("unable to decode first document to hotel template")
 	}
 	p2, ok := document2.(*Hotel)
 	if !ok {
-		return false, fmt.Errorf("unable to decode second document to person template")
+		return false, fmt.Errorf("unable to decode second document to hotel template")
 	}
 
 	return reflect.DeepEqual(p1, p2), nil

@@ -34,12 +34,14 @@ func InitialiseTemplate(template string) Template {
 		return &Hotel{}
 	case "small":
 		return &Small{}
+	case "product":
+		return &Product{}
 	default:
 		return &Person{}
 	}
 }
 
-func calculateSizeOfStruct(person interface{}) int {
+func calculateSizeOfStructRecursive(person interface{}) int {
 	value := reflect.ValueOf(person)
 	size := int(unsafe.Sizeof(person))
 
@@ -63,6 +65,60 @@ func calculateSizeOfStruct(person interface{}) int {
 			}
 		case reflect.Struct:
 			size += calculateSizeOfStruct(field.Interface())
+
+		case reflect.Map:
+			keys := field.MapKeys()
+			for _, key := range keys {
+				size += len(key.String()) // Assuming keys are strings
+				value := field.MapIndex(key)
+				if value.IsValid() {
+					size += len(value.String())
+				}
+			}
+		}
+	}
+
+	return size
+}
+
+func calculateSizeOfStruct(person interface{}) int {
+	value := reflect.ValueOf(person)
+	size := int(unsafe.Sizeof(person))
+
+	//if value.Kind() != reflect.Struct {
+	//	return size
+	//}
+	// if the value is a pointer then dereference it.
+	if value.Kind() == reflect.Ptr {
+		value = value.Elem()
+	}
+
+	numFields := value.NumField()
+	for i := 0; i < numFields; i++ {
+		field := value.Field(i)
+		switch field.Kind() {
+		case reflect.String:
+			size += len(field.String())
+		case reflect.Float64:
+			size += int(unsafe.Sizeof(float64(0)))
+		case reflect.Slice:
+			if field.Type().Elem().Kind() == reflect.String {
+				for j := 0; j < field.Len(); j++ {
+					size += len(field.Index(j).String())
+				}
+			}
+		case reflect.Struct:
+			size += calculateSizeOfStructRecursive(field.Interface())
+
+		case reflect.Map:
+			keys := field.MapKeys()
+			for _, key := range keys {
+				size += len(key.String()) // Assuming keys are strings
+				value := field.MapIndex(key)
+				if value.IsValid() {
+					size += len(value.String())
+				}
+			}
 		}
 	}
 
