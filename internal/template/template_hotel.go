@@ -10,36 +10,36 @@ import (
 )
 
 type Rating struct {
-	RatingValue float64 `json:"rating_value,omitempty"`
-	Cleanliness float64 `json:"cleanliness,omitempty"`
-	Overall     float64 `json:"overall,omitempty"`
-	CheckIn     float64 `json:"checkin,omitempty"`
-	Rooms       float64 `json:"rooms,omitempty"`
+	RatingValue float64 `json:"rating_value,omitempty" parquet:"name=rating_value, type=DOUBLE"`
+	Cleanliness float64 `json:"cleanliness,omitempty" parquet:"name=cleanliness, type=DOUBLE"`
+	Overall     float64 `json:"overall,omitempty" parquet:"name=overall, type=DOUBLE"`
+	CheckIn     float64 `json:"checkin,omitempty" parquet:"name=checkin, type=DOUBLE"`
+	Rooms       float64 `json:"rooms,omitempty" parquet:"name=rooms, type=DOUBLE"`
 }
 type Review struct {
-	Date   string `json:"date,omitempty"`
-	Author string `json:"author,omitempty"`
-	Rating Rating `json:"rating,omitempty"`
+	Date   string `json:"date,omitempty" parquet:"name=date, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	Author string `json:"author,omitempty" parquet:"name=author, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	Rating Rating `json:"rating,omitempty" parquet:"name=rating`
 }
 
 type Hotel struct {
-	ID            string   `json:"id" bson:"_id"`
-	Country       string   `json:"country,omitempty"`
-	Address       string   `json:"address,omitempty"`
-	FreeParking   bool     `json:"free_parking,omitempty"`
-	City          string   `json:"city,omitempty"`
-	TemplateType  string   `json:"template_type"`
-	URL           string   `json:"url,omitempty"`
-	Reviews       []Review `json:"reviews,omitempty"`
-	Phone         string   `json:"phone,omitempty"`
-	Price         float64  `json:"price,omitempty"`
-	AvgRating     float64  `json:"avg_rating,omitempty"`
-	FreeBreakfast bool     `json:"free_breakfast,omitempty"`
-	Name          string   `json:"name,omitempty"`
-	PublicLikes   []string `json:"public_likes,omitempty"`
-	Email         string   `json:"email,omitempty"`
-	Mutated       float64  `json:"mutated"`
-	Padding       string   `json:"padding"`
+	ID            string   `json:"id" bson:"_id" parquet:"name=id, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	Country       string   `json:"country,omitempty" parquet:"name=country, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	Address       string   `json:"address,omitempty" parquet:"name=address, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	FreeParking   bool     `json:"free_parking,omitempty" parquet:"name=free_parking, type=BOOLEAN"`
+	City          string   `json:"city,omitempty" parquet:"name=city, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	TemplateType  string   `json:"template_type" parquet:"name=template_type, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	URL           string   `json:"url,omitempty" parquet:"name=url, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	Reviews       []Review `json:"reviews,omitempty" parquet:"name=reviews, type=LIST"`
+	Phone         string   `json:"phone,omitempty" parquet:"name=phone, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	Price         float64  `json:"price,omitempty" parquet:"name=price, type=DOUBLE"`
+	AvgRating     float64  `json:"avg_rating,omitempty" parquet:"name=avg_rating, type=DOUBLE"`
+	FreeBreakfast bool     `json:"free_breakfast,omitempty" parquet:"name=free_breakfast, type=BOOLEAN"`
+	Name          string   `json:"name,omitempty" parquet:"name=name, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	PublicLikes   []string `json:"public_likes,omitempty" parquet:"name=public_likes, type=LIST"`
+	Email         string   `json:"email,omitempty" parquet:"name=email, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	Mutated       float64  `json:"mutated" parquet:"name=mutated, type=DOUBLE"`
+	Padding       string   `json:"padding" parquet:"name=padding, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
 }
 
 // buildReview generates the Review slice to be added into Hotel struct
@@ -203,4 +203,199 @@ func (h *Hotel) GenerateSubPathAndValue(fake *faker.Faker, subDocSize int) map[s
 	return map[string]interface{}{
 		"_1": strings.Repeat(fake.Letter(), subDocSize),
 	}
+}
+
+func (h *Hotel) ToStringMap() map[string]interface{} {
+	datumIn := map[string]interface{}{
+		"id":            h.ID,
+		"template_type": h.TemplateType,
+		"mutated":       h.Mutated,
+		"padding":       h.Padding,
+	}
+
+	if h.Country != "" {
+		datumIn["country"] = h.Country
+	} else {
+		datumIn["country"] = nil
+	}
+
+	if h.Address != "" {
+		datumIn["address"] = h.Address
+	} else {
+		datumIn["address"] = nil
+	}
+
+	datumIn["free_parking"] = h.FreeParking
+	datumIn["city"] = h.City
+
+	if h.URL != "" {
+		datumIn["url"] = h.URL
+	} else {
+		datumIn["url"] = nil
+	}
+
+	if len(h.Reviews) > 0 {
+		reviews := make([]map[string]interface{}, 0)
+		for _, review := range h.Reviews {
+			reviewMap := map[string]interface{}{
+				"date":   review.Date,
+				"author": review.Author,
+				"rating": map[string]interface{}{
+					"rating_value": review.Rating.RatingValue,
+					"cleanliness":  review.Rating.Cleanliness,
+					"overall":      review.Rating.Overall,
+					"checkin":      review.Rating.CheckIn,
+					"rooms":        review.Rating.Rooms,
+				},
+			}
+			reviews = append(reviews, reviewMap)
+		}
+		datumIn["reviews"] = reviews
+	} else {
+		datumIn["reviews"] = nil
+	}
+
+	datumIn["phone"] = h.Phone
+	datumIn["price"] = h.Price
+	datumIn["avg_rating"] = h.AvgRating
+	datumIn["free_breakfast"] = h.FreeBreakfast
+	datumIn["name"] = h.Name
+
+	if len(h.PublicLikes) > 0 {
+		datumIn["public_likes"] = h.PublicLikes
+	} else {
+		datumIn["public_likes"] = nil
+	}
+	datumIn["email"] = h.Email
+
+	return datumIn
+}
+
+func StringMapToHotel(data map[string]interface{}) *Hotel {
+	hotel := &Hotel{}
+
+	for key, value := range data {
+		switch key {
+		case "id":
+			if id, ok := value.(string); ok {
+				hotel.ID = id
+			}
+		case "country":
+			if country, ok := value.(string); ok {
+				hotel.Country = country
+			}
+		case "address":
+			if address, ok := value.(string); ok {
+				hotel.Address = address
+			}
+		case "free_parking":
+			if freeParking, ok := value.(bool); ok {
+				hotel.FreeParking = freeParking
+			}
+		case "city":
+			if city, ok := value.(string); ok {
+				hotel.City = city
+			}
+		case "template_type":
+			if templateType, ok := value.(string); ok {
+				hotel.TemplateType = templateType
+			}
+		case "url":
+			if url, ok := value.(string); ok {
+				hotel.URL = url
+			}
+		case "reviews":
+			if reviews, ok := value.([]interface{}); ok {
+				for _, review := range reviews {
+					if reviewMap, ok := review.(map[string]interface{}); ok {
+						newReview := Review{}
+						for reviewKey, reviewValue := range reviewMap {
+							switch reviewKey {
+							case "date":
+								if date, ok := reviewValue.(string); ok {
+									newReview.Date = date
+								}
+							case "author":
+								if author, ok := reviewValue.(string); ok {
+									newReview.Author = author
+								}
+							case "rating":
+								if ratingMap, ok := reviewValue.(map[string]interface{}); ok {
+									rating := Rating{}
+									for ratingKey, ratingValue := range ratingMap {
+										switch ratingKey {
+										case "rating_value":
+											if rv, ok := ratingValue.(float64); ok {
+												rating.RatingValue = rv
+											}
+										case "cleanliness":
+											if cleanliness, ok := ratingValue.(float64); ok {
+												rating.Cleanliness = cleanliness
+											}
+										case "overall":
+											if overall, ok := ratingValue.(float64); ok {
+												rating.Overall = overall
+											}
+										case "checkin":
+											if checkin, ok := ratingValue.(float64); ok {
+												rating.CheckIn = checkin
+											}
+										case "rooms":
+											if rooms, ok := ratingValue.(float64); ok {
+												rating.Rooms = rooms
+											}
+										}
+									}
+									newReview.Rating = rating
+								}
+							}
+						}
+						hotel.Reviews = append(hotel.Reviews, newReview)
+					}
+				}
+			}
+		case "phone":
+			if phone, ok := value.(string); ok {
+				hotel.Phone = phone
+			}
+		case "price":
+			if price, ok := value.(float64); ok {
+				hotel.Price = price
+			}
+		case "avg_rating":
+			if avgRating, ok := value.(float64); ok {
+				hotel.AvgRating = avgRating
+			}
+		case "free_breakfast":
+			if freeBreakfast, ok := value.(bool); ok {
+				hotel.FreeBreakfast = freeBreakfast
+			}
+		case "name":
+			if name, ok := value.(string); ok {
+				hotel.Name = name
+			}
+		case "public_likes":
+			if publicLikes, ok := value.([]interface{}); ok {
+				for _, like := range publicLikes {
+					if likeStr, ok := like.(string); ok {
+						hotel.PublicLikes = append(hotel.PublicLikes, likeStr)
+					}
+				}
+			}
+		case "email":
+			if email, ok := value.(string); ok {
+				hotel.Email = email
+			}
+		case "mutated":
+			if mutated, ok := value.(float64); ok {
+				hotel.Mutated = mutated
+			}
+		case "padding":
+			if padding, ok := value.(string); ok {
+				hotel.Padding = padding
+			}
+		}
+	}
+
+	return hotel
 }
