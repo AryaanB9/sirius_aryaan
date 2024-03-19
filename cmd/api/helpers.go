@@ -82,6 +82,7 @@ func registerInterfaces() {
 	gob.Register(&tasks.Request{})
 	gob.Register(&meta_data.MetaData{})
 	gob.Register(&template.Person{})
+	gob.Register(&template.Product{})
 	gob.Register(&template.Hotel{})
 	gob.Register(&template.Small{})
 	gob.Register(&server_requests.ServerRequests{})
