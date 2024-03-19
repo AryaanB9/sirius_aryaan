@@ -862,12 +862,6 @@ func (m Mongo) DeleteBulk(connStr, username, password string, keyValues []KeyVal
 		return result
 	}
 	//log.Printf("Deleted %d document(s)\n", resultOfDelete.DeletedCount)
-	if resultOfDelete.DeletedCount == 0 {
-		for _, x := range keyValues {
-			result.AddResult(x.Key, nil, errors.New("zero documents were deleted"), true, keyToOffset[x.Key])
-		}
-		return result
-	}
 	for _, x := range keyValues {
 		result.AddResult(x.Key, nil, nil, true, keyToOffset[x.Key])
 	}

@@ -2,6 +2,7 @@ package template
 
 import (
 	"fmt"
+
 	"github.com/bgadrian/fastfaker/faker"
 
 	"log"
@@ -15,8 +16,8 @@ func TestGenerateSmall(t *testing.T) {
 	fake2 := faker.NewFastFaker()
 	fake2.Seed(1678693916037126001)
 	smallTemplate := InitialiseTemplate("small")
-	document1 := smallTemplate.GenerateDocument(fake1, "1678693916037126002", 10)
-	document2 := smallTemplate.GenerateDocument(fake2, "1678693916037126001", 10)
+	document1 := smallTemplate.GenerateDocument(fake1, "1678693916037126002", 10, false)
+	document2 := smallTemplate.GenerateDocument(fake2, "1678693916037126001", 10, false)
 
 	log.Println(document1)
 	log.Println(document2)
@@ -33,7 +34,7 @@ func TestGenerateSmall(t *testing.T) {
 	}
 
 	// test to update the document1 and comparing it with original document
-	document3, err := smallTemplate.UpdateDocument([]string{}, document1, 10, fake1)
+	document3, err := smallTemplate.UpdateDocument([]string{}, document1, 10, fake1, false)
 	if err != nil {
 		log.Println(err)
 		t.Fail()
@@ -43,7 +44,7 @@ func TestGenerateSmall(t *testing.T) {
 	log.Println(document3)
 	log.Println()
 
-	document4, err := smallTemplate.UpdateDocument([]string{}, document2, 10, fake2)
+	document4, err := smallTemplate.UpdateDocument([]string{}, document2, 10, fake2, false)
 	if err != nil {
 		log.Println(err)
 		t.Fail()

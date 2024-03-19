@@ -73,8 +73,9 @@ func buildPublicLikes(fake *faker.Faker, length int32) []string {
 	return s
 }
 
-func (h *Hotel) GenerateDocument(fake *faker.Faker, key string, documentSize int) interface{} {
-	hotel := &Hotel{
+func (h *Hotel) GenerateDocument(fake *faker.Faker, key string, documentSize int, sql bool) interface{} {
+	var hotel *Hotel
+	hotel = &Hotel{
 		ID:            key,
 		Country:       fake.Country(),
 		Address:       fake.Address().Address,
@@ -92,27 +93,32 @@ func (h *Hotel) GenerateDocument(fake *faker.Faker, key string, documentSize int
 		Email:         fake.URL(),
 		Mutated:       MutatedPathDefaultValue,
 	}
-
 	currentDocSize := calculateSizeOfStruct(hotel)
-	//if (currentDocSize) < int(documentSize) {
-	//	hotel.Padding = strings.Repeat("a", int(documentSize)-(currentDocSize))
-	//}
+	if sql {
+		if (currentDocSize) < int(documentSize) {
+			hotel.Padding = strings.Repeat("a", int(documentSize)-(currentDocSize))
+		}
+		val := []interface{}{hotel.ID, hotel.Address, hotel.FreeParking, hotel.City, hotel.URL, hotel.Phone, hotel.Price, hotel.AvgRating, hotel.FreeBreakfast, hotel.Name,
+			hotel.Email, hotel.Padding, hotel.Mutated}
+		return val
+	}
 	if (currentDocSize) < int(documentSize) {
 		remSize := int(documentSize) - (currentDocSize)
 		numOfReviews := int(remSize/(95*2)) + 1
 		rev := buildReview(fake, int32(numOfReviews))
 		hotel.Reviews = rev
 	}
+
 	return hotel
 
 }
 
 func (h *Hotel) UpdateDocument(fieldsToChange []string, lastUpdatedDocument interface{}, documentSize int,
-	fake *faker.Faker) (interface{}, error) {
+	fake *faker.Faker, sql bool) (interface{}, error) {
 
 	hotel, ok := lastUpdatedDocument.(*Hotel)
 	if !ok {
-		return nil, fmt.Errorf("unable to decode last updated document to person template")
+		return nil, fmt.Errorf("unable to decode last updated document to hotel template in update doc")
 	}
 
 	checkFields := make(map[string]struct{})
@@ -135,7 +141,7 @@ func (h *Hotel) UpdateDocument(fieldsToChange []string, lastUpdatedDocument inte
 	if _, ok := checkFields["url"]; ok || len(checkFields) == 0 {
 		hotel.URL = fake.URL()
 	}
-	if _, ok := checkFields["reviews"]; ok || len(checkFields) == 0 {
+	if _, ok := checkFields["reviews"]; ok || len(checkFields) == 0 && !sql {
 		hotel.Reviews = buildReview(fake, fake.Int32Range(1, 3))
 	}
 	if _, ok := checkFields["phone"]; ok || len(checkFields) == 0 {
@@ -153,7 +159,7 @@ func (h *Hotel) UpdateDocument(fieldsToChange []string, lastUpdatedDocument inte
 	if _, ok := checkFields["name"]; ok || len(checkFields) == 0 {
 		hotel.Name = fake.BeerName()
 	}
-	if _, ok := checkFields["public_likes"]; ok || len(checkFields) == 0 {
+	if _, ok := checkFields["public_likes"]; ok || len(checkFields) == 0 && !sql {
 		hotel.PublicLikes = buildPublicLikes(fake, fake.Int32Range(1, 3))
 	}
 	if _, ok := checkFields["email"]; ok || len(checkFields) == 0 {
@@ -161,15 +167,20 @@ func (h *Hotel) UpdateDocument(fieldsToChange []string, lastUpdatedDocument inte
 	}
 	hotel.Padding = ""
 	currentDocSize := calculateSizeOfStruct(hotel)
-	//if (currentDocSize) < int(documentSize) {
-	//	hotel.Padding = strings.Repeat("a", int(documentSize)-(currentDocSize))
-	//}
 	if (currentDocSize) < int(documentSize) {
-		remSize := int(documentSize) - (currentDocSize)
-		numOfReviews := int(remSize/(95*2)) + 1
-		rev := buildReview(fake, int32(numOfReviews))
-		hotel.Reviews = rev
+		hotel.Padding = strings.Repeat("a", int(documentSize)-(currentDocSize))
 	}
+	if sql {
+		val := []interface{}{hotel.ID, hotel.Address, hotel.FreeParking, hotel.City, hotel.URL, hotel.Phone, hotel.Price, hotel.AvgRating, hotel.FreeBreakfast, hotel.Name,
+			hotel.Email, hotel.Padding, hotel.Mutated}
+		return val, nil
+	}
+	// if (currentDocSize) < int(documentSize) {
+	// 	remSize := int(documentSize) - (currentDocSize)
+	// 	numOfReviews := int(remSize/(95*2)) + 1
+	// 	rev := buildReview(fake, int32(numOfReviews))
+	// 	hotel.Reviews = rev
+	// }
 
 	return hotel, nil
 }

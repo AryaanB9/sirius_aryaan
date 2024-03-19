@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"log"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -10,9 +12,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/barkha06/sirius/internal/tasks"
-	"fmt"
-	"log"
 
+	"database/sql"
+
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/gocql/gocql"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -25,6 +28,7 @@ const (
 	CouchbaseColumnar = "columnar"
 	DynamoDb          = "dynamodb"
 	CassandraDb       = "cassandra"
+	SqlDB             = "mysql"
 )
 
 func createDBOp(task *tasks.GenericLoadingTask) (string, bool) {
@@ -57,6 +61,52 @@ func createDBOp(task *tasks.GenericLoadingTask) (string, bool) {
 		mongoClient.Disconnect(context.TODO())
 	case CouchbaseDb:
 		return "To be implemented for Couchbase", false
+	case SqlDB:
+		dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", task.Username, task.Password, task.ConnStr, "3306", "")
+		db, err := sql.Open("mysql", dsn)
+		if err != nil {
+			resultString = err.Error()
+		} else {
+			defer db.Close()
+			err = db.Ping()
+			if err != nil {
+				resultString = err.Error()
+			} else if task.Extra.Database == "" {
+				resultString = "Empty Database name"
+			} else {
+				query := fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", task.Extra.Database)
+				_, err = db.Exec(query)
+				if err != nil {
+					resultString = err.Error()
+				} else if task.Extra.Table == "" {
+					resultString = "Database Created Successfully"
+					status = true
+				} else {
+					query := "Use " + task.Extra.Database
+					_, err := db.ExecContext(context.TODO(), query)
+					if err != nil {
+						resultString = err.Error()
+					} else {
+						switch task.OperationConfig.TemplateName {
+						case "hotel":
+							query = fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (ID VARCHAR(30) PRIMARY KEY,Address VARCHAR(100) NOT NULL,FreeParkin Bool,City VARCHAR(50),URL VARCHAR(50),Phone VARCHAR(20),Price DOUBLE,AvgRating DOUBLE,FreeBreakfast Bool,Name VARCHAR(50),Email VARCHAR(100),Padding VARCHAR(%d),Mutated DOUBLE)`, task.Extra.Table, task.OperationConfig.DocSize)
+						case "person":
+							query = fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s(ID VARCHAR(30) PRIMARY KEY,FirstName VARCHAR(100),Age DOUBLE,Email VARCHAR(255),Gender VARCHAR(10),MaritalStatus VARCHAR(20),Hobbies VARCHAR(50),Padding VARCHAR(%d),Mutated DOUBLE)`, task.Extra.Table, task.OperationConfig.DocSize)
+						case "small":
+							query = fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s(ID VARCHAR(30) PRIMARY KEY,RandomData VARCHAR(%d),Mutated DOUBLE')`, task.Extra.Table, task.OperationConfig.DocSize)
+						}
+						_, err = db.ExecContext(context.TODO(), query)
+						if err != nil {
+							resultString = err.Error()
+						} else {
+							resultString = "Table created successfully"
+							status = true
+						}
+					}
+				}
+			}
+		}
+
 	case CouchbaseColumnar:
 		return "To be implemented for Columnar", false
 	case DynamoDb:
@@ -257,8 +307,40 @@ func deleteDBOp(task *tasks.GenericLoadingTask) (string, bool) {
 		mongoClient.Disconnect(context.TODO())
 	case CouchbaseDb:
 		return "To be implemented for Couchbase", false
+	case SqlDB:
+		dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", task.Username, task.Password, task.ConnStr, "3306", "")
+		db, err := sql.Open("mysql", dsn)
+		if err != nil {
+			resultString = err.Error()
+		} else {
+			defer db.Close()
+			err = db.Ping()
+			if err != nil {
+				resultString = err.Error()
+			} else if task.Extra.Database == "" {
+				resultString = "Empty Database name"
+			} else if task.Extra.Table != "" {
+				query := fmt.Sprintf("DROP TABLE %s.%s", task.Extra.Database, task.Extra.Table)
+				_, err = db.Exec(query)
+				if err != nil {
+					resultString = err.Error()
+				} else {
+					resultString = "TABLE DELETED Successfully"
+					status = true
+				}
+			} else {
+				query := fmt.Sprintf("DROP DATABASE %s", task.Extra.Database)
+				_, err = db.ExecContext(context.TODO(), query)
+				if err != nil {
+					resultString = err.Error()
+				} else {
+					resultString = "DATABASE DELETED Successfully"
+					status = true
+				}
+			}
+		}
 	case CouchbaseColumnar:
-    return "To be implemented for Columnar", false
+		return "To be implemented for Columnar", false
 	case DynamoDb:
 		cfg, err := config.LoadDefaultConfig(context.TODO(),
 			config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(task.Username, task.Password, "")),
@@ -276,8 +358,8 @@ func deleteDBOp(task *tasks.GenericLoadingTask) (string, bool) {
 			} else {
 				resultString = "Successful deletion : " + *del.TableDescription.TableName
 			}
-			}
-		
+		}
+
 	case CassandraDb:
 		if task.ConnStr == "" || task.Password == "" || task.Username == "" {
 			resultString = "Connection String or Auth Params Empty"
@@ -367,6 +449,56 @@ func ListDBOp(task *tasks.GenericLoadingTask) (any, bool) {
 		mongoClient.Disconnect(context.TODO())
 	case CouchbaseDb:
 		return "To be implemented for Couchbase", false
+	case SqlDB:
+		dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", task.Username, task.Password, task.ConnStr, "3306", "")
+		db, err := sql.Open("mysql", dsn)
+		if err != nil {
+			resultString = err.Error()
+		} else {
+			defer db.Close()
+			err = db.Ping()
+			if err != nil {
+				resultString = err.Error()
+			} else {
+				var query string
+				databases, err := db.Query("SHOW DATABASES  WHERE `Database` NOT IN ('information_schema', 'mysql', 'performance_schema', 'sys')")
+				if err != nil {
+					resultString = err.Error()
+				} else {
+					var dbname string
+					var tname string
+					for databases.Next() {
+						err := databases.Scan(&dbname)
+						if err != nil {
+							resultString = err.Error()
+						} else {
+							query = "USE " + dbname
+							_, err := db.Exec(query)
+							if err != nil {
+								resultString = err.Error()
+							} else {
+								tables, err := db.Query("SHOW TABLES")
+								if err != nil {
+									resultString = err.Error()
+								} else {
+									var arr []string
+									for tables.Next() {
+										err := tables.Scan(&tname)
+										if err != nil {
+											resultString = err.Error()
+										} else {
+											status = true
+											arr = append(arr, tname)
+										}
+									}
+									dblist[dbname] = arr
+								}
+							}
+						}
+					}
+				}
+			}
+		}
 	case CouchbaseColumnar:
 		return "To be implemented for Columnar", false
 	case DynamoDb:
@@ -390,7 +522,7 @@ func ListDBOp(task *tasks.GenericLoadingTask) (any, bool) {
 			}
 			dblist[task.ConnStr] = dblist_new
 		}
-		
+
 	case CassandraDb:
 		if task.ConnStr == "" || task.Password == "" || task.Username == "" {
 			resultString = "Connection String or Auth Params Empty"
@@ -511,6 +643,40 @@ func CountOp(task *tasks.GenericLoadingTask) (string, int64, bool) {
 		mongoClient.Disconnect(context.TODO())
 	case CouchbaseDb:
 		return "To be implemented for Couchbase", count, false
+	case SqlDB:
+		dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", task.Username, task.Password, task.ConnStr, "3306", "")
+		db, err := sql.Open("mysql", dsn)
+		if err != nil {
+			resultString = err.Error()
+		} else {
+			defer db.Close()
+			err = db.Ping()
+			if err != nil {
+				resultString = err.Error()
+			} else if task.Extra.Database == "" {
+				resultString = "Empty Database name"
+			} else if task.Extra.Table == "" {
+				resultString = "Empty Table name"
+			} else {
+				query := fmt.Sprintf("SELECT COUNT(*) FROM %s.%s", task.Extra.Database, task.Extra.Table)
+				rows, err := db.QueryContext(context.TODO(), query)
+				if err != nil {
+					resultString = err.Error()
+				} else {
+					for rows.Next() {
+						err = rows.Scan(&count)
+						if err != nil {
+							resultString = err.Error()
+						} else {
+							resultString = "Successfully Counted Documents"
+							status = true
+							break
+						}
+					}
+				}
+			}
+		}
+
 	case CouchbaseColumnar:
 		return "To be implemented for Columnar", count, false
 	case DynamoDb:
@@ -549,7 +715,7 @@ func CountOp(task *tasks.GenericLoadingTask) (string, int64, bool) {
 				status = true
 			}
 		}
-		
+
 	case CassandraDb:
 		if task.ConnStr == "" || task.Password == "" || task.Username == "" {
 			resultString = "Connection String or Auth Params Empty"

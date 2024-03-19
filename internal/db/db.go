@@ -12,6 +12,7 @@ const (
 	CouchbaseColumnar = "columnar"
 	DynamoDb          = "dynamodb"
 	CassandraDb       = "cassandra"
+	MySql             = "mysql"
 )
 
 type OperationResult interface {
@@ -68,7 +69,7 @@ var mongodb *Mongo
 var cbcolumnar *Columnar
 var dynamo *Dynamo
 var cassandra *Cassandra
-
+var mysql *Sql
 var lock = &sync.Mutex{}
 
 func ConfigDatabase(dbType string) (Database, error) {
@@ -113,11 +114,20 @@ func ConfigDatabase(dbType string) (Database, error) {
 		if cassandra == nil {
 			lock.Lock()
 			defer lock.Unlock()
-			if cbcolumnar == nil {
+			if cassandra == nil {
 				cassandra = NewCassandraConnectionManager()
 			}
 		}
 		return cassandra, nil
+	case MySql:
+		if mysql == nil {
+			lock.Lock()
+			defer lock.Unlock()
+			if mysql == nil {
+				mysql = NewSqlConnectionManager()
+			}
+		}
+		return mysql, nil
 	default:
 		return nil, err_sirius.InvalidDatabase
 	}

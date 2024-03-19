@@ -14,22 +14,32 @@ type Small struct {
 	Mutated    float64 `json:"mutated,omitempty"`
 }
 
-func (s *Small) GenerateDocument(fake *faker.Faker, key string, documentSize int) interface{} {
-	return &Small{
+func (s *Small) GenerateDocument(fake *faker.Faker, key string, documentSize int, sql bool) interface{} {
+	var small *Small
+	small = &Small{
 		ID:         key,
 		RandomData: strings.Repeat(fake.Letter(), documentSize),
 		Mutated:    MutatedPathDefaultValue,
 	}
+	if sql {
+		val := []interface{}{small.ID, small.RandomData, small.Mutated}
+		return val
+	}
+	return small
 }
 
 func (s *Small) UpdateDocument(fieldsToChange []string, lastUpdatedDocument interface{}, documentSize int,
-	fake *faker.Faker) (interface{}, error) {
+	fake *faker.Faker, sql bool) (interface{}, error) {
 
 	t, ok := lastUpdatedDocument.(*Small)
 	if !ok {
 		return nil, fmt.Errorf("unable to decode last updated document to person template")
 	}
 	t.RandomData = strings.Repeat(fake.Letter(), documentSize)
+	if sql {
+		val := []interface{}{t.ID, t.RandomData, t.Mutated}
+		return val, nil
+	}
 	return t, nil
 }
 

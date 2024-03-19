@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"sync"
 
+	"github.com/aws/aws-sdk-go-v2/aws/transport/http"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -47,15 +49,23 @@ func (cm *DynamoConnectionManager) getDynamoDBObject(clusterConfig *DynamoCluste
 		if err := ValidateClusterConfig(clusterConfig.AccessKey, clusterConfig.SecretKeyId, clusterConfig.Region, clusterConfig); err != nil {
 			return nil, err
 		}
+		httpClient := http.NewBuildableClient().WithDialerOptions(func(d *net.Dialer) {
+			d.KeepAlive = 0
+		})
 		cfg, err := config.LoadDefaultConfig(context.TODO(),
 			config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(clusterConfig.AccessKey, clusterConfig.SecretKeyId, "")),
 			config.WithRegion(clusterConfig.Region),
+			config.WithRetryMaxAttempts(0),
+			config.WithHTTPClient(httpClient),
 		)
+		// cfg.APIOptions = append(cfg.APIOptions)
+
 		if err != nil {
 			fmt.Println("Unable to connect to DynamoDB!")
 			log.Fatal(err)
 			return nil, err
 		}
+
 		client := dynamodb.NewFromConfig(cfg)
 		clusterObject := &DynamoClusterObject{DynamoClusterClient: client, Table: ""}
 		cm.setClientObject(clusterIdentifier, clusterObject)

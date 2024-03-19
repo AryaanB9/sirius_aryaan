@@ -24,7 +24,7 @@ func TestGenerator_GetNextKey(t *testing.T) {
 		log.Println(docId)
 		fake := faker.NewFastFaker()
 		fake.Seed(key)
-		_ = g.Template.GenerateDocument(fake, docId, 1024)
+		_ = g.Template.GenerateDocument(fake, docId, 1024, false)
 
 	}
 

@@ -2,9 +2,10 @@ package template
 
 import (
 	"fmt"
-	"github.com/bgadrian/fastfaker/faker"
 	"log"
 	"testing"
+
+	"github.com/bgadrian/fastfaker/faker"
 )
 
 func TestGenerateHotel(t *testing.T) {
@@ -16,8 +17,8 @@ func TestGenerateHotel(t *testing.T) {
 	fake2 := faker.NewFastFaker()
 	fake2.Seed(1678693916037126000)
 	hotelTemplate := InitialiseTemplate("hotel")
-	document1 := hotelTemplate.GenerateDocument(fake1, "1678693916037126000", 0)
-	document2 := hotelTemplate.GenerateDocument(fake2, "1678693916037126000", 0)
+	document1 := hotelTemplate.GenerateDocument(fake1, "1678693916037126000", 0, false)
+	document2 := hotelTemplate.GenerateDocument(fake2, "1678693916037126000", 0, false)
 
 	log.Println(document1)
 	log.Println(document2)
@@ -34,7 +35,7 @@ func TestGenerateHotel(t *testing.T) {
 	}
 
 	// test to update the document1 and comparing it with original document
-	document3, err := hotelTemplate.UpdateDocument([]string{}, document1, 0, fake1)
+	document3, err := hotelTemplate.UpdateDocument([]string{}, document1, 0, fake1, false)
 	if err != nil {
 		log.Println(err)
 		t.Fail()
@@ -44,7 +45,7 @@ func TestGenerateHotel(t *testing.T) {
 	log.Println(document3)
 	log.Println()
 
-	document4, err := hotelTemplate.UpdateDocument([]string{}, document2, 0, fake2)
+	document4, err := hotelTemplate.UpdateDocument([]string{}, document2, 0, fake2, false)
 	if err != nil {
 		log.Println(err)
 		t.Fail()

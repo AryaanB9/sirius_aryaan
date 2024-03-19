@@ -9,7 +9,7 @@ import (
 
 var MaxRetryingRoutines = 32
 var MaxConcurrentRoutines = 10
-var MaxThreads = 250
+var MaxThreads = 100
 var MAXQueueSize int64 = 1000000
 var Pool = threadpool.NewThreadPool(MaxThreads, MAXQueueSize)
 

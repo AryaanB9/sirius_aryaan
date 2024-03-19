@@ -40,12 +40,15 @@ func insertDocuments(start, end, seed int64, operationConfig *OperationConfig,
 		if _, ok := skip[offset]; ok {
 			continue
 		}
-
 		key := offset + seed
 		docId := gen.BuildKey(key)
 		fake := faker.NewFastFaker()
 		fake.Seed(key)
-		doc := gen.Template.GenerateDocument(fake, docId, operationConfig.DocSize)
+		sql := false
+		if databaseInfo.DBType == "mysql" {
+			sql = true
+		}
+		doc := gen.Template.GenerateDocument(fake, docId, operationConfig.DocSize, sql)
 		initTime := time.Now().UTC().Format(time.RFC850)
 		operationResult := database.Create(databaseInfo.ConnStr, databaseInfo.Username, databaseInfo.Password, db.KeyValue{
 			Key:    docId,
@@ -104,8 +107,11 @@ func upsertDocuments(start, end, seed int64, operationConfig *OperationConfig,
 		fake := faker.NewFastFaker()
 		fake.Seed(key)
 		initTime := time.Now().UTC().Format(time.RFC850)
-
-		originalDoc := gen.Template.GenerateDocument(fake, docId, operationConfig.DocSize)
+		sql := false
+		if databaseInfo.DBType == "mysql" {
+			sql = true
+		}
+		originalDoc := gen.Template.GenerateDocument(fake, docId, operationConfig.DocSize, false)
 		originalDoc, err := retracePreviousMutations(req, identifier, offset, originalDoc, gen, fake,
 			result.ResultSeed)
 		if err != nil {
@@ -115,7 +121,7 @@ func upsertDocuments(start, end, seed int64, operationConfig *OperationConfig,
 		}
 
 		docUpdated, err2 := gen.Template.UpdateDocument(operationConfig.FieldsToChange, originalDoc,
-			operationConfig.DocSize, fake)
+			operationConfig.DocSize, fake, sql)
 		if err2 != nil {
 			state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: offset}
 			result.IncrementFailure(initTime, docId, err2, false, nil, offset)
@@ -591,7 +597,10 @@ func bulkInsertDocuments(start, end, seed int64, operationConfig *OperationConfi
 		result.FailWholeBulkOperation(start, end, dbErr, state, gen, seed)
 		return
 	}
-
+	sql := false
+	if databaseInfo.DBType == "mysql" {
+		sql = true
+	}
 	var keyValues []db.KeyValue
 	for offset := start; offset < end; offset++ {
 		if _, ok := skip[offset]; ok {
@@ -602,7 +611,7 @@ func bulkInsertDocuments(start, end, seed int64, operationConfig *OperationConfi
 		docId := gen.BuildKey(key)
 		fake := faker.NewFastFaker()
 		fake.Seed(key)
-		doc := gen.Template.GenerateDocument(fake, docId, operationConfig.DocSize)
+		doc := gen.Template.GenerateDocument(fake, docId, operationConfig.DocSize, sql)
 		keyValues = append(keyValues, db.KeyValue{
 			Key:    docId,
 			Doc:    doc,
@@ -660,7 +669,10 @@ func bulkUpsertDocuments(start int64, end int64, seed int64, operationConfig *Op
 		result.FailWholeBulkOperation(start, end, dbErr, state, gen, seed)
 		return
 	}
-
+	sql := false
+	if databaseInfo.DBType == "mysql" {
+		sql = true
+	}
 	var keyValues []db.KeyValue
 	for offset := start; offset < end; offset++ {
 		if _, ok := skip[offset]; ok {
@@ -671,12 +683,12 @@ func bulkUpsertDocuments(start int64, end int64, seed int64, operationConfig *Op
 		docId := gen.BuildKey(key)
 		fake := faker.NewFastFaker()
 		fake.Seed(key)
-		originalDoc := gen.Template.GenerateDocument(fake, docId, operationConfig.DocSize)
+		originalDoc := gen.Template.GenerateDocument(fake, docId, operationConfig.DocSize, false)
 		originalDoc, _ = retracePreviousMutations(req, identifier, offset, originalDoc, gen, fake,
 			result.ResultSeed)
 
 		docUpdated, _ := gen.Template.UpdateDocument(operationConfig.FieldsToChange, originalDoc,
-			operationConfig.DocSize, fake)
+			operationConfig.DocSize, fake, sql)
 		keyValues = append(keyValues, db.KeyValue{
 			Key:    docId,
 			Doc:    docUpdated,
@@ -803,6 +815,7 @@ func bulkReadDocuments(start, end, seed int64, operationConfig *OperationConfig,
 			state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: x.Offset}
 
 		} else {
+			// log.Println(bulkResult.Value(x.Key))
 			state.StateChannel <- task_state.StateHelper{Status: task_state.COMPLETED, Offset: x.Offset}
 		}
 	}
@@ -916,37 +929,54 @@ func validateDocuments(start, end, seed int64, operationConfig *OperationConfig,
 		log.Println("In Columnar unable to execute query")
 		log.Println(errAnalyticsQuery)
 		result.FailWholeBulkOperation(start, end, errAnalyticsQuery, state, gen, seed)
+		return
+	}
+	columnarResult := make(map[string]map[string]interface{})
+	var resultDisplay map[string]interface{}
+	for cbresult.Next() {
+		err := cbresult.Row(&resultDisplay)
+		if err != nil {
+			result.FailWholeBulkOperation(start, end, err, state, gen, seed)
+			return
+		}
+		var key interface{}
+		var ok bool
+		if key, ok = resultDisplay["ID"]; !ok {
+			if key, ok = resultDisplay["id"]; !ok {
+				if key, ok = resultDisplay["_id"]; !ok {
+					result.FailWholeBulkOperation(start, end, errors.New("id field not found in columnar result"), state, gen, seed)
+					return
+				}
+			}
+		}
+		columnarResult[resultDisplay[key.(string)].(string)] = resultDisplay
+
 	}
 	bulkResult := database.ReadBulk(databaseInfo.ConnStr, databaseInfo.Username, databaseInfo.Password, keyValues, extra)
 	for _, x := range keyValues {
-		if bulkResult.GetError(x.Key) != nil {
-
-			result.IncrementFailure(initTime, x.Key, bulkResult.GetError(x.Key), false, bulkResult.GetExtra(x.Key),
+		errfoundinDB := bulkResult.GetError(x.Key)
+		_, foundinColumnar := columnarResult[x.Key]
+		if errfoundinDB != nil && !foundinColumnar {
+			state.StateChannel <- task_state.StateHelper{Status: task_state.COMPLETED, Offset: x.Offset}
+		} else if errfoundinDB == nil && foundinColumnar {
+			res, _ := gen.Template.Compare(bulkResult.Value(x.Key), columnarResult[x.Key])
+			if !res {
+				result.IncrementFailure(initTime, x.Key, errors.New("Template Compare Failed "+databaseInfo.DBType+": "+x.Key+" | columnar:  "+resultDisplay["_id"].(string)), false, bulkResult.GetExtra(x.Key),
+					x.Offset)
+				state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: x.Offset}
+			} else {
+				state.StateChannel <- task_state.StateHelper{Status: task_state.COMPLETED, Offset: x.Offset}
+			}
+		} else {
+			errStr := ""
+			if errfoundinDB != nil {
+				errStr = "  Document in Columnar but error in the Database"
+			} else {
+				errStr = "  Document in Database but not in Columnar"
+			}
+			result.IncrementFailure(initTime, x.Key, errors.New("Mismatched data:  "+databaseInfo.DBType+": "+x.Key+errStr), false, bulkResult.GetExtra(x.Key),
 				x.Offset)
 			state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: x.Offset}
-
-		} else {
-			var resultDisplay map[string]interface{}
-			if cbresult != nil && cbresult.Next() {
-				err := cbresult.Row(&resultDisplay)
-				if err != nil {
-					log.Println("In Columnar Read(), unable to decode result")
-					log.Println(err)
-
-					result.IncrementFailure(initTime, x.Key, err, false, bulkResult.GetExtra(x.Key),
-						x.Offset)
-					state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: x.Offset}
-				} else {
-					res, _ := gen.Template.Compare(bulkResult.Value(x.Key), resultDisplay)
-					if !res {
-						result.IncrementFailure(initTime, x.Key, errors.New("Template Compare Failed "+databaseInfo.DBType+": "+x.Key+" | columnar:  "+resultDisplay["_id"].(string)), false, bulkResult.GetExtra(x.Key),
-							x.Offset)
-						state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: x.Offset}
-					} else {
-						state.StateChannel <- task_state.StateHelper{Status: task_state.COMPLETED, Offset: x.Offset}
-					}
-				}
-			}
 		}
 	}
 }

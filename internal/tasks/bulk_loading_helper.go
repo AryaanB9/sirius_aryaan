@@ -240,8 +240,12 @@ func retracePreviousMutations(r *Request, collectionIdentifier string, offset in
 						}
 
 						if u.State.CheckOffsetInComplete(offset) {
+							// sql := false
+							// if db := u.DBType; db == "mysql" {
+							// 	sql = true
+							// }
 							doc, _ = gen.Template.UpdateDocument(u.OperationConfig.FieldsToChange, doc,
-								u.OperationConfig.DocSize, fake)
+								u.OperationConfig.DocSize, fake, false)
 						}
 					}
 

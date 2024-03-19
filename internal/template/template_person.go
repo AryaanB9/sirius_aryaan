@@ -96,8 +96,9 @@ type Person struct {
 	Padding       string    `json:"payload"`
 }
 
-func (p *Person) GenerateDocument(fake *faker.Faker, key string, documentSize int) interface{} {
-	person := &Person{
+func (p *Person) GenerateDocument(fake *faker.Faker, key string, documentSize int, sql bool) interface{} {
+	var person *Person
+	person = &Person{
 		ID:            key,
 		FirstName:     fake.Name(),
 		Age:           fake.Float64Range(1, 100),
@@ -129,11 +130,15 @@ func (p *Person) GenerateDocument(fake *faker.Faker, key string, documentSize in
 	if (currentDocSize) < int(documentSize) {
 		person.Padding = strings.Repeat("a", int(documentSize)-(currentDocSize))
 	}
+	if sql {
+		val := []interface{}{person.ID, person.FirstName, person.Age, person.Email, person.Gender, person.MaritalStatus, person.Hobbies, person.Padding, person.Mutated}
+		return val
+	}
 	return person
 }
 
 func (p *Person) UpdateDocument(fieldsToChange []string, lastUpdatedDocument interface{}, documentSize int,
-	fake *faker.Faker) (interface{}, error) {
+	fake *faker.Faker, sql bool) (interface{}, error) {
 
 	person, ok := lastUpdatedDocument.(*Person)
 	if !ok {
@@ -154,10 +159,10 @@ func (p *Person) UpdateDocument(fieldsToChange []string, lastUpdatedDocument int
 	if _, ok := checkFields["email"]; ok || (len(checkFields) == 0) {
 		person.Email = fake.Email()
 	}
-	if _, ok := checkFields["address.state"]; ok || (len(checkFields) == 0) {
+	if _, ok := checkFields["address.state"]; ok || (len(checkFields) == 0) && !sql {
 		person.Address.State = fake.State()
 	}
-	if _, ok := checkFields["address.city"]; ok || (len(checkFields) == 0) {
+	if _, ok := checkFields["address.city"]; ok || (len(checkFields) == 0) && !sql {
 		person.Address.City = fake.City()
 	}
 	if _, ok := checkFields["gender"]; ok || (len(checkFields) == 0) {
@@ -169,28 +174,28 @@ func (p *Person) UpdateDocument(fieldsToChange []string, lastUpdatedDocument int
 	if _, ok := checkFields["hobbies"]; ok || (len(checkFields) == 0) {
 		person.Hobbies = fake.RandString(hobbyChoices)
 	}
-	if _, ok := checkFields["attributes.weight"]; ok || (len(checkFields) == 0) {
+	if _, ok := checkFields["attributes.weight"]; ok || (len(checkFields) == 0) && !sql {
 		person.Attributes.Weight = fake.Float64Range(1, 100)
 	}
-	if _, ok := checkFields["attributes.height"]; ok || (len(checkFields) == 0) {
+	if _, ok := checkFields["attributes.height"]; ok || (len(checkFields) == 0) && !sql {
 		person.Attributes.Height = fake.Float64Range(1, 250)
 	}
-	if _, ok := checkFields["attributes.colour"]; ok || (len(checkFields) == 0) {
+	if _, ok := checkFields["attributes.colour"]; ok || (len(checkFields) == 0) && !sql {
 		person.Attributes.Colour = fake.Color()
 	}
-	if _, ok := checkFields["attributes.hair.type"]; ok || (len(checkFields) == 0) {
+	if _, ok := checkFields["attributes.hair.type"]; ok || (len(checkFields) == 0) && !sql {
 		person.Attributes.Hair.Type = fake.RandString(hairType)
 	}
-	if _, ok := checkFields["attributes.hair.colour"]; ok || (len(checkFields) == 0) {
+	if _, ok := checkFields["attributes.hair.colour"]; ok || (len(checkFields) == 0) && !sql {
 		person.Attributes.Hair.Colour = fake.RandString(hairColor)
 	}
-	if _, ok := checkFields["attributes.hair.length"]; ok || (len(checkFields) == 0) {
+	if _, ok := checkFields["attributes.hair.length"]; ok || (len(checkFields) == 0) && !sql {
 		person.Attributes.Hair.Length = fake.RandString(hairLength)
 	}
-	if _, ok := checkFields["attributes.hair.thickness"]; ok || (len(checkFields) == 0) {
+	if _, ok := checkFields["attributes.hair.thickness"]; ok || (len(checkFields) == 0) && !sql {
 		person.Attributes.Hair.Thickness = fake.RandString(hairThickness)
 	}
-	if _, ok := checkFields["attributes.bodyType"]; ok || (len(checkFields) == 0) {
+	if _, ok := checkFields["attributes.bodyType"]; ok || (len(checkFields) == 0) && !sql {
 		person.Attributes.BodyType = fake.RandString(bodyType)
 	}
 
@@ -199,6 +204,10 @@ func (p *Person) UpdateDocument(fieldsToChange []string, lastUpdatedDocument int
 
 	if (currentDocSize) < int(documentSize) {
 		person.Padding = strings.Repeat("a", int(documentSize)-(currentDocSize))
+	}
+	if sql {
+		val := []interface{}{person.ID, person.FirstName, person.Age, person.Email, person.Gender, person.MaritalStatus, person.Hobbies, person.Padding, person.Mutated}
+		return val, nil
 	}
 
 	return person, nil

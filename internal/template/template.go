@@ -15,9 +15,9 @@ const (
 )
 
 type Template interface {
-	GenerateDocument(fake *faker.Faker, key string, documentSize int) interface{}
+	GenerateDocument(fake *faker.Faker, key string, documentSize int, sql bool) interface{}
 	UpdateDocument(fieldsToChange []string, lastUpdatedDocument interface{}, documentSize int,
-		fake *faker.Faker) (interface{}, error)
+		fake *faker.Faker, sql bool) (interface{}, error)
 	Compare(document1 interface{}, document2 interface{}) (bool, error)
 	GenerateIndexes(bucketName string, scopeName string, collectionName string) ([]string, error)
 	GenerateQueries(bucketName string, scopeName string, collectionName string) ([]string, error)
