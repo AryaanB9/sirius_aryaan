@@ -5,6 +5,7 @@ import (
 
 	"github.com/barkha06/sirius/internal/db"
 	"github.com/barkha06/sirius/internal/docgenerator"
+	"github.com/barkha06/sirius/internal/external_storage"
 	"github.com/barkha06/sirius/internal/task_result"
 	"github.com/barkha06/sirius/internal/task_state"
 )
@@ -19,41 +20,43 @@ type BulkTask interface {
 }
 
 type loadingTask struct {
-	start           int64
-	end             int64
-	operationConfig *OperationConfig
-	seed            int64
-	operation       string
-	rerun           bool
-	gen             *docgenerator.Generator
-	state           *task_state.TaskState
-	result          *task_result.TaskResult
-	databaseInfo    DatabaseInformation
-	extra           db.Extras
-	req             *Request
-	identifier      string
-	wg              *sync.WaitGroup
+	start                 int64
+	end                   int64
+	operationConfig       *OperationConfig
+	seed                  int64
+	operation             string
+	rerun                 bool
+	gen                   *docgenerator.Generator
+	state                 *task_state.TaskState
+	result                *task_result.TaskResult
+	databaseInfo          DatabaseInformation
+	extra                 db.Extras
+	externalStorageExtras external_storage.ExternalStorageExtras
+	req                   *Request
+	identifier            string
+	wg                    *sync.WaitGroup
 }
 
 func newLoadingTask(start, end, seed int64, operationConfig *OperationConfig,
 	operation string, rerun bool, gen *docgenerator.Generator,
 	state *task_state.TaskState, result *task_result.TaskResult, databaseInfo DatabaseInformation,
-	extra db.Extras, req *Request, identifier string, wg *sync.WaitGroup) *loadingTask {
+	extra db.Extras, externalStorageExtras external_storage.ExternalStorageExtras, req *Request, identifier string, wg *sync.WaitGroup) *loadingTask {
 	return &loadingTask{
-		start:           start,
-		end:             end,
-		seed:            seed,
-		operationConfig: operationConfig,
-		operation:       operation,
-		rerun:           rerun,
-		gen:             gen,
-		state:           state,
-		result:          result,
-		databaseInfo:    databaseInfo,
-		extra:           extra,
-		req:             req,
-		identifier:      identifier,
-		wg:              wg,
+		start:                 start,
+		end:                   end,
+		seed:                  seed,
+		operationConfig:       operationConfig,
+		operation:             operation,
+		rerun:                 rerun,
+		gen:                   gen,
+		state:                 state,
+		result:                result,
+		databaseInfo:          databaseInfo,
+		externalStorageExtras: externalStorageExtras,
+		extra:                 extra,
+		req:                   req,
+		identifier:            identifier,
+		wg:                    wg,
 	}
 }
 
@@ -141,5 +144,56 @@ func (l *loadingTask) Run() {
 				l.databaseInfo, l.extra, l.wg)
 		}
 
+	case S3BucketCreateOperation:
+		{
+			createS3Bucket(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
+				l.databaseInfo, l.externalStorageExtras, l.wg)
+		}
+	case S3BucketDeleteOperation:
+		{
+			deleteS3Bucket(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
+				l.databaseInfo, l.externalStorageExtras, l.wg)
+		}
+	case FolderInsertOperation:
+		{
+			insertFolder(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
+				l.databaseInfo, l.externalStorageExtras, l.wg)
+		}
+	case FolderDeleteOperation:
+		{
+			deleteFolder(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
+				l.databaseInfo, l.externalStorageExtras, l.wg)
+		}
+	case FileInsertOperation:
+		{
+			insertFiles(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
+				l.databaseInfo, l.externalStorageExtras, l.wg)
+		}
+
+	case FileUpdateOperation:
+		{
+			insertFiles(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
+				l.databaseInfo, l.externalStorageExtras, l.wg)
+		}
+	case FileDeleteOperation:
+		{
+			deleteFiles(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
+				l.databaseInfo, l.externalStorageExtras, l.wg)
+		}
+	case InsertFilesInFoldersOperation:
+		{
+			insertFilesInFolders(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
+				l.databaseInfo, l.externalStorageExtras, l.wg)
+		}
+	case UpdateFilesInFolderOperation:
+		{
+			updateFilesInFolder(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
+				l.databaseInfo, l.externalStorageExtras, l.wg)
+		}
+	case DeleteFilesInFolderOperation:
+		{
+			deleteFilesInFolder(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
+				l.databaseInfo, l.externalStorageExtras, l.wg)
+		}
 	}
 }
