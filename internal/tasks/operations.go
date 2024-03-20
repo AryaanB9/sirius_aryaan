@@ -1202,7 +1202,7 @@ func insertFiles(start, end, seed int64, operationConfig *OperationConfig,
 		var bufferAvroFile bytes.Buffer
 
 		// Parsing the AVRO Schema
-		avroSchema, err := getAvroSchema(templateName)
+		avroSchema, err := template.GetAvroSchema(templateName)
 		if err != nil {
 			log.Println("In operations.go insertFiles(), error getting avro schema:", err)
 		}
@@ -1212,34 +1212,18 @@ func insertFiles(start, end, seed int64, operationConfig *OperationConfig,
 			log.Println("In operations.go insertFiles(), error parsing avro schema:", err)
 		}
 
-		switch templateName {
-		case "hotel":
-			for _, x := range docsArray {
-				// Converting the documents into avro binary
-				avroDoc, err := codec.BinaryFromNative(nil, x.(*template.Hotel).ToStringMap())
-				if err != nil {
-					log.Println("In operations.go insertFiles(), error converting into avro:", err)
-				}
-				_, err = bufferAvroFile.Write(avroDoc)
-				if err != nil {
-					log.Println("In operations.go insertFiles(), writing avro data to buffer failed:", err)
-				}
+		// Converting the documents into avro binary
+		for _, x := range docsArray {
+			avroDoc, err := codec.BinaryFromNative(nil, template.StructToMap(x))
+			if err != nil {
+				log.Println("In operations.go insertFiles(), error converting into avro:", err)
 			}
-
-		case "person":
-			// TODO
-			// Have to create ToStringMap() and StringMapToPerson() for Person template
-			panic("avro not implemented for person template")
-
-		case "product":
-			// TODO
-			// Have to create ToStringMap() and StringMapToProduct() for Product template
-			panic("avro not implemented for product template")
-
-		default:
-			panic("invalid template name")
+			_, err = bufferAvroFile.Write(avroDoc)
+			if err != nil {
+				log.Println("In operations.go insertFiles(), writing avro data to buffer failed:", err)
+			}
 		}
-
+		
 		fileToUpload = bufferAvroFile.Bytes()
 		bufferAvroFile.Reset()
 
