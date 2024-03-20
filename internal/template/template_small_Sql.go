@@ -9,19 +9,21 @@ import (
 )
 
 type SmallSql struct {
-	ID         string  `json:"_id" bson:"_id"`
-	RandomData string  `json:"d,omitempty"`
-	Mutated    float64 `json:"mutated,omitempty"`
-	Value      []interface{}
+	ID           string  `json:"_id" bson:"_id"`
+	RandomData   string  `json:"d,omitempty"`
+	Mutated      float64 `json:"mutated,omitempty"`
+	Value        []interface{}
+	TemplateType string `json:"template_type" dynamodbav:"template_type"`
 }
 
 func (s *SmallSql) GenerateDocument(fake *faker.Faker, key string, documentSize int) interface{} {
 	small := &SmallSql{
-		ID:         key,
-		RandomData: strings.Repeat(fake.Letter(), documentSize),
-		Mutated:    MutatedPathDefaultValue,
+		ID:           key,
+		TemplateType: "small_sql",
+		RandomData:   strings.Repeat(fake.Letter(), documentSize),
+		Mutated:      MutatedPathDefaultValue,
 	}
-	values := []interface{}{&small.ID, &small.RandomData, &small.Mutated}
+	values := []interface{}{&small.TemplateType, &small.ID, &small.RandomData, &small.Mutated}
 	small.Value = values
 	return small
 }
@@ -34,7 +36,7 @@ func (s *SmallSql) UpdateDocument(fieldsToChange []string, lastUpdatedDocument i
 		return nil, fmt.Errorf("unable to decode last updated document to person template")
 	}
 	small.RandomData = strings.Repeat(fake.Letter(), documentSize)
-	values := []interface{}{&small.ID, &small.RandomData, &small.Mutated}
+	values := []interface{}{&small.TemplateType, &small.ID, &small.RandomData, &small.Mutated}
 	small.Value = values
 	return small, nil
 }

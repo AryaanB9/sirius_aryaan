@@ -19,6 +19,7 @@ type PersonSql struct {
 	Hobbies       string  `json:"hobbies,omitempty"`
 	Value         []interface{}
 	Mutated       float64 `json:"mutated"`
+	TemplateType  string  `json:"template_type" dynamodbav:"template_type"`
 	Padding       string  `json:"payload"`
 }
 
@@ -32,13 +33,14 @@ func (p *PersonSql) GenerateDocument(fake *faker.Faker, key string, documentSize
 		MaritalStatus: fake.RandString(maritalChoices),
 		Hobbies:       fake.RandString(hobbyChoices),
 		Mutated:       MutatedPathDefaultValue,
+		TemplateType:  "person_sql",
 	}
 	currentDocSize := calculateSizeOfStruct(person)
 
 	if (currentDocSize) < int(documentSize) {
 		person.Padding = strings.Repeat("a", int(documentSize)-(currentDocSize))
 	}
-	values := []interface{}{&person.ID, &person.FirstName, &person.Age, &person.Email, &person.Gender, &person.MaritalStatus, &person.Hobbies, &person.Padding, &person.Mutated}
+	values := []interface{}{&person.TemplateType, &person.ID, &person.FirstName, &person.Age, &person.Email, &person.Gender, &person.MaritalStatus, &person.Hobbies, &person.Padding, &person.Mutated}
 	person.Value = values
 	return person
 }
@@ -79,7 +81,7 @@ func (p *PersonSql) UpdateDocument(fieldsToChange []string, lastUpdatedDocument 
 	if (currentDocSize) < int(documentSize) {
 		person.Padding = strings.Repeat("a", int(documentSize)-(currentDocSize))
 	}
-	values := []interface{}{&person.ID, &person.FirstName, &person.Age, &person.Email, &person.Gender, &person.MaritalStatus, &person.Hobbies, &person.Padding, &person.Mutated}
+	values := []interface{}{&person.TemplateType, &person.ID, &person.FirstName, &person.Age, &person.Email, &person.Gender, &person.MaritalStatus, &person.Hobbies, &person.Padding, &person.Mutated}
 	person.Value = values
 	return person, nil
 }

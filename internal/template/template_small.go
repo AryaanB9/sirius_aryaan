@@ -9,16 +9,18 @@ import (
 )
 
 type Small struct {
-	ID         string  `json:"_id" bson:"_id" dynamodbav:"_id"`
-	RandomData string  `json:"d,omitempty" dynamodbav:"d"`
-	Mutated    float64 `json:"mutated,omitempty" dynamodbav:"mutated"`
+	ID           string  `json:"_id" bson:"_id" dynamodbav:"_id"`
+	RandomData   string  `json:"d,omitempty" dynamodbav:"d"`
+	Mutated      float64 `json:"mutated,omitempty" dynamodbav:"mutated"`
+	TemplateType string  `json:"template_type" dynamodbav:"template_type"`
 }
 
 func (s *Small) GenerateDocument(fake *faker.Faker, key string, documentSize int) interface{} {
 	return &Small{
-		ID:         key,
-		RandomData: strings.Repeat(fake.Letter(), documentSize),
-		Mutated:    MutatedPathDefaultValue,
+		ID:           key,
+		TemplateType: "small",
+		RandomData:   strings.Repeat(fake.Letter(), documentSize),
+		Mutated:      MutatedPathDefaultValue,
 	}
 }
 

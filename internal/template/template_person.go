@@ -94,6 +94,7 @@ type Person struct {
 	Attributes    Attribute `json:"attributes,omitempty" dynamodbav:"attributes"`
 	Mutated       float64   `json:"mutated" dynamodbav:"mutated"`
 	Padding       string    `json:"payload" dynamodbav:"payload"`
+	TemplateType  string    `json:"template_type" dynamodbav:"template_type"`
 }
 
 func (p *Person) GenerateDocument(fake *faker.Faker, key string, documentSize int) interface{} {
@@ -103,6 +104,7 @@ func (p *Person) GenerateDocument(fake *faker.Faker, key string, documentSize in
 		Age:           fake.Float64Range(1, 100),
 		Email:         fake.Email(),
 		Gender:        fake.Gender(),
+		TemplateType:  "Person",
 		MaritalStatus: fake.RandString(maritalChoices),
 		Hobbies:       fake.RandString(hobbyChoices),
 		Address: Address{
