@@ -56,7 +56,7 @@ func TestCassandraDB(t *testing.T) {
 		docId := gen.BuildKey(key)
 		fake := faker.NewFastFaker()
 		fake.Seed(key)
-		doc := g.Template.GenerateDocument(fake, docId, 1024, false)
+		doc := g.Template.GenerateDocument(fake, docId, 1024)
 		//log.Println(docId, Doc)
 		createResult := db.Create(connStr, username, password, KeyValue{
 			Key:    docId,
@@ -80,7 +80,7 @@ func TestCassandraDB(t *testing.T) {
 		docId := gen.BuildKey(key)
 		fake := faker.NewFastFaker()
 		fake.Seed(key)
-		doc := g.Template.GenerateDocument(fake, docId, 1024, false)
+		doc := g.Template.GenerateDocument(fake, docId, 1024)
 		//log.Println(docId, Doc)
 		keyVal := KeyValue{docId, doc, i}
 		keyValues = append(keyValues, keyVal)
@@ -103,8 +103,8 @@ func TestCassandraDB(t *testing.T) {
 		docId := gen.BuildKey(key)
 		fake := faker.NewFastFaker()
 		fake.Seed(key)
-		doc := g.Template.GenerateDocument(fake, docId, 1024, false) // Original Doc
-		doc = g.Template.GenerateDocument(fake, docId, 1024, false)  // 1 Time Mutated Doc
+		doc := g.Template.GenerateDocument(fake, docId, 1024) // Original Doc
+		doc = g.Template.GenerateDocument(fake, docId, 1024)  // 1 Time Mutated Doc
 		//log.Println(docId, doc)
 		updateResult := db.Update(connStr, username, password, KeyValue{
 			Key:    docId,
@@ -128,8 +128,8 @@ func TestCassandraDB(t *testing.T) {
 		docId := gen.BuildKey(key)
 		fake := faker.NewFastFaker()
 		fake.Seed(key)
-		doc := g.Template.GenerateDocument(fake, docId, 1024, false)
-		doc = g.Template.GenerateDocument(fake, docId, 1024, false) // 1 Time Mutated Doc
+		doc := g.Template.GenerateDocument(fake, docId, 1024)
+		doc = g.Template.GenerateDocument(fake, docId, 1024) // 1 Time Mutated Doc
 		//log.Println(docId, Doc)
 		keyVal := KeyValue{docId, doc, i}
 		keyValues = append(keyValues, keyVal)

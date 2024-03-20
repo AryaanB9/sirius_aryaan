@@ -245,7 +245,7 @@ func retracePreviousMutations(r *Request, collectionIdentifier string, offset in
 							// 	sql = true
 							// }
 							doc, _ = gen.Template.UpdateDocument(u.OperationConfig.FieldsToChange, doc,
-								u.OperationConfig.DocSize, fake, false)
+								u.OperationConfig.DocSize, fake)
 						}
 					}
 

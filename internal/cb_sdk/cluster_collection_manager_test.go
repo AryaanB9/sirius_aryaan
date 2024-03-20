@@ -64,7 +64,7 @@ func TestConfigConnectionManager(t *testing.T) {
 			docId := gen.BuildKey(key)
 			fake := faker.NewFastFaker()
 			fake.Seed(key)
-			doc := g.Template.GenerateDocument(fake, docId, 100, false)
+			doc := g.Template.GenerateDocument(fake, docId, 100)
 			//log.Println(docId, doc)
 			_, e := c.Collection.Upsert(docId, doc, nil)
 			if e != nil {

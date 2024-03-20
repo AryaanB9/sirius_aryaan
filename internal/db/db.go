@@ -61,6 +61,10 @@ type Database interface {
 	DeleteBulk(connStr, username, password string, keyValues []KeyValue, extra Extras) BulkOperationResult
 	TouchBulk(connStr, username, password string, keyValues []KeyValue, extra Extras) BulkOperationResult
 	Warmup(connStr, username, password string, extra Extras) error
+	CreateDatabase(connStr, username, password string, extra Extras, templateName string, docSize int) (string, error)
+	DeleteDatabase(connStr, username, password string, extra Extras) (string, error)
+	Count(connStr, username, password string, extra Extras) (int64, error)
+	ListDatabase(connStr, username, password string, extra Extras) (any, error)
 	Close(connStr string) error
 }
 

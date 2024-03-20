@@ -233,3 +233,20 @@ func (c *Columnar) TouchBulk(connStr, username, password string, keyValues []Key
 	// TODO
 	panic("Implement the function")
 }
+
+func (c *Columnar) CreateDatabase(connStr, username, password string, extra Extras, templateName string, docSize int) (string, error) {
+	// TODO
+	panic("Implement the function")
+}
+func (c *Columnar) DeleteDatabase(connStr, username, password string, extra Extras) (string, error) {
+	// TODO
+	panic("Implement the function")
+}
+func (c *Columnar) Count(connStr, username, password string, extra Extras) (int64, error) {
+	// TODO
+	panic("Implement the function")
+}
+func (c *Columnar) ListDatabase(connStr, username, password string, extra Extras) (any, error) {
+	// TODO
+	panic("Implement the function")
+}

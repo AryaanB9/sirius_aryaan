@@ -9,37 +9,26 @@ import (
 )
 
 type Small struct {
-	ID         string  `json:"_id" bson:"_id"`
-	RandomData string  `json:"d,omitempty"`
-	Mutated    float64 `json:"mutated,omitempty"`
+	ID         string  `json:"_id" bson:"_id" dynamodbav:"_id"`
+	RandomData string  `json:"d,omitempty" dynamodbav:"d"`
+	Mutated    float64 `json:"mutated,omitempty" dynamodbav:"mutated"`
 }
 
-func (s *Small) GenerateDocument(fake *faker.Faker, key string, documentSize int, sql bool) interface{} {
-	var small *Small
-	small = &Small{
+func (s *Small) GenerateDocument(fake *faker.Faker, key string, documentSize int) interface{} {
+	return &Small{
 		ID:         key,
 		RandomData: strings.Repeat(fake.Letter(), documentSize),
 		Mutated:    MutatedPathDefaultValue,
 	}
-	if sql {
-		val := []interface{}{small.ID, small.RandomData, small.Mutated}
-		return val
-	}
-	return small
 }
 
 func (s *Small) UpdateDocument(fieldsToChange []string, lastUpdatedDocument interface{}, documentSize int,
-	fake *faker.Faker, sql bool) (interface{}, error) {
-
+	fake *faker.Faker) (interface{}, error) {
 	t, ok := lastUpdatedDocument.(*Small)
 	if !ok {
 		return nil, fmt.Errorf("unable to decode last updated document to person template")
 	}
 	t.RandomData = strings.Repeat(fake.Letter(), documentSize)
-	if sql {
-		val := []interface{}{t.ID, t.RandomData, t.Mutated}
-		return val, nil
-	}
 	return t, nil
 }
 
@@ -72,4 +61,7 @@ func (s *Small) GenerateSubPathAndValue(fake *faker.Faker, subDocSize int) map[s
 	return map[string]interface{}{
 		"subDocData": fake.Sentence(subDocSize),
 	}
+}
+func (s *Small) GetValues(document interface{}) (interface{}, error) {
+	return document, nil
 }

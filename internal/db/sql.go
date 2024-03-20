@@ -227,6 +227,7 @@ func (m Sql) Create(connStr, username, password string, keyValue KeyValue, extra
 	}
 	doc := keyValue.Doc.([]interface{})
 	sqlQuery := fmt.Sprintf("INSERT INTO %s VALUES (%s)", extra.Table, strings.Repeat("?, ", len(doc)-1)+"?")
+
 	result, err2 := sqlClient.ExecContext(context.TODO(), sqlQuery, doc...)
 	if err2 != nil {
 		return newSqlOperationResult(keyValue.Key, keyValue.Doc, err2, false, keyValue.Offset)
@@ -595,6 +596,157 @@ func (m Sql) ReadBulk(connStr, username, password string, keyValues []KeyValue, 
 	}
 	return result
 }
+func (m *Sql) CreateDatabase(connStr, username, password string, extra Extras, templateName string, docSize int) (string, error) {
+	if err := validateStrings(connStr, username, password); err != nil {
+		return "", err
+	}
+	err := m.Connect(connStr, username, password, extra)
+	if err != nil {
+		return "", err
+	}
+	db := m.connectionManager.Clusters[connStr]
+	if err != nil {
+		return "", err
+	} else if extra.Database == "" {
+		return "", errors.New("Empty Database name")
+	} else {
+		query := fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", extra.Database)
+		_, err = db.Exec(query)
+		if err != nil {
+			return "", err
+		}
+		if extra.Table == "" {
+			return "Database Created Successfully", nil
+		}
+		query = "Use " + extra.Database
+		_, err := db.ExecContext(context.TODO(), query)
+		if err != nil {
+			return "", err
+		}
+		switch templateName {
+		case "hotel":
+			query = fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (ID VARCHAR(30) PRIMARY KEY,Address VARCHAR(100) NOT NULL,FreeParkin Bool,City VARCHAR(50),URL VARCHAR(50),Phone VARCHAR(20),Price DOUBLE,AvgRating DOUBLE,FreeBreakfast Bool,Name VARCHAR(50),Email VARCHAR(100),Padding VARCHAR(%d),Mutated DOUBLE)`, extra.Table, docSize)
+		case "person":
+			query = fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s(ID VARCHAR(30) PRIMARY KEY,FirstName VARCHAR(100),Age DOUBLE,Email VARCHAR(255),Gender VARCHAR(10),MaritalStatus VARCHAR(20),Hobbies VARCHAR(50),Padding VARCHAR(%d),Mutated DOUBLE)`, extra.Table, docSize)
+		case "small":
+			query = fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s(ID VARCHAR(30) PRIMARY KEY,RandomData VARCHAR(%d),Mutated DOUBLE')`, extra.Table, docSize)
+		}
+		_, err = db.ExecContext(context.TODO(), query)
+		if err != nil {
+			return "", err
+		} else {
+			return "Table created successfully", nil
+		}
+
+	}
+}
+
+func (m *Sql) DeleteDatabase(connStr, username, password string, extra Extras) (string, error) {
+	if err := validateStrings(connStr, username, password); err != nil {
+		return "", err
+	}
+	err := m.Connect(connStr, username, password, extra)
+	if err != nil {
+		return "", err
+	}
+	db := m.connectionManager.Clusters[connStr]
+	if extra.Database == "" {
+		return "", errors.New("Empty Database name")
+	}
+	if extra.Table != "" {
+		query := fmt.Sprintf("DROP TABLE %s.%s", extra.Database, extra.Table)
+		_, err = db.Exec(query)
+		if err != nil {
+			return "", err
+		}
+		return "TABLE DELETED Successfully", nil
+	} else {
+		query := fmt.Sprintf("DROP DATABASE %s", extra.Database)
+		_, err = db.ExecContext(context.TODO(), query)
+		if err != nil {
+			return "", err
+		} else {
+			return "DATABASE DELETED Successfully", nil
+		}
+	}
+}
+
+func (m *Sql) Count(connStr, username, password string, extra Extras) (int64, error) {
+	var count int64
+	if err := validateStrings(connStr, username, password); err != nil {
+		return -1, err
+	}
+	err := m.Connect(connStr, username, password, extra)
+	if err != nil {
+		return -1, err
+	}
+	db := m.connectionManager.Clusters[connStr]
+	if extra.Database == "" {
+		return -1, errors.New("Empty Database name")
+	}
+	if extra.Table == "" {
+		return -1, errors.New("Empty Table name")
+	}
+	query := fmt.Sprintf("SELECT COUNT(*) FROM %s.%s", extra.Database, extra.Table)
+	rows, err := db.QueryContext(context.TODO(), query)
+	if err != nil {
+		return -1, err
+	}
+	for rows.Next() {
+		err = rows.Scan(&count)
+		if err != nil {
+			return -1, err
+		}
+		return count, nil
+	}
+	return count, nil
+}
+
+func (m *Sql) ListDatabase(connStr, username, password string, extra Extras) (any, error) {
+	dblist := make(map[string][]string)
+	if err := validateStrings(connStr, username, password); err != nil {
+		return nil, err
+	}
+	err := m.Connect(connStr, username, password, extra)
+	if err != nil {
+		return nil, err
+	}
+	db := m.connectionManager.Clusters[connStr]
+	var query string
+	databases, err := db.Query("SHOW DATABASES  WHERE `Database` NOT IN ('information_schema', 'mysql', 'performance_schema', 'sys')")
+	if err != nil {
+		return nil, err
+	}
+	var dbname string
+	var tname string
+	for databases.Next() {
+		err := databases.Scan(&dbname)
+		if err != nil {
+			return nil, err
+		}
+		query = "USE " + dbname
+		_, err = db.Exec(query)
+		if err != nil {
+			return nil, err
+		}
+		tables, err := db.Query("SHOW TABLES")
+		if err != nil {
+			return nil, err
+		}
+		var arr []string
+		for tables.Next() {
+			err := tables.Scan(&tname)
+			if err != nil {
+				return nil, err
+			}
+			arr = append(arr, tname)
+
+		}
+		dblist[dbname] = arr
+	}
+	return dblist, nil
+}
+
 func (m Sql) Touch(connStr, username, password, key string, offset int64, extra Extras) OperationResult {
 	// TODO implement me
 	panic("implement me")

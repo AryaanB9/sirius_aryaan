@@ -871,3 +871,19 @@ func (c *Cassandra) TouchBulk(connStr, username, password string, keyValues []Ke
 	// TODO
 	panic("Implement the function")
 }
+func (c *Cassandra) CreateDatabase(connStr, username, password string, extra Extras, templateName string, docSize int) (string, error) {
+	// TODO
+	panic("Implement the function")
+}
+func (c *Cassandra) DeleteDatabase(connStr, username, password string, extra Extras) (string, error) {
+	// TODO
+	panic("Implement the function")
+}
+func (c *Cassandra) Count(connStr, username, password string, extra Extras) (int64, error) {
+	// TODO
+	panic("Implement the function")
+}
+func (c *Cassandra) ListDatabase(connStr, username, password string, extra Extras) (any, error) {
+	// TODO
+	panic("Implement the function")
+}

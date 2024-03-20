@@ -885,6 +885,7 @@ func (d Dynamo) ReadSubDoc(connStr, username, password, key string, keyValues []
 	if !ok {
 		return newDynamoSubDocOperationResult(key, nil, errors.New(errString), false, offset)
 	}
+
 	DynamoDbClient := d.connectionManager.Clusters[connStr].DynamoClusterClient
 	filter, err := attributevalue.Marshal(key)
 	if err != nil {
@@ -916,4 +917,124 @@ func (d Dynamo) ReadSubDoc(connStr, username, password, key string, keyValues []
 		return newDynamoSubDocOperationResult(key, keyValues, nil, true, offset)
 
 	}
+}
+
+func (d Dynamo) CreateDatabase(connStr, username, password string, extra Extras, templateName string, docSize int) (string, error) {
+	if err := validateStrings(connStr, username, password); err != nil {
+		return "", err
+	}
+	err := d.Connect(connStr, username, password, extra)
+	if err != nil {
+		return "", err
+	}
+	if extra.Table == "" {
+		return "", errors.New("Empty Table name")
+	}
+	dynamoDbClient := d.connectionManager.Clusters[connStr].DynamoClusterClient
+	var dynamoInput dynamodb.CreateTableInput
+	dynamoInput.AttributeDefinitions = []types.AttributeDefinition{{
+		AttributeName: aws.String("ID"),
+		AttributeType: types.ScalarAttributeTypeS,
+	}}
+	dynamoInput.KeySchema = []types.KeySchemaElement{{
+		AttributeName: aws.String("ID"),
+		KeyType:       types.KeyTypeHash,
+	}}
+	dynamoInput.TableName = aws.String(extra.Table)
+	if extra.Provisioned {
+		dynamoInput.BillingMode = types.BillingModeProvisioned
+		dynamoInput.ProvisionedThroughput = &types.ProvisionedThroughput{
+			ReadCapacityUnits:  aws.Int64(int64(extra.ReadCapacity)),
+			WriteCapacityUnits: aws.Int64(int64(extra.WriteCapacity)),
+		}
+	} else {
+		dynamoInput.BillingMode = types.BillingModePayPerRequest
+	}
+	table, err := dynamoDbClient.CreateTable(context.TODO(), &dynamoInput)
+	if err != nil {
+		return "", err
+	}
+	waiter := dynamodb.NewTableExistsWaiter(dynamoDbClient)
+	err = waiter.Wait(context.TODO(), &dynamodb.DescribeTableInput{
+		TableName: aws.String(extra.Table)}, 5*time.Minute)
+	if err != nil {
+		return "", err
+	}
+	return "Table successfully created at " + table.TableDescription.CreationDateTime.GoString(), nil
+}
+
+func (d Dynamo) DeleteDatabase(connStr, username, password string, extra Extras) (string, error) {
+	if err := validateStrings(connStr, username, password); err != nil {
+		return "", err
+	}
+	err := d.Connect(connStr, username, password, extra)
+	if err != nil {
+		return "", err
+	}
+	if extra.Table == "" {
+		return "", errors.New("Empty Table name")
+	}
+	dynamoDbClient := d.connectionManager.Clusters[connStr].DynamoClusterClient
+	del, err := dynamoDbClient.DeleteTable(context.TODO(), &dynamodb.DeleteTableInput{
+		TableName: aws.String(extra.Table)})
+	if err != nil {
+		return "", err
+	}
+	return "Successful deletion : " + *del.TableDescription.TableName, nil
+}
+func (d Dynamo) Count(connStr, username, password string, extra Extras) (int64, error) {
+	var count int64
+	if err := validateStrings(connStr, username, password); err != nil {
+		return -1, err
+	}
+	err := d.Connect(connStr, username, password, extra)
+	if err != nil {
+		return -1, err
+	}
+	if extra.Table == "" {
+		return -1, errors.New("Empty Table name")
+	}
+	dynamoDbClient := d.connectionManager.Clusters[connStr].DynamoClusterClient
+	input := &dynamodb.ScanInput{
+		TableName: aws.String(extra.Table),
+		Select:    types.SelectCount,
+	}
+	result, err := dynamoDbClient.Scan(context.TODO(), input)
+	if err != nil {
+		return -1, err
+	}
+	count += int64(result.Count)
+	for result.LastEvaluatedKey != nil && len(result.LastEvaluatedKey) != 0 {
+		input.ExclusiveStartKey = result.LastEvaluatedKey
+		result, err = dynamoDbClient.Scan(context.TODO(), input)
+		if err != nil {
+			return -1, err
+		}
+		count += int64(result.Count)
+	}
+	return count, nil
+}
+
+func (d Dynamo) ListDatabase(connStr, username, password string, extra Extras) (any, error) {
+	if err := validateStrings(connStr, username, password); err != nil {
+		return -1, err
+	}
+	err := d.Connect(connStr, username, password, extra)
+	if err != nil {
+		return -1, err
+	}
+	dblist := make(map[string][]string)
+	dynamoDbClient := d.connectionManager.Clusters[connStr].DynamoClusterClient
+	tablePaginator := dynamodb.NewListTablesPaginator(dynamoDbClient, &dynamodb.ListTablesInput{})
+	var dbArr []string
+	for tablePaginator.HasMorePages() {
+		output, err := tablePaginator.NextPage(context.TODO())
+		if err != nil {
+			return nil, err
+		}
+		dbArr = append(dbArr, output.TableNames...)
+
+	}
+	dblist[connStr] = dbArr
+	return dblist, nil
 }

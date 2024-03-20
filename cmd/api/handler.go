@@ -1,12 +1,11 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 
+	"github.com/barkha06/sirius/internal/db"
 	"github.com/barkha06/sirius/internal/task_result"
 	"github.com/barkha06/sirius/internal/tasks"
 	"github.com/barkha06/sirius/internal/tasks/util_sirius"
@@ -456,15 +455,20 @@ func (app *Config) createDBTask(w http.ResponseWriter, r *http.Request) {
 	}
 	task.Operation = tasks.CreateDBOperation
 	log.Print(task, tasks.CreateDBOperation)
-	resultstring, ok := createDBOp(task)
-	if !ok {
-		_ = app.errorJSON(w, errors.New(resultstring), http.StatusUnprocessableEntity)
+	database, dbErr := db.ConfigDatabase(task.DBType)
+	if dbErr != nil {
+		_ = app.errorJSON(w, dbErr, http.StatusUnprocessableEntity)
+		return
+	}
+	result, err := database.CreateDatabase(task.ConnStr, task.Username, task.Password, task.Extra, task.OperationConfig.TemplateName, task.OperationConfig.DocSize)
+	if err != nil {
+		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
 	}
 	resPayload := jsonResponse{
 		Error:   false,
 		Message: "Successfully started creation",
-		Data:    resultstring,
+		Data:    result,
 	}
 	log.Println("completed :- ", task.Operation, task.IdentifierToken, resPayload)
 	_ = app.writeJSON(w, http.StatusOK, resPayload)
@@ -482,15 +486,20 @@ func (app *Config) deleteDBTask(w http.ResponseWriter, r *http.Request) {
 	}
 	task.Operation = tasks.DeleteDBOperation
 	log.Print(task, tasks.DeleteDBOperation)
-	resultstring, ok := deleteDBOp(task)
-	if !ok {
-		_ = app.errorJSON(w, errors.New(resultstring), http.StatusUnprocessableEntity)
+	database, dbErr := db.ConfigDatabase(task.DBType)
+	if dbErr != nil {
+		_ = app.errorJSON(w, dbErr, http.StatusUnprocessableEntity)
+		return
+	}
+	result, err := database.DeleteDatabase(task.ConnStr, task.Username, task.Password, task.Extra)
+	if err != nil {
+		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
 	}
 	resPayload := jsonResponse{
 		Error:   false,
 		Message: "Successfully started deletion",
-		Data:    resultstring,
+		Data:    result,
 	}
 	log.Println("completed :- ", task.Operation, task.IdentifierToken, resPayload)
 	_ = app.writeJSON(w, http.StatusOK, resPayload)
@@ -508,15 +517,20 @@ func (app *Config) listDBTask(w http.ResponseWriter, r *http.Request) {
 	}
 	task.Operation = tasks.ListDBOperation
 	log.Print(task, tasks.ListDBOperation)
-	resultstring, ok := ListDBOp(task)
-	if !ok {
-		_ = app.errorJSON(w, errors.New(resultstring.(string)), http.StatusUnprocessableEntity)
+	database, dbErr := db.ConfigDatabase(task.DBType)
+	if dbErr != nil {
+		_ = app.errorJSON(w, dbErr, http.StatusUnprocessableEntity)
+		return
+	}
+	result, err := database.ListDatabase(task.ConnStr, task.Username, task.Password, task.Extra)
+	if err != nil {
+		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
 	}
 	resPayload := jsonResponse{
 		Error:   false,
 		Message: "Successfully started fetching dbdetails",
-		Data:    resultstring,
+		Data:    result,
 	}
 	log.Println("completed :- ", task.Operation, task.IdentifierToken, resPayload)
 	_ = app.writeJSON(w, http.StatusOK, resPayload)
@@ -533,15 +547,20 @@ func (app *Config) CountTask(w http.ResponseWriter, r *http.Request) {
 	}
 	task.Operation = tasks.CountOperation
 	log.Print(task, tasks.CountOperation)
-	resultstring, count, ok := CountOp(task)
-	if !ok {
-		_ = app.errorJSON(w, errors.New(resultstring), http.StatusUnprocessableEntity)
+	database, dbErr := db.ConfigDatabase(task.DBType)
+	if dbErr != nil {
+		_ = app.errorJSON(w, dbErr, http.StatusUnprocessableEntity)
+		return
+	}
+	count, err := database.Count(task.ConnStr, task.Username, task.Password, task.Extra)
+	if err != nil {
+		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
 	}
 	resPayload := jsonResponse{
 		Error:   false,
 		Message: "Successfully started fetching dbdetails",
-		Data:    resultstring + "  :  " + strconv.FormatInt(count, 10),
+		Data:    count,
 	}
 	log.Println("completed :- ", task.Operation, task.IdentifierToken, resPayload)
 	_ = app.writeJSON(w, http.StatusOK, resPayload)
