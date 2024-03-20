@@ -10,36 +10,36 @@ import (
 )
 
 type Rating struct {
-	RatingValue float64 `json:"rating_value,omitempty" parquet:"name=rating_value, type=DOUBLE"`
-	Cleanliness float64 `json:"cleanliness,omitempty" parquet:"name=cleanliness, type=DOUBLE"`
-	Overall     float64 `json:"overall,omitempty" parquet:"name=overall, type=DOUBLE"`
-	CheckIn     float64 `json:"checkin,omitempty" parquet:"name=checkin, type=DOUBLE"`
-	Rooms       float64 `json:"rooms,omitempty" parquet:"name=rooms, type=DOUBLE"`
+	RatingValue float64 `json:"rating_value,omitempty" dynamodbav:"rating_value" parquet:"name=rating_value, type=DOUBLE"`
+	Cleanliness float64 `json:"cleanliness,omitempty" dynamodbav:"cleanliness" parquet:"name=cleanliness, type=DOUBLE"`
+	Overall     float64 `json:"overall,omitempty" dynamodbav:"overall" parquet:"name=overall, type=DOUBLE"`
+	CheckIn     float64 `json:"checkin,omitempty" dynamodbav:"checkin" parquet:"name=checkin, type=DOUBLE"`
+	Rooms       float64 `json:"rooms,omitempty" dynamodbav:"rooms" parquet:"name=rooms, type=DOUBLE"`
 }
 type Review struct {
-	Date   string `json:"date,omitempty" parquet:"name=date, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-	Author string `json:"author,omitempty" parquet:"name=author, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-	Rating Rating `json:"rating,omitempty" parquet:"name=rating`
+	Date   string `json:"date,omitempty" dynamodbav:"date" parquet:"name=date, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	Author string `json:"author,omitempty" dynamodbav:"author" parquet:"name=author, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	Rating Rating `json:"rating,omitempty" dynamodbav:"rating" parquet:"name=rating"`
 }
 
 type Hotel struct {
-	ID            string   `json:"id" bson:"_id" parquet:"name=id, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-	Country       string   `json:"country,omitempty" parquet:"name=country, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-	Address       string   `json:"address,omitempty" parquet:"name=address, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-	FreeParking   bool     `json:"free_parking,omitempty" parquet:"name=free_parking, type=BOOLEAN"`
-	City          string   `json:"city,omitempty" parquet:"name=city, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-	TemplateType  string   `json:"template_type" parquet:"name=template_type, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-	URL           string   `json:"url,omitempty" parquet:"name=url, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-	Reviews       []Review `json:"reviews,omitempty" parquet:"name=reviews, type=LIST"`
-	Phone         string   `json:"phone,omitempty" parquet:"name=phone, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-	Price         float64  `json:"price,omitempty" parquet:"name=price, type=DOUBLE"`
-	AvgRating     float64  `json:"avg_rating,omitempty" parquet:"name=avg_rating, type=DOUBLE"`
-	FreeBreakfast bool     `json:"free_breakfast,omitempty" parquet:"name=free_breakfast, type=BOOLEAN"`
-	Name          string   `json:"name,omitempty" parquet:"name=name, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-	PublicLikes   []string `json:"public_likes,omitempty" parquet:"name=public_likes, type=LIST"`
-	Email         string   `json:"email,omitempty" parquet:"name=email, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-	Mutated       float64  `json:"mutated" parquet:"name=mutated, type=DOUBLE"`
-	Padding       string   `json:"padding" parquet:"name=padding, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	ID            string   `json:"id" bson:"_id" dynamodbav:"id" parquet:"name=id, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	Country       string   `json:"country,omitempty" dynamodbav:"country" parquet:"name=country, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	Address       string   `json:"address,omitempty" dynamodbav:"address" parquet:"name=address, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	FreeParking   bool     `json:"free_parking,omitempty" dynamodbav:"free_parking" parquet:"name=free_parking, type=BOOLEAN"`
+	City          string   `json:"city,omitempty" dynamodbav:"city" parquet:"name=city, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	TemplateName  string   `json:"template_name" dynamodbav:"template_name" parquet:"name=template_name, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	URL           string   `json:"url,omitempty" dynamodbav:"url" parquet:"name=url, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	Reviews       []Review `json:"reviews,omitempty" dynamodbav:"reviews" parquet:"name=reviews, type=LIST"`
+	Phone         string   `json:"phone,omitempty" dynamodbav:"phone" parquet:"name=phone, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	Price         float64  `json:"price,omitempty" dynamodbav:"price" parquet:"name=price, type=DOUBLE"`
+	AvgRating     float64  `json:"avg_rating,omitempty" dynamodbav:"avg_rating" parquet:"name=avg_rating, type=DOUBLE"`
+	FreeBreakfast bool     `json:"free_breakfast,omitempty" dynamodbav:"free_breakfast" parquet:"name=free_breakfast, type=BOOLEAN"`
+	Name          string   `json:"name,omitempty" dynamodbav:"name" parquet:"name=name, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	PublicLikes   []string `json:"public_likes,omitempty" dynamodbav:"public_likes" parquet:"name=public_likes, type=LIST"`
+	Email         string   `json:"email,omitempty" dynamodbav:"email" parquet:"name=email, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	Mutated       float64  `json:"mutated" dynamodbav:"mutated" parquet:"name=mutated, type=DOUBLE"`
+	Padding       string   `json:"padding" dynamodbav:"padding" parquet:"name=padding, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
 }
 
 // buildReview generates the Review slice to be added into Hotel struct
@@ -80,7 +80,7 @@ func (h *Hotel) GenerateDocument(fake *faker.Faker, key string, documentSize int
 		Address:       fake.Address().Address,
 		FreeParking:   fake.Bool(),
 		City:          fake.Address().City,
-		TemplateType:  "Hotel",
+		TemplateName:  "Hotel",
 		URL:           fake.URL(),
 		Reviews:       buildReview(fake, fake.Int32Range(1, 3)),
 		Phone:         fake.Phone(),
@@ -94,17 +94,14 @@ func (h *Hotel) GenerateDocument(fake *faker.Faker, key string, documentSize int
 	}
 
 	currentDocSize := calculateSizeOfStruct(hotel)
-	//if (currentDocSize) < int(documentSize) {
-	//	hotel.Padding = strings.Repeat("a", int(documentSize)-(currentDocSize))
-	//}
-	if (currentDocSize) < int(documentSize) {
-		remSize := int(documentSize) - (currentDocSize)
+	if currentDocSize < documentSize {
+		remSize := documentSize - currentDocSize
 		numOfReviews := int(remSize/(95*2)) + 1
 		rev := buildReview(fake, int32(numOfReviews))
 		hotel.Reviews = rev
 	}
-	return hotel
 
+	return hotel
 }
 
 func (h *Hotel) UpdateDocument(fieldsToChange []string, lastUpdatedDocument interface{}, documentSize int,
@@ -160,12 +157,10 @@ func (h *Hotel) UpdateDocument(fieldsToChange []string, lastUpdatedDocument inte
 		hotel.Email = fake.URL()
 	}
 	hotel.Padding = ""
+
 	currentDocSize := calculateSizeOfStruct(hotel)
-	//if (currentDocSize) < int(documentSize) {
-	//	hotel.Padding = strings.Repeat("a", int(documentSize)-(currentDocSize))
-	//}
-	if (currentDocSize) < int(documentSize) {
-		remSize := int(documentSize) - (currentDocSize)
+	if currentDocSize < documentSize {
+		remSize := documentSize - currentDocSize
 		numOfReviews := int(remSize/(95*2)) + 1
 		rev := buildReview(fake, int32(numOfReviews))
 		hotel.Reviews = rev
@@ -201,37 +196,39 @@ func (h *Hotel) GenerateIndexesForSdk() (map[string][]string, error) {
 
 func (h *Hotel) GenerateSubPathAndValue(fake *faker.Faker, subDocSize int) map[string]any {
 	return map[string]interface{}{
-		"_1": strings.Repeat(fake.Letter(), subDocSize),
+		"SubDoc": strings.Repeat(fake.Letter(), subDocSize),
 	}
 }
 
+// ToStringMap is used to convert the Hotel Struct into a map[string]interface{} form
+// To be used while converting data in avro format.
 func (h *Hotel) ToStringMap() map[string]interface{} {
-	datumIn := map[string]interface{}{
+	hotelMap := map[string]interface{}{
 		"id":            h.ID,
-		"template_type": h.TemplateType,
+		"template_name": h.TemplateName,
 		"mutated":       h.Mutated,
 		"padding":       h.Padding,
 	}
 
 	if h.Country != "" {
-		datumIn["country"] = h.Country
+		hotelMap["country"] = h.Country
 	} else {
-		datumIn["country"] = nil
+		hotelMap["country"] = nil
 	}
 
 	if h.Address != "" {
-		datumIn["address"] = h.Address
+		hotelMap["address"] = h.Address
 	} else {
-		datumIn["address"] = nil
+		hotelMap["address"] = nil
 	}
 
-	datumIn["free_parking"] = h.FreeParking
-	datumIn["city"] = h.City
+	hotelMap["free_parking"] = h.FreeParking
+	hotelMap["city"] = h.City
 
 	if h.URL != "" {
-		datumIn["url"] = h.URL
+		hotelMap["url"] = h.URL
 	} else {
-		datumIn["url"] = nil
+		hotelMap["url"] = nil
 	}
 
 	if len(h.Reviews) > 0 {
@@ -250,27 +247,28 @@ func (h *Hotel) ToStringMap() map[string]interface{} {
 			}
 			reviews = append(reviews, reviewMap)
 		}
-		datumIn["reviews"] = reviews
+		hotelMap["reviews"] = reviews
 	} else {
-		datumIn["reviews"] = nil
+		hotelMap["reviews"] = nil
 	}
 
-	datumIn["phone"] = h.Phone
-	datumIn["price"] = h.Price
-	datumIn["avg_rating"] = h.AvgRating
-	datumIn["free_breakfast"] = h.FreeBreakfast
-	datumIn["name"] = h.Name
+	hotelMap["phone"] = h.Phone
+	hotelMap["price"] = h.Price
+	hotelMap["avg_rating"] = h.AvgRating
+	hotelMap["free_breakfast"] = h.FreeBreakfast
+	hotelMap["name"] = h.Name
 
 	if len(h.PublicLikes) > 0 {
-		datumIn["public_likes"] = h.PublicLikes
+		hotelMap["public_likes"] = h.PublicLikes
 	} else {
-		datumIn["public_likes"] = nil
+		hotelMap["public_likes"] = nil
 	}
-	datumIn["email"] = h.Email
+	hotelMap["email"] = h.Email
 
-	return datumIn
+	return hotelMap
 }
 
+// StringMapToHotel is used to convert the map[string]interface{} containing hotel doc into Hotel struct type
 func StringMapToHotel(data map[string]interface{}) *Hotel {
 	hotel := &Hotel{}
 
@@ -296,9 +294,9 @@ func StringMapToHotel(data map[string]interface{}) *Hotel {
 			if city, ok := value.(string); ok {
 				hotel.City = city
 			}
-		case "template_type":
-			if templateType, ok := value.(string); ok {
-				hotel.TemplateType = templateType
+		case "template_name":
+			if templateName, ok := value.(string); ok {
+				hotel.TemplateName = templateName
 			}
 		case "url":
 			if url, ok := value.(string); ok {
