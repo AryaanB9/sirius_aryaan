@@ -245,7 +245,7 @@ func TestDynamoDB(t *testing.T) {
 		log.Println("Table deleted")
 	}
 	// Closing the Connection to DynamoDB
-	if err = db.Close(connStr); err != nil {
+	if err = db.Close(connStr, extra); err != nil {
 		t.Error(err)
 		t.Fail()
 	}

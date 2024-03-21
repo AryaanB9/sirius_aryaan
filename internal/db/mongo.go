@@ -737,7 +737,7 @@ func (m Mongo) Warmup(connStr, username, password string, extra Extras) error {
 	return nil
 }
 
-func (m Mongo) Close(connStr string) error {
+func (m Mongo) Close(connStr string, extra Extras) error {
 	if err := m.connectionManager.Clusters[connStr].MongoClusterClient.Disconnect(context.TODO()); err != nil {
 		log.Println("MongoDB Close(): Disconnect failed!")
 		return err

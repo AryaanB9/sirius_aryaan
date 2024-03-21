@@ -234,7 +234,7 @@ func (c *Cassandra) Warmup(connStr, username, password string, extra Extras) err
 	return nil
 }
 
-func (c *Cassandra) Close(connStr string) error {
+func (c *Cassandra) Close(connStr string, extra Extras) error {
 	return c.CassandraConnectionManager.Disconnect(connStr)
 }
 

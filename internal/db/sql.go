@@ -226,7 +226,10 @@ func (m Sql) Create(connStr, username, password string, keyValue KeyValue, extra
 		return newSqlOperationResult(keyValue.Key, keyValue.Doc, errors.New("Table name is missing"), false,
 			keyValue.Offset)
 	}
-	doc := keyValue.Doc.([]interface{})
+	doc, ok := keyValue.Doc.([]interface{})
+	if !ok {
+		return newSqlOperationResult(keyValue.Key, keyValue.Doc, errors.New("unable to decode"), false, keyValue.Offset)
+	}
 	sqlQuery := fmt.Sprintf("INSERT INTO %s VALUES (%s)", extra.Table, strings.Repeat("?, ", len(doc)-1)+"?")
 
 	result, err2 := sqlClient.ExecContext(context.TODO(), sqlQuery, doc...)
@@ -276,7 +279,7 @@ func (m Sql) Read(connStr, username, password, key string, offset int64, extra E
 	if err := validateStrings(extra.Table); err != nil {
 		return newSqlOperationResult(key, nil, err, false, offset)
 	}
-	sqlQuery := fmt.Sprintf("Select * from %s where ID = ?", extra.Table)
+	sqlQuery := fmt.Sprintf("Select * from %s where id = ?", extra.Table)
 	result, err2 := sqlClient.QueryContext(context.TODO(), sqlQuery, key)
 	if err2 != nil {
 		return newSqlOperationResult(key, nil, err2, false, offset)
@@ -330,7 +333,7 @@ func (m Sql) Delete(connStr, username, password, key string, offset int64, extra
 		return newSqlOperationResult(key, nil, err, false, offset)
 	}
 
-	sqlQuery := fmt.Sprintf("DELETE FROM %s WHERE ID = ?", extra.Table)
+	sqlQuery := fmt.Sprintf("DELETE FROM %s WHERE id = ?", extra.Table)
 	result, err2 := sqlClient.ExecContext(context.TODO(), sqlQuery, key)
 	if err2 != nil {
 		return newSqlOperationResult(key, nil, err2, false, offset)
@@ -357,7 +360,7 @@ func (m Sql) DeleteBulk(connStr, username, password string, keyValues []KeyValue
 		result.failBulk(keyValues, errors.New("empty table name"))
 		return result
 	}
-	sqlQuery := fmt.Sprintf("DELETE FROM %s WHERE ID IN (%s)", extra.Table, strings.Repeat("?, ", len(keyValues)-1)+"?")
+	sqlQuery := fmt.Sprintf("DELETE FROM %s WHERE id IN (%s)", extra.Table, strings.Repeat("?, ", len(keyValues)-1)+"?")
 	stmt, err := sqlClient.PrepareContext(context.TODO(), sqlQuery)
 	if err != nil {
 		result.failBulk(keyValues, err)
@@ -462,8 +465,11 @@ func (m Sql) Warmup(connStr, username, password string, extra Extras) error {
 }
 
 // extras should be a parameter. Needs change
-func (m Sql) Close(connStr string) error {
-	if err := m.connectionManager.Clusters[connStr].Close(); err != nil {
+func (m Sql) Close(connStr string, extra Extras) error {
+	if _, ok := m.connectionManager.Clusters[connStr+"/"+extra.Database]; !ok {
+		return fmt.Errorf("%w : %s", errors.New("invalid closing of connectionstring"), connStr)
+	}
+	if err := m.connectionManager.Clusters[connStr+"/"+extra.Database].Close(); err != nil {
 		log.Println("Sql Close(): Disconnect failed!")
 		return err
 	}
@@ -536,7 +542,7 @@ func (m Sql) ReadBulk(connStr, username, password string, keyValues []KeyValue, 
 	}
 	clusterIdentifier := connStr + "/" + extra.Database
 	sqlClient := m.connectionManager.Clusters[clusterIdentifier]
-	sqlQuery := fmt.Sprintf("Select * FROM %s WHERE ID IN (%s)", extra.Table, strings.Repeat("?, ", len(keyValues)-1)+"?")
+	sqlQuery := fmt.Sprintf("Select * FROM %s WHERE id IN (%s)", extra.Table, strings.Repeat("?, ", len(keyValues)-1)+"?")
 	stmt, err := sqlClient.PrepareContext(context.TODO(), sqlQuery)
 	if err != nil {
 		result.failBulk(keyValues, err)
@@ -585,8 +591,8 @@ func (m Sql) ReadBulk(connStr, username, password string, keyValues []KeyValue, 
 				results[col] = *(row[i].(*interface{}))
 			}
 		}
-		failed[results["ID"].(string)] = true
-		result.AddResult(results["ID"].(string), results, nil, true, keyToOffset[results["ID"].(string)])
+		failed[results["id"].(string)] = true
+		result.AddResult(results["id"].(string), results, nil, true, keyToOffset[results["id"].(string)])
 	}
 
 	for _, x := range keyValues {
@@ -605,7 +611,9 @@ func (m *Sql) CreateDatabase(connStr, username, password string, extra Extras, t
 	if err != nil {
 		return "", err
 	}
-	db := m.connectionManager.Clusters[connStr]
+
+	clusterIdentifier := connStr + "/" + extra.Database
+	db := m.connectionManager.Clusters[clusterIdentifier]
 	if err != nil {
 		return "", err
 	} else if extra.Database == "" {
@@ -643,19 +651,23 @@ func (m *Sql) DeleteDatabase(connStr, username, password string, extra Extras) (
 	if err != nil {
 		return "", err
 	}
-	db := m.connectionManager.Clusters[connStr]
+	clusterIdentifier := connStr + "/" + extra.Database
+	db, ok := m.connectionManager.Clusters[clusterIdentifier]
+	if db == nil || !ok {
+		return "", errors.New("Database initialisation error")
+	}
 	if extra.Database == "" {
 		return "", errors.New("Empty Database name")
 	}
 	if extra.Table != "" {
-		query := fmt.Sprintf("DROP TABLE %s.%s", extra.Database, extra.Table)
+		query := fmt.Sprintf("DROP TABLE IF EXISTS %s.%s", extra.Database, extra.Table)
 		_, err = db.Exec(query)
 		if err != nil {
 			return "", err
 		}
 		return "TABLE DELETED Successfully", nil
 	} else {
-		query := fmt.Sprintf("DROP DATABASE %s", extra.Database)
+		query := fmt.Sprintf("DROP DATABASE IF EXISTS %s", extra.Database)
 		_, err = db.ExecContext(context.TODO(), query)
 		if err != nil {
 			return "", err
@@ -674,7 +686,8 @@ func (m *Sql) Count(connStr, username, password string, extra Extras) (int64, er
 	if err != nil {
 		return -1, err
 	}
-	db := m.connectionManager.Clusters[connStr]
+	clusterIdentifier := connStr + "/" + extra.Database
+	db := m.connectionManager.Clusters[clusterIdentifier]
 	if extra.Database == "" {
 		return -1, errors.New("Empty Database name")
 	}
@@ -686,12 +699,15 @@ func (m *Sql) Count(connStr, username, password string, extra Extras) (int64, er
 	if err != nil {
 		return -1, err
 	}
+
 	for rows.Next() {
-		err = rows.Scan(&count)
+		tempCount := int64(0)
+		err = rows.Scan(&tempCount)
 		if err != nil {
 			return -1, err
 		}
-		return count, nil
+		count += tempCount
+
 	}
 	return count, nil
 }
@@ -705,7 +721,8 @@ func (m *Sql) ListDatabase(connStr, username, password string, extra Extras) (an
 	if err != nil {
 		return nil, err
 	}
-	db := m.connectionManager.Clusters[connStr]
+	clusterIdentifier := connStr + "/" + extra.Database
+	db := m.connectionManager.Clusters[clusterIdentifier]
 	var query string
 	databases, err := db.Query("SHOW DATABASES  WHERE `Database` NOT IN ('information_schema', 'mysql', 'performance_schema', 'sys')")
 	if err != nil {
