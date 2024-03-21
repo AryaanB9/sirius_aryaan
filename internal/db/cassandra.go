@@ -5,10 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/AryaanB9/sirius_aryaan/internal/template"
 	"log"
+	"os/exec"
+	"strconv"
+	"strings"
 
 	"github.com/AryaanB9/sirius_aryaan/internal/sdk_cassandra"
+	"github.com/AryaanB9/sirius_aryaan/internal/template"
 
 	"github.com/gocql/gocql"
 )
@@ -477,10 +480,10 @@ func (c *Cassandra) UpsertSubDoc(connStr, username, password, key string, keyVal
 			}
 		}
 		upsertSubDocQuery := fmt.Sprintf("UPDATE %s SET %s='%s' WHERE ID = ?", tableName, columnName, x.Doc)
-		errupsertSubDocQuery := cassandraSession.Query(upsertSubDocQuery, key).Exec()
-		if errupsertSubDocQuery != nil {
-			log.Println("In Cassandra UpsertSubDoc(), error inserting data:", errupsertSubDocQuery)
-			return newCouchbaseSubDocOperationResult(key, keyValues, errupsertSubDocQuery, false, extra.Cas, offset)
+		errUpsertSubDocQuery := cassandraSession.Query(upsertSubDocQuery, key).Exec()
+		if errUpsertSubDocQuery != nil {
+			log.Println("In Cassandra UpsertSubDoc(), error inserting data:", errUpsertSubDocQuery)
+			return newCouchbaseSubDocOperationResult(key, keyValues, errUpsertSubDocQuery, false, extra.Cas, offset)
 		}
 		var currentValue float64
 		mutationSubDocQuery := fmt.Sprintf("SELECT mutated FROM %s WHERE ID = ?", tableName)
@@ -679,34 +682,29 @@ func (c *Cassandra) CreateBulk(connStr, username, password string, keyValues []K
 		return result
 	}
 
+	cassBatchOp := cassandraSession.NewBatch(gocql.LoggedBatch).WithContext(context.TODO())
 	for _, x := range keyValues {
-		cassBatchSize := 10
-		cassBatchOp := cassandraSession.NewBatch(gocql.LoggedBatch).WithContext(context.TODO())
-		var docArg []interface{}
-		for i := 0; i < cassBatchSize; i++ {
-			// Converting the Document to JSON
-			jsonData, errDocToJSON := json.Marshal(x.Doc)
-			if errDocToJSON != nil {
-				log.Println("In Cassandra Update(), error marshaling JSON:", errDocToJSON)
-			}
 
-			docArg = append(docArg, jsonData)
-			cassBatchOp.Entries = append(cassBatchOp.Entries, gocql.BatchEntry{
-				Stmt:       "INSERT INTO " + extra.Table + " JSON ?",
-				Args:       docArg,
-				Idempotent: true,
-			})
-			docArg = nil
+		// Converting the Document to JSON
+		jsonData, errDocToJSON := json.Marshal(x.Doc)
+		if errDocToJSON != nil {
+			log.Println("In Cassandra Update(), error marshaling JSON:", errDocToJSON)
 		}
 
-		errBulkInsert := cassandraSession.ExecuteBatch(cassBatchOp)
-		if errBulkInsert != nil {
-			log.Println("In Cassandra CreateBulk(), ExecuteBatch() Error:", errBulkInsert)
-			result.failBulk(keyValues, errBulkInsert)
-			return result
-		}
-		cassBatchOp = nil
+		cassBatchOp.Entries = append(cassBatchOp.Entries, gocql.BatchEntry{
+			Stmt:       "INSERT INTO " + extra.Table + " JSON ?",
+			Args:       []interface{}{jsonData},
+			Idempotent: true,
+		})
 	}
+
+	errBulkInsert := cassandraSession.ExecuteBatch(cassBatchOp)
+	if errBulkInsert != nil {
+		log.Println("In Cassandra CreateBulk(), ExecuteBatch() Error:", errBulkInsert)
+		result.failBulk(keyValues, errBulkInsert)
+		return result
+	}
+	cassBatchOp = nil
 
 	for _, x := range keyValues {
 		//log.Println("Successfully inserted document with id:", x.Key)
@@ -837,19 +835,18 @@ func (c *Cassandra) DeleteBulk(connStr, username, password string, keyValues []K
 	}
 
 	if err := validateStrings(extra.Keyspace); err != nil {
-		result.failBulk(keyValues, errors.New("Keyspace name is missing"))
+		result.failBulk(keyValues, errors.New("bulk deleting in cassandra: keyspace name is missing"))
 		return result
 	}
 	if err := validateStrings(extra.Table); err != nil {
-		result.failBulk(keyValues, errors.New("Table name is missing"))
+		result.failBulk(keyValues, errors.New("bulk deleting in cassandra: table name is missing"))
 		return result
 	}
 
 	cassandraSession, errSessionCreate := c.CassandraConnectionManager.GetCassandraKeyspace(connStr, username, password, nil, extra.Keyspace)
 	if errSessionCreate != nil {
-		log.Println("In Cassandra Delete(), unable to connect to Cassandra:")
-		log.Println(errSessionCreate)
-		result.failBulk(keyValues, errSessionCreate)
+		log.Println("bulk deleting in cassandra: unable to connect to Cassandra:", errSessionCreate)
+		result.failBulk(keyValues, errors.New("bulk deleting in cassandra: unable to connect to Cassandra:"+errSessionCreate.Error()))
 		return result
 	}
 
@@ -865,17 +862,17 @@ func (c *Cassandra) DeleteBulk(connStr, username, password string, keyValues []K
 		}
 		errBulkUpdate := cassandraSession.ExecuteBatch(cassBatchOp)
 		if errBulkUpdate != nil {
-			log.Println("In Cassandra DeleteBulk(), ExecuteBatch() Error:", errBulkUpdate)
-			result.failBulk(keyValues, errBulkUpdate)
+			log.Println("bulk deleting in cassandra: error while executing batch:", errBulkUpdate)
+			result.failBulk(keyValues, errors.New("bulk deleting in cassandra: error while executing batch:"+errBulkUpdate.Error()))
 			return result
 		}
 		cassBatchOp = nil
 	}
 
 	for _, x := range keyValues {
-		//log.Println("Successfully inserted document with id:", x.Key)
 		result.AddResult(x.Key, nil, nil, true, keyToOffset[x.Key])
 	}
+
 	return result
 }
 
@@ -883,34 +880,37 @@ func (c *Cassandra) TouchBulk(connStr, username, password string, keyValues []Ke
 	// TODO
 	panic("Implement the function")
 }
+
+// CreateDatabase creates a Keyspace in Cassandra cluster or Table in a Keyspace.
+/*
+ *	If only Keyspace name is provided, then a Keyspace will be created if it does not exist.
+ *	If both Keyspace and Table name are provided, then a Table will be created in the Keyspace.
+ *	NOTE: While creating Keyspace, make sure to provide Extras.CassandraClass and Extras.ReplicationFactor
+ *	NOTE: While creating Table, make sure to provide OperationConfig.Template as it will be used to retrieve correct cassandra schema.
+ */
 func (c *Cassandra) CreateDatabase(connStr, username, password string, extra Extras, templateName string, docSize int) (string, error) {
 	resultString := ""
 
 	if connStr == "" || password == "" || username == "" {
-		resultString = "Connection String or Auth Params Empty"
-		return resultString, errors.New("error Connection String or Auth Params Empty")
+		return "", errors.New("creating cassandra keyspace or table: connection string or auth parameters not provided")
 	}
 
 	if extra.Keyspace == "" {
-		resultString = "Keyspace name not provided"
-		return resultString, errors.New("Keyspace name not provided")
+		return "", errors.New("creating cassandra keyspace or table: keyspace name not provided")
+
 	} else if extra.Keyspace != "" && extra.Table == "" {
+
 		// Creating a new Keyspace
 		if extra.CassandraClass == "" || extra.ReplicationFactor == 0 {
-			resultString += "Cassandra Class or Replication Factor not provided for creating Keyspace"
-			return resultString, errors.New("Cassandra Class or Replication Factor not provided for creating Keyspace")
+			log.Println("creating cassandra keyspace: cassandra class or replication factor not provided for creating keyspace")
+			return "", errors.New("creating cassandra keyspace: cassandra class or replication factor not provided for creating keyspace")
 		}
 
-		cassClusterConfig := gocql.NewCluster(connStr)
-		cassClusterConfig.Authenticator = gocql.PasswordAuthenticator{Username: username, Password: password}
-
-		cassandraSession, errCreateSession := cassClusterConfig.CreateSession()
+		cassandraSession, errCreateSession := c.CassandraConnectionManager.GetCassandraCluster(connStr, username, password, nil)
 		if errCreateSession != nil {
-			log.Println("Unable to connect to Cassandra! err:", errCreateSession.Error())
-			resultString += "Unable to connect to Cassandra! err:" + errCreateSession.Error()
-			return resultString, errors.New("Unable to connect to Cassandra! err:" + errCreateSession.Error())
+			log.Println("creating cassandra keyspace: unable to connect to cassandra", errCreateSession)
+			return "", errors.New("creating cassandra keyspace: unable to connect to cassandra: " + errCreateSession.Error())
 		}
-		defer cassandraSession.Close()
 
 		createKeyspaceQuery := fmt.Sprintf(`
 							CREATE KEYSPACE IF NOT EXISTS %s
@@ -920,45 +920,41 @@ func (c *Cassandra) CreateDatabase(connStr, username, password string, extra Ext
 							};`, extra.Keyspace, extra.CassandraClass, extra.ReplicationFactor)
 		errCreateKeyspace := cassandraSession.Query(createKeyspaceQuery).Exec()
 		if errCreateKeyspace != nil {
-			log.Println("unable to create keyspace", errCreateKeyspace)
-			resultString += errCreateKeyspace.Error()
-			return resultString, errors.New(errCreateKeyspace.Error())
+			log.Println("creating cassandra keyspace: unable to create keyspace:", errCreateKeyspace)
+			return "", errors.New("creating cassandra keyspace: unable to create keyspace: " + errCreateKeyspace.Error())
 		}
-		resultString += fmt.Sprintf("Keyspace '%s' created successfully.", extra.Keyspace)
-		return resultString, nil
+
+		resultString = fmt.Sprintf("Keyspace '%s' created successfully.", extra.Keyspace)
 
 	} else if extra.Keyspace != "" && extra.Table != "" {
+
 		// Creating a new Table. Need to have Template.
 		// And, we have to check if Keyspace is created or not.
 		if templateName == "" {
-			resultString += "Template name is not provided. Cannot proceed to create a Table in Cassandra."
-			return resultString, errors.New("Template name is not provided. Cannot proceed to create a Table in Cassandra.")
+			log.Println("creating cassandra table: template name not provided")
+			return "", errors.New("creating cassandra table: template name not provided")
 		}
 
-		// First creating a client on Cluster and checking if the Keyspace exists or not
-		cassClusterConfig := gocql.NewCluster(connStr)
-		cassClusterConfig.Authenticator = gocql.PasswordAuthenticator{Username: username, Password: password}
-		cassandraSession, errCreateSession := cassClusterConfig.CreateSession()
+		// First getting client on Cluster and checking if the Keyspace exists or not
+		cassandraSession, errCreateSession := c.CassandraConnectionManager.GetCassandraCluster(connStr, username, password, nil)
 		if errCreateSession != nil {
-			log.Println("Unable to connect to Cassandra! err:", errCreateSession.Error())
-			resultString += "Unable to connect to Cassandra! err:" + errCreateSession.Error()
-			return resultString, errors.New("Unable to connect to Cassandra! err:" + errCreateSession.Error())
+			log.Println("creating cassandra table: unable to connect to cassandra", errCreateSession)
+			return "", errors.New("creating cassandra table: unable to connect to cassandra: " + errCreateSession.Error())
 		}
 
 		var count int
 		checkKeyspaceQuery := fmt.Sprintf("SELECT count(*) FROM system_schema.keyspaces WHERE keyspace_name = '%s'", extra.Keyspace)
 		if err := cassandraSession.Query(checkKeyspaceQuery).Scan(&count); err != nil {
-			log.Println("unable run the query to check keyspace existence, err:", err.Error())
-			resultString += "unable run the query to check keyspace existence, err:" + err.Error()
-			return resultString, errors.New("unable run the query to check keyspace existence, err:" + err.Error())
+			log.Println("creating cassandra table: unable run the query to check keyspace existence:", err.Error())
+			return "", errors.New("creating cassandra table: unable run the query to check keyspace existence: " + err.Error())
 		}
 
-		// If keyspace does not exist
 		if count <= 0 {
+
 			// Creating the keyspace as it does not exist
 			if extra.CassandraClass == "" || extra.ReplicationFactor == 0 {
-				resultString += "Cassandra Class or Replication Factor not provided for creating Keyspace"
-				return resultString, errors.New("Cassandra Class or Replication Factor not provided for creating Keyspace")
+				log.Println("creating cassandra table: cassandra class or replication factor not provided for creating keyspace")
+				return "", errors.New("creating cassandra table: cassandra class or replication factor not provided for creating keyspace")
 			}
 
 			createKeyspaceQuery := fmt.Sprintf(`
@@ -969,54 +965,212 @@ func (c *Cassandra) CreateDatabase(connStr, username, password string, extra Ext
 							};`, extra.Keyspace, extra.CassandraClass, extra.ReplicationFactor)
 			errCreateKeyspace := cassandraSession.Query(createKeyspaceQuery).Exec()
 			if errCreateKeyspace != nil {
-				log.Println("unable to create keyspace", errCreateKeyspace)
-				resultString += errCreateKeyspace.Error()
-				return resultString, errCreateKeyspace
+				log.Println("creating cassandra keyspace: unable to create keyspace:", errCreateKeyspace)
+				return "", errors.New("creating cassandra keyspace: unable to create keyspace: " + errCreateKeyspace.Error())
 			}
 		}
-		cassandraSession.Close()
 
-		cassClusterConfig = gocql.NewCluster(connStr)
-		cassClusterConfig.Authenticator = gocql.PasswordAuthenticator{Username: username, Password: password}
-		cassClusterConfig.Keyspace = extra.Keyspace
-		cassandraSession, errCreateSession = cassClusterConfig.CreateSession()
+		cassandraSession, errCreateSession = c.CassandraConnectionManager.GetCassandraKeyspace(connStr, username, password, nil, extra.Keyspace)
 		if errCreateSession != nil {
-			log.Println("Unable to connect to Cassandra! err:", errCreateSession.Error())
-			resultString += "Unable to connect to Cassandra! err:" + errCreateSession.Error()
-			return resultString, errCreateSession
+			log.Println("creating cassandra table: unable to connect to cassandra", errCreateSession)
+			return "", errors.New("creating cassandra table: unable to connect to cassandra: " + errCreateSession.Error())
 		}
-		defer cassandraSession.Close()
 
 		cassQueries, err := template.GetCassandraSchema(templateName, extra.Table)
 		if err != nil {
-			log.Println(err)
-			resultString += err.Error()
-			return resultString, err
+			log.Println("creating cassandra table: unable to get cassandra schema:", err)
+			return "", errors.New("creating cassandra table: unable to get cassandra schema: " + err.Error())
 		}
+
 		for _, cassQuery := range cassQueries {
 			err = cassandraSession.Query(cassQuery).Exec()
 			if err != nil {
-				log.Println("in Cassandra CreateDbOp(), unable to create type or table err:", err)
-				resultString += "in Cassandra CreateDbOp(), unable to create type or table err: " + err.Error()
-				return resultString, err
+				log.Println("creating cassandra table: unable to create type or table:", err)
+				return "", errors.New("creating cassandra table: unable to create type or table: " + err.Error())
 			}
 		}
 
-		resultString += fmt.Sprintf("Table ' %s ' created successfully in Keyspace ' %s '.", extra.Table, extra.Keyspace)
-		return resultString, nil
+		resultString = fmt.Sprintf("Table '%s' created successfully in Keyspace '%s'.", extra.Table, extra.Keyspace)
 	}
 
 	return resultString, nil
 }
+
+// DeleteDatabase deletes a keyspace or table in a cassandra cluster.
+/*
+ *	If only keyspace name is provided, then the whole keyspace along with all its tables will be deleted.
+ *	If keyspace and table name both are provided, then only the table will be deleted.
+ */
 func (c *Cassandra) DeleteDatabase(connStr, username, password string, extra Extras) (string, error) {
-	// TODO
-	panic("Implement the function")
+
+	resultString := ""
+	if connStr == "" || password == "" || username == "" {
+		return "", errors.New("deleting cassandra keyspace or table: connection string or auth parameters not provided")
+	}
+
+	if extra.Keyspace == "" {
+		return "", errors.New("deleting cassandra keyspace or table: keyspace name not provided")
+
+	} else if extra.Keyspace != "" && extra.Table == "" {
+
+		// Deleting the Keyspace in given Cassandra cluster
+		cassandraSession, errSessionCreate := c.CassandraConnectionManager.GetCassandraKeyspace(connStr, username, password, nil, extra.Keyspace)
+		if errSessionCreate != nil {
+			log.Println("deleting cassandra keyspace: unable to connect to cassandra:", errSessionCreate.Error())
+			return "", errors.New("deleting cassandra keyspace: unable to connect to cassandra: " + errSessionCreate.Error())
+		}
+
+		dropKeyspaceQuery := fmt.Sprintf("DROP KEYSPACE %s", extra.Keyspace)
+		errDropKeyspace := cassandraSession.Query(dropKeyspaceQuery).Exec()
+		if errDropKeyspace != nil {
+			log.Println("deleting cassandra keyspace: unable to delete keyspace:", errDropKeyspace)
+			return "", errors.New("deleting cassandra keyspace: unable to delete keyspace: " + errDropKeyspace.Error())
+		}
+
+		resultString = fmt.Sprintf("Keyspace '%s' deleted successfully.", extra.Keyspace)
+
+	} else if extra.Keyspace != "" && extra.Table != "" {
+
+		// Deleting the Table in given Keyspace
+		cassandraSession, errCreateSession := c.CassandraConnectionManager.GetCassandraKeyspace(connStr, username, password, nil, extra.Keyspace)
+		if errCreateSession != nil {
+			log.Println("deleting cassandra table: unable to connect to cassandra:", errCreateSession.Error())
+			return "", errors.New("deleting cassandra table: unable to connect to cassandra: " + errCreateSession.Error())
+		}
+
+		dropTableQuery := fmt.Sprintf("DROP TABLE %s", extra.Table)
+		errDropTable := cassandraSession.Query(dropTableQuery).Exec()
+		if errDropTable != nil {
+			log.Println("deleting cassandra table: unable to delete table:", errDropTable)
+			return "", errors.New("deleting cassandra table: unable to delete table: " + errDropTable.Error())
+		}
+
+		resultString = fmt.Sprintf("Table '%s' deleted successfully from Keyspace '%s'", extra.Table, extra.Keyspace)
+	}
+	return resultString, nil
 }
-func (c *Cassandra) Count(connStr, username, password string, extra Extras) (int64, error) {
-	// TODO
-	panic("Implement the function")
-}
+
 func (c *Cassandra) ListDatabase(connStr, username, password string, extra Extras) (any, error) {
-	// TODO
-	panic("Implement the function")
+
+	dbList := make(map[string][]string)
+
+	if connStr == "" || password == "" || username == "" {
+		return nil, errors.New("listing cassandra keyspace(s) or table(s): connection string or auth parameters not provided")
+	}
+
+	if extra.Keyspace == "" {
+		// Since, Keyspace name is not provided, returning all the Keyspaces in the cluster
+		cassandraSession, errSessionCreate := c.CassandraConnectionManager.GetCassandraCluster(connStr, username, password, nil)
+		if errSessionCreate != nil {
+			log.Println("listing cassandra keyspace(s): unable to connect to Cassandra:", errSessionCreate.Error())
+			return nil, errors.New("listing cassandra keyspace(s): unable to connect to cassandra: " + errSessionCreate.Error())
+		}
+
+		var keyspaceName string
+		keyspaces := make([]string, 0)
+
+		//listKeyspaceQuery := "SELECT keyspace_name FROM system_schema.keyspaces WHERE keyspace_name != 'system' AND keyspace_name != 'system_traces' AND keyspace_name != 'system_auth' AND keyspace_name != 'system_distributed'"
+		listKeyspaceQuery := "SELECT keyspace_name FROM system_schema.keyspaces"
+		iterKeyspaces := cassandraSession.Query(listKeyspaceQuery).Iter()
+
+		for iterKeyspaces.Scan(&keyspaceName) {
+			keyspaces = append(keyspaces, keyspaceName)
+		}
+		if err := iterKeyspaces.Close(); err != nil {
+			log.Println("iterating keyspaces names:", err)
+			return nil, errors.New("iterating keyspaces names: " + err.Error())
+		}
+
+		// Appending all the Keyspace names to output
+		for _, keyspaceN := range keyspaces {
+			dbList[extra.Keyspace] = append(dbList[extra.Keyspace], keyspaceN)
+		}
+
+		if dbList == nil || len(keyspaces) == 0 {
+			return nil, errors.New("listing cassandra keyspace(s): no keyspaces found")
+		}
+
+	} else {
+		// Since, Keyspace name is provided, returning all the Tables present in the Keyspace
+		cassandraSession, errSessionCreate := c.CassandraConnectionManager.GetCassandraKeyspace(connStr, username, password, nil, extra.Keyspace)
+		if errSessionCreate != nil {
+			log.Println("listing cassandra table(s): unable to connect to cassandra:", errSessionCreate.Error())
+			return nil, errors.New("listing cassandra table(s): unable to connect to cassandra: " + errSessionCreate.Error())
+		}
+
+		var tableName string
+		tables := make([]string, 0)
+
+		listTableQuery := "SELECT table_name FROM system_schema.tables WHERE keyspace_name = ?"
+		iterTables := cassandraSession.Query(listTableQuery, extra.Keyspace).Iter()
+
+		for iterTables.Scan(&tableName) {
+			tables = append(tables, tableName)
+		}
+		if err := iterTables.Close(); err != nil {
+			log.Println("iterating table names:", err)
+			return nil, errors.New("iterating table names: " + err.Error())
+		}
+
+		for _, tableN := range tables {
+			dbList[extra.Keyspace] = append(dbList[extra.Keyspace], tableN)
+		}
+		if dbList == nil {
+			return nil, errors.New("listing cassandra table(s): no tables found for keyspace: " + extra.Keyspace)
+		}
+	}
+	return dbList, nil
+}
+
+// Count returns the number of rows present in a Cassandra Keyspace.Table.
+/*
+ *	If there is an error returned then count is returned as -1.
+ *	Extras.DbOnLocal == "true", states that Sirius is running on the same machine as Cassandra.
+	This way we can get the count in a much faster way and for a large number of rows.
+ *	If Sirius is not running on the same machine as Cassandra, then we have to query to get the count of rows.
+*/
+func (c *Cassandra) Count(connStr, username, password string, extra Extras) (int64, error) {
+
+	var count int64
+	if connStr == "" || password == "" || username == "" {
+		return -1, errors.New("listing count of rows of cassandra table: connection string or auth parameters not provided")
+	}
+	if extra.Keyspace == "" {
+		return -1, errors.New("listing count of rows of cassandra table: keyspace name not provided")
+	}
+	if extra.Table == "" {
+		return -1, errors.New("listing count of rows of cassandra table: table name not provided")
+	}
+	if extra.DbOnLocal == "" {
+		return -1, errors.New("listing count of rows of cassandra table: database on local is not provided")
+	}
+
+	if extra.DbOnLocal == "true" {
+		// If cassandra is present on the same machine as sirius
+		cmd := exec.Command("sh", "-c", "cqlsh -e \"copy "+extra.Keyspace+"."+extra.Table+" (id) to '/dev/null'\" | sed -n 5p | sed 's/ .*//'")
+		cmdOutput, err := cmd.Output()
+		if err != nil {
+			return -1, errors.New("listing count of rows of cassandra table: unable to parse command output")
+		}
+
+		count, err = strconv.ParseInt(strings.TrimSpace(string(cmdOutput)), 10, 64)
+		if err != nil {
+			return -1, errors.New("listing count of rows of cassandra table: unable to convert command output to an 64 bit integer")
+		}
+
+	} else {
+		// If cassandra is hosted on another machine
+		cassandraSession, errSessionCreate := c.CassandraConnectionManager.GetCassandraKeyspace(connStr, username, password, nil, extra.Keyspace)
+		if errSessionCreate != nil {
+			log.Println("listing cassandra table(s): unable to connect to cassandra:", errSessionCreate.Error())
+			return -1, errors.New("listing cassandra table(s): unable to connect to cassandra: " + errSessionCreate.Error())
+		}
+
+		countQuery := "SELECT COUNT(*) FROM " + extra.Table
+		if errCount := cassandraSession.Query(countQuery).Scan(&count); errCount != nil {
+			log.Println("Error while getting COUNT", errCount)
+			return 0, errors.New("Error while getting COUNT" + errCount.Error())
+		}
+	}
+	return count, nil
 }
