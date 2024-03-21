@@ -60,6 +60,15 @@ func (cassandraClusterObj *CassandraClusterObject) getCassandraKeyspaceObject(ca
 	if !ok {
 		cassClusterConfig := cassandraClusterObj.CassandraClusterConfig
 		cassClusterConfig.Keyspace = cassKeyspaceName
+
+		// Trying some cluster configurations here
+		//log.Println("In getCassandraKeyspaceObject()")
+		//cassClusterConfig.NumConns = 100
+		//cassClusterConfig.RetryPolicy = &gocql.SimpleRetryPolicy{NumRetries: 3}
+		//cassClusterConfig.Timeout = 10 * time.Second
+		//cassClusterConfig.WriteTimeout = 10 * time.Second
+		//cassClusterConfig.ReconnectionPolicy = &gocql.ConstantReconnectionPolicy{MaxRetries: 3}
+
 		cassandraSession, err := cassClusterConfig.CreateSession()
 		if err != nil {
 			log.Println("Unable to connect to Cassandra!")
