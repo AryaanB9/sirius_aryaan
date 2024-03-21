@@ -14,6 +14,7 @@ require (
 	github.com/go-chi/chi/v5 v5.0.8
 	github.com/go-chi/cors v1.2.1
 	github.com/gocql/gocql v1.6.0
+	github.com/iancoleman/strcase v0.3.0
 	github.com/linkedin/goavro/v2 v2.12.0
 	github.com/parquet-go/parquet-go v0.20.1
 	github.com/shettyh/threadpool v0.0.0-20200323115144-b99fd8aaa945
@@ -43,7 +44,6 @@ require (
 	github.com/google/go-cmp v0.5.8 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed // indirect
-	github.com/iancoleman/strcase v0.3.0 // indirect
 	github.com/klauspost/compress v1.17.5 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe // indirect
