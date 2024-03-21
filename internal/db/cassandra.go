@@ -213,13 +213,24 @@ func (c *Cassandra) Connect(connStr, username, password string, extra Extras) er
 }
 
 func (c *Cassandra) Warmup(connStr, username, password string, extra Extras) error {
-	// TODO
 	log.Println("In Cassandra Warmup()")
 	if err := validateStrings(connStr, username, password); err != nil {
 		log.Println("In Cassandra Warmup(), error:", err)
 		return err
 	}
 
+	cassSession, errSession := c.CassandraConnectionManager.GetCassandraCluster(connStr, username, password, nil)
+	if errSession != nil {
+		log.Println("In Cassandra Warmup(), unable to create session, err:", errSession)
+		return errors.New("In Cassandra Warmup(), unable to create session, err: " + errSession.Error())
+	}
+
+	// Checking if the cluster is reachable or not
+	errQuery := cassSession.Query("SELECT cluster_name FROM system.local").Exec()
+	if errQuery != nil {
+		log.Println("unable to perform query on the cluster, err:", errQuery)
+		return errors.New("In Cassandra Warmup(), unable to create cassSession, err: " + errQuery.Error())
+	}
 	return nil
 }
 
@@ -586,7 +597,7 @@ func (c *Cassandra) ReadSubDoc(connStr, username, password, key string, keyValue
 				return newCouchbaseSubDocOperationResult(key, keyValues, errors.New("Unsuccessful READ operation."), false, extra.Cas, offset)
 			}
 		}
-		if result["subdoc"] == "" {
+		if result[columnName] == "" {
 			return newCouchbaseSubDocOperationResult(key, keyValues, errors.New("No subdocs found."), false, extra.Cas, offset)
 		}
 	}
@@ -613,7 +624,7 @@ func (c *Cassandra) DeleteSubDoc(connStr, username, password, key string, keyVal
 		return newCouchbaseSubDocOperationResult(key, keyValues, errSessionCreate, false, extra.Cas, offset)
 	}
 	for range keyValues {
-		columnName := "subDoc"
+		columnName := extra.SubDocPath
 		if !cassandraColumnExists(cassandraSession, keyspaceName, tableName, columnName) {
 			alterQuery := fmt.Sprintf("ALTER TABLE %s.%s ADD %s text", keyspaceName, tableName, columnName)
 			err := cassandraSession.Query(alterQuery).Exec()
