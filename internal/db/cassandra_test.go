@@ -33,8 +33,17 @@ func TestCassandraDB(t *testing.T) {
 	connStr := "127.0.0.1:9042"
 	username := "username"
 	password := "password"
-	if err := db.Connect(connStr, username, password, Extras{}); err != nil {
-		t.Error(err)
+
+	extra := Extras{
+		Keyspace:          "testing_sirius",
+		Table:             "hotels",
+		ReplicationFactor: 1,
+		CassandraClass:    "SimpleStrategy",
+		DbOnLocal:         "true",
+	}
+
+	if err := db.Connect(connStr, username, password, extra); err != nil {
+		t.Error("connecting to cassandra cluster:", err)
 	}
 
 	m := meta_data.NewMetaData()
@@ -50,6 +59,15 @@ func TestCassandraDB(t *testing.T) {
 		Template: template.InitialiseTemplate("hotel"),
 	}
 
+	// Creating the Keyspace and Table
+	resultString, err := db.CreateDatabase(connStr, username, password, extra, "hotel", 0)
+	if err != nil {
+		log.Println("creating keyspace and table:", err)
+		t.Error("creating keyspace and table:", err)
+	} else {
+		log.Println(resultString)
+	}
+
 	// Inserting Documents into Cassandra
 	for i := int64(0); i < int64(10); i++ {
 		key := i + cm1.Seed
@@ -62,10 +80,7 @@ func TestCassandraDB(t *testing.T) {
 			Key:    docId,
 			Doc:    doc,
 			Offset: i,
-		}, Extras{
-			Keyspace: "test_sirius",
-			Table:    "hotels",
-		})
+		}, extra)
 		if createResult.GetError() != nil {
 			t.Error(createResult.GetError())
 		} else {
@@ -85,10 +100,7 @@ func TestCassandraDB(t *testing.T) {
 		keyVal := KeyValue{docId, doc, i}
 		keyValues = append(keyValues, keyVal)
 	}
-	createBulkResult := db.CreateBulk(connStr, username, password, keyValues, Extras{
-		Keyspace: "test_sirius",
-		Table:    "hotels",
-	})
+	createBulkResult := db.CreateBulk(connStr, username, password, keyValues, extra)
 	for _, i := range keyValues {
 		if createBulkResult.GetError(i.Key) != nil {
 			t.Error(createBulkResult.GetError(i.Key))
@@ -110,10 +122,7 @@ func TestCassandraDB(t *testing.T) {
 			Key:    docId,
 			Doc:    doc,
 			Offset: i,
-		}, Extras{
-			Keyspace: "test_sirius",
-			Table:    "hotels",
-		})
+		}, extra)
 		if updateResult.GetError() != nil {
 			t.Error(updateResult.GetError())
 		} else {
@@ -134,10 +143,7 @@ func TestCassandraDB(t *testing.T) {
 		keyVal := KeyValue{docId, doc, i}
 		keyValues = append(keyValues, keyVal)
 	}
-	updateBulkResult := db.UpdateBulk(connStr, username, password, keyValues, Extras{
-		Keyspace: "test_sirius",
-		Table:    "hotels",
-	})
+	updateBulkResult := db.UpdateBulk(connStr, username, password, keyValues, extra)
 	for _, i := range keyValues {
 		if updateBulkResult.GetError(i.Key) != nil {
 			t.Error(updateBulkResult.GetError(i.Key))
@@ -147,18 +153,42 @@ func TestCassandraDB(t *testing.T) {
 	}
 
 	// TODO Reading Documents into Cassandra
+	for i := int64(0); i < int64(10); i++ {
+		key := i + cm1.Seed
+		docId := gen.BuildKey(key)
+
+		readResult := db.Read(connStr, username, password, docId, i, extra)
+		if readResult.GetError() != nil {
+			t.Error(readResult.GetError())
+		} else {
+			log.Println("Reading", readResult.Key())
+		}
+	}
 
 	// TODO Bulk Reading Documents into Cassandra
+	keyValues = nil
+	for i := int64(10); i < int64(50); i++ {
+		key := i + cm1.Seed
+		docId := gen.BuildKey(key)
+
+		keyVal := KeyValue{docId, nil, i}
+		keyValues = append(keyValues, keyVal)
+	}
+	readBulkResult := db.ReadBulk(connStr, username, password, keyValues, extra)
+	for _, i := range keyValues {
+		if readBulkResult.GetError(i.Key) != nil {
+			t.Error(readBulkResult.GetError(i.Key))
+		} else {
+			log.Println("Bulk Deleting, Deleted Key:", i.Key)
+		}
+	}
 
 	// Deleting Documents from Cassandra
 	for i := int64(40); i < int64(50); i++ {
 		key := i + cm1.Seed
 		docId := gen.BuildKey(key)
 
-		deleteResult := db.Delete(connStr, username, password, docId, i, Extras{
-			Keyspace: "test_sirius",
-			Table:    "hotels",
-		})
+		deleteResult := db.Delete(connStr, username, password, docId, i, extra)
 		if deleteResult.GetError() != nil {
 			t.Error(deleteResult.GetError())
 		} else {
@@ -175,10 +205,7 @@ func TestCassandraDB(t *testing.T) {
 		keyVal := KeyValue{docId, nil, i}
 		keyValues = append(keyValues, keyVal)
 	}
-	deleteBulkResult := db.DeleteBulk(connStr, username, password, keyValues, Extras{
-		Keyspace: "test_sirius",
-		Table:    "hotels",
-	})
+	deleteBulkResult := db.DeleteBulk(connStr, username, password, keyValues, extra)
 	for _, i := range keyValues {
 		if deleteBulkResult.GetError(i.Key) != nil {
 			t.Error(deleteBulkResult.GetError(i.Key))
@@ -187,8 +214,17 @@ func TestCassandraDB(t *testing.T) {
 		}
 	}
 
+	// Deleting the Keyspace
+	resultString, err = db.DeleteDatabase(connStr, username, password, Extras{Keyspace: "testing_sirius"})
+	if err != nil {
+		log.Println("deleting keyspace and table:", err)
+		t.Error("deleting keyspace and table:", err)
+	} else {
+		log.Println(resultString)
+	}
+
 	// Closing the Connection to Cassandra
-	if err = db.Close(connStr); err != nil {
+	if err = db.Close(connStr, extra); err != nil {
 		t.Error(err)
 		t.Fail()
 	}
