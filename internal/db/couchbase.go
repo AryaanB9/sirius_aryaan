@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/barkha06/sirius/internal/cb_sdk"
-	"github.com/barkha06/sirius/internal/template"
+	"github.com/AryaanB9/sirius_aryaan/internal/cb_sdk"
+	"github.com/AryaanB9/sirius_aryaan/internal/template"
 	"github.com/couchbase/gocb/v2"
 )
 

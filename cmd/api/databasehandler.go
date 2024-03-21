@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/barkha06/sirius/internal/tasks"
+	"github.com/AryaanB9/sirius_aryaan/internal/tasks"
 
 	"database/sql"
 

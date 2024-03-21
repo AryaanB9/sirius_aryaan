@@ -3,7 +3,7 @@ package sdk_mysql
 import (
 	"fmt"
 
-	"github.com/barkha06/sirius/internal/err_sirius"
+	"github.com/AryaanB9/sirius_aryaan/internal/err_sirius"
 )
 
 // MongoClusterConfig maintains the Config Settings for Connection to the MongoDB Cluster

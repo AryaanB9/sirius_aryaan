@@ -4,9 +4,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/barkha06/sirius/internal/db"
-	"github.com/barkha06/sirius/internal/err_sirius"
-	"github.com/barkha06/sirius/internal/task_result"
+	"github.com/AryaanB9/sirius_aryaan/internal/db"
+	"github.com/AryaanB9/sirius_aryaan/internal/err_sirius"
+	"github.com/AryaanB9/sirius_aryaan/internal/task_result"
 )
 
 type BucketWarmUpTask struct {

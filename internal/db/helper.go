@@ -7,7 +7,7 @@ import (
 
 	"github.com/gocql/gocql"
 
-	"github.com/barkha06/sirius/internal/err_sirius"
+	"github.com/AryaanB9/sirius_aryaan/internal/err_sirius"
 )
 
 type KeyValue struct {

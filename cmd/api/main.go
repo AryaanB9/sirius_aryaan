@@ -8,9 +8,9 @@ import (
 	_ "net/http/pprof"
 	"os"
 
-	"github.com/barkha06/sirius/internal/server_requests"
-	"github.com/barkha06/sirius/internal/sirius_documentation"
-	"github.com/barkha06/sirius/internal/tasks_manager"
+	"github.com/AryaanB9/sirius_aryaan/internal/server_requests"
+	"github.com/AryaanB9/sirius_aryaan/internal/sirius_documentation"
+	"github.com/AryaanB9/sirius_aryaan/internal/tasks_manager"
 )
 
 const webPort = "4000"

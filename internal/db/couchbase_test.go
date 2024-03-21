@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/barkha06/sirius/internal/docgenerator"
-	"github.com/barkha06/sirius/internal/meta_data"
-	"github.com/barkha06/sirius/internal/template"
+	"github.com/AryaanB9/sirius_aryaan/internal/docgenerator"
+	"github.com/AryaanB9/sirius_aryaan/internal/meta_data"
+	"github.com/AryaanB9/sirius_aryaan/internal/template"
 	"github.com/bgadrian/fastfaker/faker"
 )
 

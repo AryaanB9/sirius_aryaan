@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/barkha06/sirius/internal/sdk_cassandra"
+	"github.com/AryaanB9/sirius_aryaan/internal/sdk_cassandra"
 
 	"github.com/gocql/gocql"
 )

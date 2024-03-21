@@ -1,4 +1,4 @@
-module github.com/barkha06/sirius
+module github.com/AryaanB9/sirius_aryaan
 
 // module /Users/bgoyal/Documents/project/sirius_temp/sirius
 go 1.19
@@ -14,6 +14,7 @@ require (
 	github.com/couchbase/gocb/v2 v2.6.1
 	github.com/go-chi/chi/v5 v5.0.8
 	github.com/go-chi/cors v1.2.1
+	github.com/go-sql-driver/mysql v1.8.0
 	github.com/gocql/gocql v1.6.0
 	github.com/shettyh/threadpool v0.0.0-20200323115144-b99fd8aaa945
 	go.mongodb.org/mongo-driver v1.14.0
@@ -36,7 +37,6 @@ require (
 	github.com/aws/smithy-go v1.20.1 // indirect
 	github.com/couchbase/gocbcore/v10 v10.2.1 // indirect
 	github.com/engoengine/math v1.0.4 // indirect
-	github.com/go-sql-driver/mysql v1.8.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed // indirect

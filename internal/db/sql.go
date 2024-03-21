@@ -7,7 +7,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/barkha06/sirius/internal/sdk_mysql"
+	"github.com/AryaanB9/sirius_aryaan/internal/sdk_mysql"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -623,14 +623,7 @@ func (m *Sql) CreateDatabase(connStr, username, password string, extra Extras, t
 		if err != nil {
 			return "", err
 		}
-		switch templateName {
-		case "hotel":
-			query = fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (ID VARCHAR(30) PRIMARY KEY,Address VARCHAR(100) NOT NULL,FreeParkin Bool,City VARCHAR(50),URL VARCHAR(50),Phone VARCHAR(20),Price DOUBLE,AvgRating DOUBLE,FreeBreakfast Bool,Name VARCHAR(50),Email VARCHAR(100),Padding VARCHAR(%d),Mutated DOUBLE)`, extra.Table, docSize)
-		case "person":
-			query = fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s(ID VARCHAR(30) PRIMARY KEY,FirstName VARCHAR(100),Age DOUBLE,Email VARCHAR(255),Gender VARCHAR(10),MaritalStatus VARCHAR(20),Hobbies VARCHAR(50),Padding VARCHAR(%d),Mutated DOUBLE)`, extra.Table, docSize)
-		case "small":
-			query = fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s(ID VARCHAR(30) PRIMARY KEY,RandomData VARCHAR(%d),Mutated DOUBLE')`, extra.Table, docSize)
-		}
+		query = template.getSQLSchema(templateName, extra.Table, docSize)
 		_, err = db.ExecContext(context.TODO(), query)
 		if err != nil {
 			return "", err
