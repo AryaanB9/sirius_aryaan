@@ -461,8 +461,8 @@ func (m Sql) Warmup(connStr, username, password string, extra Extras) error {
 	return nil
 }
 
-// extras should be a parameter. Needs change
-func (m Sql) Close(connStr string) error {
+// Close needs extras as a parameter.
+func (m Sql) Close(connStr string, extras Extras) error {
 	if err := m.connectionManager.Clusters[connStr].Close(); err != nil {
 		log.Println("Sql Close(): Disconnect failed!")
 		return err

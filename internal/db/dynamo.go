@@ -487,7 +487,7 @@ func (d Dynamo) Warmup(connStr, username, password string, extra Extras) error {
 	return nil
 }
 
-func (d Dynamo) Close(connStr string) error {
+func (d Dynamo) Close(connStr string, extras Extras) error {
 	d.connectionManager.DisconnectAll()
 	return nil
 }

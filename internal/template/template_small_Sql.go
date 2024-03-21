@@ -72,6 +72,7 @@ func (s *SmallSql) GenerateSubPathAndValue(fake *faker.Faker, subDocSize int) ma
 		"subDocData": fake.Sentence(subDocSize),
 	}
 }
+
 func (s *SmallSql) GetValues(document interface{}) (interface{}, error) {
 	small, ok := document.(*SmallSql)
 	if !ok {

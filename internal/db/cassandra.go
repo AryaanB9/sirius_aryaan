@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/AryaanB9/sirius_aryaan/internal/template"
 	"log"
 
 	"github.com/AryaanB9/sirius_aryaan/internal/sdk_cassandra"
@@ -234,7 +235,7 @@ func (c *Cassandra) Warmup(connStr, username, password string, extra Extras) err
 	return nil
 }
 
-func (c *Cassandra) Close(connStr string) error {
+func (c *Cassandra) Close(connStr string, extras Extras) error {
 	return c.CassandraConnectionManager.Disconnect(connStr)
 }
 
@@ -883,8 +884,129 @@ func (c *Cassandra) TouchBulk(connStr, username, password string, keyValues []Ke
 	panic("Implement the function")
 }
 func (c *Cassandra) CreateDatabase(connStr, username, password string, extra Extras, templateName string, docSize int) (string, error) {
-	// TODO
-	panic("Implement the function")
+	resultString := ""
+
+	if connStr == "" || password == "" || username == "" {
+		resultString = "Connection String or Auth Params Empty"
+		return resultString, errors.New("error Connection String or Auth Params Empty")
+	}
+
+	if extra.Keyspace == "" {
+		resultString = "Keyspace name not provided"
+		return resultString, errors.New("Keyspace name not provided")
+	} else if extra.Keyspace != "" && extra.Table == "" {
+		// Creating a new Keyspace
+		if extra.CassandraClass == "" || extra.ReplicationFactor == 0 {
+			resultString += "Cassandra Class or Replication Factor not provided for creating Keyspace"
+			return resultString, errors.New("Cassandra Class or Replication Factor not provided for creating Keyspace")
+		}
+
+		cassClusterConfig := gocql.NewCluster(connStr)
+		cassClusterConfig.Authenticator = gocql.PasswordAuthenticator{Username: username, Password: password}
+
+		cassandraSession, errCreateSession := cassClusterConfig.CreateSession()
+		if errCreateSession != nil {
+			log.Println("Unable to connect to Cassandra! err:", errCreateSession.Error())
+			resultString += "Unable to connect to Cassandra! err:" + errCreateSession.Error()
+			return resultString, errors.New("Unable to connect to Cassandra! err:" + errCreateSession.Error())
+		}
+		defer cassandraSession.Close()
+
+		createKeyspaceQuery := fmt.Sprintf(`
+							CREATE KEYSPACE IF NOT EXISTS %s
+							WITH replication = {
+								'class': '%s',
+								'replication_factor': %v
+							};`, extra.Keyspace, extra.CassandraClass, extra.ReplicationFactor)
+		errCreateKeyspace := cassandraSession.Query(createKeyspaceQuery).Exec()
+		if errCreateKeyspace != nil {
+			log.Println("unable to create keyspace", errCreateKeyspace)
+			resultString += errCreateKeyspace.Error()
+			return resultString, errors.New(errCreateKeyspace.Error())
+		}
+		resultString += fmt.Sprintf("Keyspace '%s' created successfully.", extra.Keyspace)
+		return resultString, nil
+
+	} else if extra.Keyspace != "" && extra.Table != "" {
+		// Creating a new Table. Need to have Template.
+		// And, we have to check if Keyspace is created or not.
+		if templateName == "" {
+			resultString += "Template name is not provided. Cannot proceed to create a Table in Cassandra."
+			return resultString, errors.New("Template name is not provided. Cannot proceed to create a Table in Cassandra.")
+		}
+
+		// First creating a client on Cluster and checking if the Keyspace exists or not
+		cassClusterConfig := gocql.NewCluster(connStr)
+		cassClusterConfig.Authenticator = gocql.PasswordAuthenticator{Username: username, Password: password}
+		cassandraSession, errCreateSession := cassClusterConfig.CreateSession()
+		if errCreateSession != nil {
+			log.Println("Unable to connect to Cassandra! err:", errCreateSession.Error())
+			resultString += "Unable to connect to Cassandra! err:" + errCreateSession.Error()
+			return resultString, errors.New("Unable to connect to Cassandra! err:" + errCreateSession.Error())
+		}
+
+		var count int
+		checkKeyspaceQuery := fmt.Sprintf("SELECT count(*) FROM system_schema.keyspaces WHERE keyspace_name = '%s'", extra.Keyspace)
+		if err := cassandraSession.Query(checkKeyspaceQuery).Scan(&count); err != nil {
+			log.Println("unable run the query to check keyspace existence, err:", err.Error())
+			resultString += "unable run the query to check keyspace existence, err:" + err.Error()
+			return resultString, errors.New("unable run the query to check keyspace existence, err:" + err.Error())
+		}
+
+		// If keyspace does not exist
+		if count <= 0 {
+			// Creating the keyspace as it does not exist
+			if extra.CassandraClass == "" || extra.ReplicationFactor == 0 {
+				resultString += "Cassandra Class or Replication Factor not provided for creating Keyspace"
+				return resultString, errors.New("Cassandra Class or Replication Factor not provided for creating Keyspace")
+			}
+
+			createKeyspaceQuery := fmt.Sprintf(`
+							CREATE KEYSPACE IF NOT EXISTS %s
+							WITH replication = {
+								'class': '%s',
+								'replication_factor': %v
+							};`, extra.Keyspace, extra.CassandraClass, extra.ReplicationFactor)
+			errCreateKeyspace := cassandraSession.Query(createKeyspaceQuery).Exec()
+			if errCreateKeyspace != nil {
+				log.Println("unable to create keyspace", errCreateKeyspace)
+				resultString += errCreateKeyspace.Error()
+				return resultString, errCreateKeyspace
+			}
+		}
+		cassandraSession.Close()
+
+		cassClusterConfig = gocql.NewCluster(connStr)
+		cassClusterConfig.Authenticator = gocql.PasswordAuthenticator{Username: username, Password: password}
+		cassClusterConfig.Keyspace = extra.Keyspace
+		cassandraSession, errCreateSession = cassClusterConfig.CreateSession()
+		if errCreateSession != nil {
+			log.Println("Unable to connect to Cassandra! err:", errCreateSession.Error())
+			resultString += "Unable to connect to Cassandra! err:" + errCreateSession.Error()
+			return resultString, errCreateSession
+		}
+		defer cassandraSession.Close()
+
+		cassQueries, err := template.GetCassandraSchema(templateName, extra.Table)
+		if err != nil {
+			log.Println(err)
+			resultString += err.Error()
+			return resultString, err
+		}
+		for _, cassQuery := range cassQueries {
+			err = cassandraSession.Query(cassQuery).Exec()
+			if err != nil {
+				log.Println("in Cassandra CreateDbOp(), unable to create type or table err:", err)
+				resultString += "in Cassandra CreateDbOp(), unable to create type or table err: " + err.Error()
+				return resultString, err
+			}
+		}
+
+		resultString += fmt.Sprintf("Table ' %s ' created successfully in Keyspace ' %s '.", extra.Table, extra.Keyspace)
+		return resultString, nil
+	}
+
+	return resultString, nil
 }
 func (c *Cassandra) DeleteDatabase(connStr, username, password string, extra Extras) (string, error) {
 	// TODO
