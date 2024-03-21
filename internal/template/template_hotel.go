@@ -74,7 +74,8 @@ func buildPublicLikes(fake *faker.Faker, length int32) []string {
 }
 
 func (h *Hotel) GenerateDocument(fake *faker.Faker, key string, documentSize int) interface{} {
-	hotel := &Hotel{
+	var hotel *Hotel
+	hotel = &Hotel{
 		ID:            key,
 		Country:       fake.Country(),
 		Address:       fake.Address().Address,
@@ -109,7 +110,7 @@ func (h *Hotel) UpdateDocument(fieldsToChange []string, lastUpdatedDocument inte
 
 	hotel, ok := lastUpdatedDocument.(*Hotel)
 	if !ok {
-		return nil, fmt.Errorf("unable to decode last updated document to hotel template")
+		return nil, fmt.Errorf("in template_hotel.go UpdateDocument(), unable to decode last updated document to hotel template")
 	}
 
 	checkFields := make(map[string]struct{})
@@ -198,6 +199,10 @@ func (h *Hotel) GenerateSubPathAndValue(fake *faker.Faker, subDocSize int) map[s
 	return map[string]interface{}{
 		"SubDoc": strings.Repeat(fake.Letter(), subDocSize),
 	}
+}
+
+func (h *Hotel) GetValues(document interface{}) (interface{}, error) {
+	return document, nil
 }
 
 // ToStringMap is used to convert the Hotel Struct into a map[string]interface{} form
