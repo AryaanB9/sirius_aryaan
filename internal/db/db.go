@@ -10,7 +10,9 @@ const (
 	CouchbaseDb       = "couchbase"
 	MongoDb           = "mongodb"
 	CouchbaseColumnar = "columnar"
+	DynamoDb          = "dynamodb"
 	CassandraDb       = "cassandra"
+	MySql             = "mysql"
 )
 
 type OperationResult interface {
@@ -66,7 +68,6 @@ var couchbase *Couchbase
 var mongodb *Mongo
 var cbcolumnar *Columnar
 var cassandra *Cassandra
-
 var lock = &sync.Mutex{}
 
 func ConfigDatabase(dbType string) (Database, error) {
@@ -102,7 +103,7 @@ func ConfigDatabase(dbType string) (Database, error) {
 		if cassandra == nil {
 			lock.Lock()
 			defer lock.Unlock()
-			if cbcolumnar == nil {
+			if cassandra == nil {
 				cassandra = NewCassandraConnectionManager()
 			}
 		}
