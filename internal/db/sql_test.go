@@ -4,6 +4,7 @@ import (
 	"github.com/AryaanB9/sirius_aryaan/internal/docgenerator"
 	"github.com/AryaanB9/sirius_aryaan/internal/meta_data"
 	"github.com/AryaanB9/sirius_aryaan/internal/template"
+	"os"
 
 	"log"
 
@@ -29,9 +30,19 @@ func TestSqlDB(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	connStr := "database-2.cu0pzohindsg.ap-south-1.rds.amazonaws.com"
-	username := "admin"
-	password := "couchbase"
+	connStr, ok := os.LookupEnv("sirius_mysql_connStr")
+	if !ok {
+		t.Error("connStr not found")
+	}
+	username, ok := os.LookupEnv("sirius_mysql_username")
+	if !ok {
+		t.Error("username not found")
+
+	}
+	password, ok := os.LookupEnv("sirius_mysql_password")
+	if !ok {
+		t.Error("password not found")
+	}
 
 	extra := Extras{
 		Database: "sirius",
