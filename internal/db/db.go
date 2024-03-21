@@ -74,6 +74,7 @@ var cbcolumnar *Columnar
 var dynamo *Dynamo
 var cassandra *Cassandra
 var mysql *Sql
+
 var lock = &sync.Mutex{}
 
 func ConfigDatabase(dbType string) (Database, error) {

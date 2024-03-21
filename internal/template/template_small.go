@@ -9,10 +9,9 @@ import (
 )
 
 type Small struct {
-	ID           string  `json:"id" bson:"_id" dynamodbav:"id"`
-	RandomData   string  `json:"d,omitempty" dynamodbav:"d"`
-	Mutated      float64 `json:"mutated,omitempty" dynamodbav:"mutated"`
-	TemplateType string  `json:"template_type" dynamodbav:"template_type"`
+	ID         string  `json:"id" bson:"_id" dynamodbav:"id" parquet:"name=id, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	RandomData string  `json:"random_data,omitempty" dynamodbav:"random_data" parquet:"name=random_data, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	Mutated    float64 `json:"mutated,omitempty" dynamodbav:"mutated" parquet:"name=mutated, type=DOUBLE"`
 }
 
 func (s *Small) GenerateDocument(fake *faker.Faker, key string, documentSize int) interface{} {
@@ -43,6 +42,7 @@ func (s *Small) Compare(document1 interface{}, document2 interface{}) (bool, err
 	if !ok {
 		return false, fmt.Errorf("unable to decode second document to person template")
 	}
+
 	return reflect.DeepEqual(t1, t2), nil
 }
 

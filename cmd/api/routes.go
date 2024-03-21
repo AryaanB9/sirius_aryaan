@@ -33,29 +33,34 @@ func (app *Config) routes() http.Handler {
 	mux.Get("/check-online", app.testServer)
 	mux.Post("/result", app.taskResult)
 	mux.Post("/clear_data", app.clearRequestFromServer)
-	//mux.Post("/validate", app.validateTask)
-	//mux.Post("/retry-exceptions", app.RetryExceptionTask)
+	mux.Post("/warmup-bucket", app.WarmUpBucket)
+
 	mux.Post("/create", app.insertTask)
 	mux.Post("/bulk-create", app.bulkInsertTask)
-	mux.Post("/delete", app.deleteTask)
-
-	mux.Post("/bulk-delete", app.bulkDeleteTask)
-	mux.Post("/upsert", app.upsertTask)
-	mux.Post("/bulk-upsert", app.bulkUpsertTask)
-	mux.Post("/touch", app.touchTask)
-	mux.Post("/bulk-touch", app.bulkTouchTask)
 	mux.Post("/read", app.readTask)
 	mux.Post("/bulk-read", app.bulkReadTask)
-	mux.Post("/validate", app.validateTask)
-	mux.Post("/create-database", app.createDBTask)
-	mux.Post("/delete-database", app.deleteDBTask)
-	mux.Post("/list-database", app.listDBTask)
+	mux.Post("/upsert", app.upsertTask)
+	mux.Post("/bulk-upsert", app.bulkUpsertTask)
+	mux.Post("/delete", app.deleteTask)
+	mux.Post("/bulk-delete", app.bulkDeleteTask)
+	mux.Post("/touch", app.touchTask)
+	mux.Post("/bulk-touch", app.bulkTouchTask)
+
 	mux.Post("/sub-doc-insert", app.SubDocInsertTask)
 	mux.Post("/sub-doc-upsert", app.SubDocUpsertTask)
 	mux.Post("/sub-doc-delete", app.SubDocDeleteTask)
 	mux.Post("/sub-doc-read", app.SubDocReadTask)
 	mux.Post("/sub-doc-replace", app.SubDocReplaceTask)
+
+	mux.Post("/list-database", app.listDBTask)
+	mux.Post("/create-database", app.createDBTask)
+	mux.Post("/delete-database", app.deleteDBTask)
 	mux.Post("/count", app.CountTask)
+
+	mux.Post("/validate", app.validateTask)
+
+	//mux.Post("/validate", app.validateTask)
+	//mux.Post("/retry-exceptions", app.RetryExceptionTask)
 	//mux.Post("/single-create", app.singleInsertTask)
 	//mux.Post("/single-delete", app.singleDeleteTask)
 	//mux.Post("/single-upsert", app.singleUpsertTask)
@@ -69,7 +74,19 @@ func (app *Config) routes() http.Handler {
 	//mux.Post("/single-sub-doc-delete", app.SingleSubDocDelete)
 	//mux.Post("/single-sub-doc-read", app.SingleSubDocRead)
 	//mux.Post("/single-doc-validate", app.SingleDocValidate)
-	mux.Post("/warmup-bucket", app.WarmUpBucket)
+
+	// Endpoints for External/Blob Storage use case
+	mux.Post("/create-s3-bucket", app.createS3BucketTask)
+	mux.Post("/delete-s3-bucket", app.deleteS3BucketTask)
+	mux.Post("/create-folder", app.folderInsertTask)
+	mux.Post("/delete-folder", app.folderDeleteTask)
+	mux.Post("/create-file", app.fileInsertTask)
+	mux.Post("/update-file", app.fileUpdateTask)
+	mux.Post("/delete-file", app.fileDeleteTask)
+	mux.Post("/create-files-in-folders", app.insertFilesInFoldersTask)
+	mux.Post("/update-files-in-folder", app.updateFilesInFolderTask)
+	mux.Post("/delete-files-in-folder", app.deleteFilesInFolderTask)
+	mux.Post("/get-info", app.getInfoTask)
 
 	return mux
 }

@@ -32,6 +32,7 @@ const (
 	TaskingRetryFailed                 = Error("task is still in pending state before retrying")
 	TaskInPendingState                 = Error("current task is still in progress")
 	InvalidDatabase                    = Error("invalid database in sirius")
+	InvalidExternalStorage             = Error("invalid external storage in sirius")
 	BucketIsMisssing                   = Error("bucket value is missing in extra parameters for couchbase cluster")
 	CollectionIsMissing                = Error("collection is in extra parameters for mongo cluster")
 	InternalErrorSetOperationType      = Error(
