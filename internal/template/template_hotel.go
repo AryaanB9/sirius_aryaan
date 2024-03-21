@@ -93,8 +93,8 @@ func (h *Hotel) GenerateDocument(fake *faker.Faker, key string, documentSize int
 		Email:         fake.URL(),
 		Mutated:       MutatedPathDefaultValue,
 	}
-
 	currentDocSize := calculateSizeOfStruct(hotel)
+
 	if currentDocSize < documentSize {
 		remSize := documentSize - currentDocSize
 		numOfReviews := int(remSize/(95*2)) + 1
@@ -401,4 +401,7 @@ func StringMapToHotel(data map[string]interface{}) *Hotel {
 	}
 
 	return hotel
+}
+func (h *Hotel) GetValues(document interface{}) (interface{}, error) {
+	return document, nil
 }

@@ -3,7 +3,7 @@ package db
 import (
 	"sync"
 
-	"github.com/barkha06/sirius/internal/err_sirius"
+	"github.com/AryaanB9/sirius_aryaan/internal/err_sirius"
 )
 
 const (
@@ -61,13 +61,20 @@ type Database interface {
 	DeleteBulk(connStr, username, password string, keyValues []KeyValue, extra Extras) BulkOperationResult
 	TouchBulk(connStr, username, password string, keyValues []KeyValue, extra Extras) BulkOperationResult
 	Warmup(connStr, username, password string, extra Extras) error
+	CreateDatabase(connStr, username, password string, extra Extras, templateName string, docSize int) (string, error)
+	DeleteDatabase(connStr, username, password string, extra Extras) (string, error)
+	Count(connStr, username, password string, extra Extras) (int64, error)
+	ListDatabase(connStr, username, password string, extra Extras) (any, error)
 	Close(connStr string) error
 }
 
 var couchbase *Couchbase
 var mongodb *Mongo
 var cbcolumnar *Columnar
+var dynamo *Dynamo
 var cassandra *Cassandra
+var mysql *Sql
+
 var lock = &sync.Mutex{}
 
 func ConfigDatabase(dbType string) (Database, error) {
@@ -99,6 +106,15 @@ func ConfigDatabase(dbType string) (Database, error) {
 			}
 		}
 		return cbcolumnar, nil
+	case DynamoDb:
+		if dynamo == nil {
+			lock.Lock()
+			defer lock.Unlock()
+			if dynamo == nil {
+				dynamo = NewDynamoConnectionManager()
+			}
+		}
+		return dynamo, nil
 	case CassandraDb:
 		if cassandra == nil {
 			lock.Lock()
@@ -108,6 +124,15 @@ func ConfigDatabase(dbType string) (Database, error) {
 			}
 		}
 		return cassandra, nil
+	case MySql:
+		if mysql == nil {
+			lock.Lock()
+			defer lock.Unlock()
+			if mysql == nil {
+				mysql = NewSqlConnectionManager()
+			}
+		}
+		return mysql, nil
 	default:
 		return nil, err_sirius.InvalidDatabase
 	}

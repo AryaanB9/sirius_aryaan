@@ -16,15 +16,15 @@ type Small struct {
 
 func (s *Small) GenerateDocument(fake *faker.Faker, key string, documentSize int) interface{} {
 	return &Small{
-		ID:         key,
-		RandomData: strings.Repeat(fake.Letter(), documentSize),
-		Mutated:    MutatedPathDefaultValue,
+		ID:           key,
+		TemplateType: "small",
+		RandomData:   strings.Repeat(fake.Letter(), documentSize),
+		Mutated:      MutatedPathDefaultValue,
 	}
 }
 
 func (s *Small) UpdateDocument(fieldsToChange []string, lastUpdatedDocument interface{}, documentSize int,
 	fake *faker.Faker) (interface{}, error) {
-
 	t, ok := lastUpdatedDocument.(*Small)
 	if !ok {
 		return nil, fmt.Errorf("unable to decode last updated document to person template")

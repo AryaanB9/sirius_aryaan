@@ -6,12 +6,12 @@ import (
 	"log"
 	"time"
 
-	"github.com/barkha06/sirius/internal/cb_sdk"
-	"github.com/barkha06/sirius/internal/db"
-	"github.com/barkha06/sirius/internal/docgenerator"
-	"github.com/barkha06/sirius/internal/err_sirius"
-	"github.com/barkha06/sirius/internal/task_result"
-	"github.com/barkha06/sirius/internal/task_state"
+	"github.com/AryaanB9/sirius_aryaan/internal/cb_sdk"
+	"github.com/AryaanB9/sirius_aryaan/internal/db"
+	"github.com/AryaanB9/sirius_aryaan/internal/docgenerator"
+	"github.com/AryaanB9/sirius_aryaan/internal/err_sirius"
+	"github.com/AryaanB9/sirius_aryaan/internal/task_result"
+	"github.com/AryaanB9/sirius_aryaan/internal/task_state"
 	"github.com/bgadrian/fastfaker/faker"
 )
 
@@ -240,6 +240,10 @@ func retracePreviousMutations(r *Request, collectionIdentifier string, offset in
 						}
 
 						if u.State.CheckOffsetInComplete(offset) {
+							// sql := false
+							// if db := u.DBType; db == "mysql" {
+							// 	sql = true
+							// }
 							doc, _ = gen.Template.UpdateDocument(u.OperationConfig.FieldsToChange, doc,
 								u.OperationConfig.DocSize, fake)
 						}

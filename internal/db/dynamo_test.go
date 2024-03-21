@@ -5,7 +5,6 @@ import (
 	"github.com/AryaanB9/sirius_aryaan/internal/meta_data"
 	"github.com/AryaanB9/sirius_aryaan/internal/template"
 
-	// "github.com/jaswdr/faker"
 	"log"
 
 	"github.com/bgadrian/fastfaker/faker"
@@ -13,7 +12,7 @@ import (
 	"testing"
 )
 
-func TestMongoDB(t *testing.T) {
+func TestDynamoDB(t *testing.T) {
 	/*
 		This test does the following
 		1. Insert in the range of 0-10
@@ -26,17 +25,19 @@ func TestMongoDB(t *testing.T) {
 		8. Bulk Delete documents in the range of 0-40
 	*/
 
-	db, err := ConfigDatabase("mongodb")
+	db, err := ConfigDatabase("dynamodb")
 	if err != nil {
 		t.Fatal(err)
 	}
-	connStr := "connection string"
-	username := "username"
-	password := "password"
+	connStr := "ap-south-1"
+	username := ""
+	password := ""
 	if err := db.Connect(connStr, username, password, Extras{}); err != nil {
 		t.Error(err)
 	}
-
+	extra := Extras{
+		Table: "testing_sirius",
+	}
 	m := meta_data.NewMetaData()
 	cm1 := m.GetCollectionMetadata("x")
 
@@ -49,8 +50,19 @@ func TestMongoDB(t *testing.T) {
 		DocType:  "json",
 		Template: template.InitialiseTemplate("hotel"),
 	}
-
-	// Inserting Documents into MongoDB
+	//Creating Table
+	_, err = db.CreateDatabase(connStr, username, password, extra, "", -1)
+	if err != nil {
+		t.Error(err)
+	}
+	// listing tables:
+	tables, err := db.ListDatabase(connStr, username, password, extra)
+	if err != nil {
+		t.Error(err)
+	} else {
+		log.Println("Listing Tables:\n", tables)
+	}
+	// Inserting Documents into DynamoDB
 	for i := int64(0); i < int64(10); i++ {
 		key := i + cm1.Seed
 		docId := gen.BuildKey(key)
@@ -62,20 +74,23 @@ func TestMongoDB(t *testing.T) {
 			Key:    docId,
 			Doc:    doc,
 			Offset: i,
-		}, Extras{
-			Database:   "TestMongoDatabase",
-			Collection: "TestingMongoSirius",
-		})
+		}, extra)
 		if createResult.GetError() != nil {
 			t.Error(createResult.GetError())
 		} else {
 			log.Println("Inserting", createResult.Key(), " ", createResult.Value())
 		}
 	}
+	count, err := db.Count(connStr, username, password, extra)
+	if err != nil {
+		t.Error(err)
+	} else {
+		log.Println("Table Document Count:\n", count)
+	}
 
-	// Bulk Inserting Documents into MongoDB
+	// Bulk Inserting Documents into DynamoDB
 	var keyValues []KeyValue
-	for i := int64(10); i < int64(50); i++ {
+	for i := int64(10); i < int64(35); i++ {
 		key := i + cm1.Seed
 		docId := gen.BuildKey(key)
 		fake := faker.NewFastFaker()
@@ -85,10 +100,7 @@ func TestMongoDB(t *testing.T) {
 		keyVal := KeyValue{docId, doc, i}
 		keyValues = append(keyValues, keyVal)
 	}
-	createBulkResult := db.CreateBulk(connStr, username, password, keyValues, Extras{
-		Database:   "TestMongoDatabase",
-		Collection: "TestingMongoSirius",
-	})
+	createBulkResult := db.CreateBulk(connStr, username, password, keyValues, extra)
 	for _, i := range keyValues {
 		if createBulkResult.GetError(i.Key) != nil {
 			t.Error(createBulkResult.GetError(i.Key))
@@ -96,8 +108,14 @@ func TestMongoDB(t *testing.T) {
 			log.Println("Bulk Insert, Inserted Key:", i.Key, "| Value:", i.Doc)
 		}
 	}
+	count, err = db.Count(connStr, username, password, extra)
+	if err != nil {
+		t.Error(err)
+	} else {
+		log.Println("Table Document Count:\n", count)
+	}
 
-	//Upserting Documents into MongoDB
+	//Upserting Documents into DynamoDB
 	for i := int64(0); i < int64(10); i++ {
 		key := i + cm1.Seed
 		docId := gen.BuildKey(key)
@@ -111,20 +129,22 @@ func TestMongoDB(t *testing.T) {
 			Key:    docId,
 			Doc:    doc,
 			Offset: i,
-		}, Extras{
-			Database:   "TestMongoDatabase",
-			Collection: "TestingMongoSirius",
-		})
+		}, extra)
 		if updateResult.GetError() != nil {
 			t.Error(updateResult.GetError())
 		} else {
 			log.Println("Upserting", updateResult.Key(), " ", updateResult.Value())
 		}
 	}
-
-	// Bulk Updating Documents into MongoDB
+	count, err = db.Count(connStr, username, password, extra)
+	if err != nil {
+		t.Error(err)
+	} else {
+		log.Println("Table Document Count:\n", count)
+	}
+	// Bulk Updating Documents into DynamoDB
 	keyValues = nil
-	for i := int64(10); i < int64(50); i++ {
+	for i := int64(10); i < int64(35); i++ {
 		key := i + cm1.Seed
 		docId := gen.BuildKey(key)
 		fake := faker.NewFastFaker()
@@ -135,10 +155,7 @@ func TestMongoDB(t *testing.T) {
 		keyVal := KeyValue{docId, doc, i}
 		keyValues = append(keyValues, keyVal)
 	}
-	updateBulkResult := db.UpdateBulk(connStr, username, password, keyValues, Extras{
-		Database:   "TestMongoDatabase",
-		Collection: "TestingMongoSirius",
-	})
+	updateBulkResult := db.UpdateBulk(connStr, username, password, keyValues, extra)
 	for _, i := range keyValues {
 		if updateBulkResult.GetError(i.Key) != nil {
 			t.Error(updateBulkResult.GetError(i.Key))
@@ -147,33 +164,27 @@ func TestMongoDB(t *testing.T) {
 		}
 	}
 
-	//  Reading Documents into MongoDB
-	for i := int64(0); i < int64(50); i++ {
+	//  Reading Documents into DynamoDB
+	for i := int64(0); i < int64(35); i++ {
 		key := i + cm1.Seed
 		docId := gen.BuildKey(key)
-		createResult := db.Read(connStr, username, password, docId, i, Extras{
-			Database:   "TestMongoDatabase",
-			Collection: "TestingMongoSirius",
-		})
+		createResult := db.Read(connStr, username, password, docId, i, extra)
 		if createResult.GetError() != nil {
 			t.Error(createResult.GetError())
 		} else {
 			log.Println("Inserting", createResult.Key(), " ", createResult.Value())
 		}
 	}
-	//  Bulk Reading Documents into MongoDB
+	//  Bulk Reading Documents into DynamoDB
 	keyValues = nil
-	for i := int64(0); i < int64(50); i++ {
+	for i := int64(0); i < int64(35); i++ {
 		key := i + cm1.Seed
 		docId := gen.BuildKey(key)
 		keyValues = append(keyValues, KeyValue{
 			Key: docId,
 		})
 	}
-	readBulkResult := db.ReadBulk(connStr, username, password, keyValues, Extras{
-		Database:   "TestMongoDatabase",
-		Collection: "TestingMongoSirius",
-	})
+	readBulkResult := db.ReadBulk(connStr, username, password, keyValues, extra)
 	for _, i := range keyValues {
 		if readBulkResult.GetError(i.Key) != nil {
 			t.Error(updateBulkResult.GetError(i.Key))
@@ -182,35 +193,37 @@ func TestMongoDB(t *testing.T) {
 		}
 	}
 
-	// Deleting Documents from MongoDB
-	for i := int64(40); i < int64(50); i++ {
+	// Deleting Documents from DynamoDB
+	for i := int64(25); i < int64(35); i++ {
 		key := i + cm1.Seed
 		docId := gen.BuildKey(key)
 
-		deleteResult := db.Delete(connStr, username, password, docId, i, Extras{
-			Database:   "TestMongoDatabase",
-			Collection: "TestingMongoSirius",
-		})
+		deleteResult := db.Delete(connStr, username, password, docId, i, extra)
 		if deleteResult.GetError() != nil {
 			t.Error(deleteResult.GetError())
 		} else {
 			log.Println("Deleting", deleteResult.Key())
 		}
 	}
+	count, err = db.Count(connStr, username, password, extra)
+	if err != nil {
+		t.Error(err)
+	} else {
+		log.Println("Table Document Count:\n", count)
+	}
+	//Sub doc ops:
+	// db.InsertSubDoc(connStr, username, password,KeyValue(),extra)
 
-	// Bulk Deleting Documents from MongoDB
+	// Bulk Deleting Documents from DynamoDB
 	keyValues = nil
-	for i := int64(0); i < int64(40); i++ {
+	for i := int64(0); i < int64(25); i++ {
 		key := i + cm1.Seed
 		docId := gen.BuildKey(key)
 
 		keyVal := KeyValue{docId, nil, i}
 		keyValues = append(keyValues, keyVal)
 	}
-	deleteBulkResult := db.DeleteBulk(connStr, username, password, keyValues, Extras{
-		Database:   "TestMongoDatabase",
-		Collection: "TestingMongoSirius",
-	})
+	deleteBulkResult := db.DeleteBulk(connStr, username, password, keyValues, extra)
 	for _, i := range keyValues {
 		if deleteBulkResult.GetError(i.Key) != nil {
 			t.Error(deleteBulkResult.GetError(i.Key))
@@ -218,8 +231,20 @@ func TestMongoDB(t *testing.T) {
 			log.Println("Bulk Deleting, Deleted Key:", i.Key)
 		}
 	}
-
-	// Closing the Connection to MongoDB
+	count, err = db.Count(connStr, username, password, extra)
+	if err != nil {
+		t.Error(err)
+	} else {
+		log.Println("Table Document Count:\n", count)
+	}
+	//deleting table
+	_, err = db.DeleteDatabase(connStr, username, password, extra)
+	if err != nil {
+		t.Error(err)
+	} else {
+		log.Println("Table deleted")
+	}
+	// Closing the Connection to DynamoDB
 	if err = db.Close(connStr); err != nil {
 		t.Error(err)
 		t.Fail()

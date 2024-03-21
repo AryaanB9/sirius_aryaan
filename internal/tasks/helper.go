@@ -97,11 +97,11 @@ func CompareDocumentsIsSame(host map[string]any, document1 map[string]any, docum
 
 	for key, value := range hostMap {
 		if v1, ok := document1Map[key]; ok {
-			if reflect.DeepEqual(value, v1) == false {
+			if !reflect.DeepEqual(value, v1) {
 				return false
 			}
 		} else if v2, ok := document2Map[key]; ok {
-			if reflect.DeepEqual(v2, value) == false {
+			if !reflect.DeepEqual(v2, value) {
 				return false
 			}
 		} else {

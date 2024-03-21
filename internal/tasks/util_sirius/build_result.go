@@ -1,6 +1,6 @@
 package util_sirius
 
-import "github.com/barkha06/sirius/internal/tasks"
+import "github.com/AryaanB9/sirius_aryaan/internal/tasks"
 
 // TaskResult represents a request structure for retrieving Result of the task.
 type TaskResult struct {

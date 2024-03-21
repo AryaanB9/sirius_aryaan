@@ -6,14 +6,14 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/barkha06/sirius/internal/meta_data"
-	"github.com/barkha06/sirius/internal/server_requests"
-	"github.com/barkha06/sirius/internal/sirius_documentation"
-	"github.com/barkha06/sirius/internal/task_result"
-	"github.com/barkha06/sirius/internal/task_state"
-	"github.com/barkha06/sirius/internal/tasks"
-	"github.com/barkha06/sirius/internal/tasks/util_sirius"
-	"github.com/barkha06/sirius/internal/template"
+	"github.com/AryaanB9/sirius_aryaan/internal/meta_data"
+	"github.com/AryaanB9/sirius_aryaan/internal/server_requests"
+	"github.com/AryaanB9/sirius_aryaan/internal/sirius_documentation"
+	"github.com/AryaanB9/sirius_aryaan/internal/task_result"
+	"github.com/AryaanB9/sirius_aryaan/internal/task_state"
+	"github.com/AryaanB9/sirius_aryaan/internal/tasks"
+	"github.com/AryaanB9/sirius_aryaan/internal/tasks/util_sirius"
+	"github.com/AryaanB9/sirius_aryaan/internal/template"
 )
 
 type jsonResponse struct {

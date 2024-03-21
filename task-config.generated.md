@@ -339,12 +339,23 @@ Description : Warming up a connection to database.
 | `ConnStr` | `string` | `json:connstr,omitempty`  |
 | `Username` | `string` | `json:username,omitempty`  |
 | `Password` | `string` | `json:password,omitempty`  |
+| `ColumnarBucket` | `string` | `json:columnarBucket,omitempty`  |
+| `ColumnarScope` | `string` | `json:columnarScope,omitempty`  |
+| `ColumnarCollection` | `string` | `json:columnarCollection,omitempty`  |
+| `Provisioned` | `bool` | `json:provisioned,omitempty`  |
+| `ReadCapacity` | `int` | `json:readCapacity,omitempty`  |
+| `WriteCapacity` | `int` | `json:writeCapacity,omitempty`  |
 | `Keyspace` | `string` | `json:keyspace,omitempty`  |
 | `Table` | `string` | `json:table,omitempty`  |
 | `NumOfConns` | `int` | `json:numOfConns,omitempty`  |
 | `SubDocPath` | `string` | `json:subDocPath,omitempty`  |
 | `ReplicationFactor` | `int` | `json:replicationFactor,omitempty`  |
 | `CassandraClass` | `string` | `json:cassandraClass,omitempty`  |
+| `Port` | `string` | `json:port,omitempty`  |
+| `MaxIdleConnections` | `int` | `json:maxIdleConnections,omitempty`  |
+| `MaxOpenConnections` | `int` | `json:maxOpenConnections,omitempty`  |
+| `MaxIdleTime` | `int` | `json:maxIdleTime,omitempty`  |
+| `MaxLifeTime` | `int` | `json:maxLifeTime,omitempty`  |
 
 ---
 Possible values for durability :-

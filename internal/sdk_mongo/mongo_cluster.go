@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/barkha06/sirius/internal/err_sirius"
+	"github.com/AryaanB9/sirius_aryaan/internal/err_sirius"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 

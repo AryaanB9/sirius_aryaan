@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/barkha06/sirius/internal/sdk_cassandra"
+	"github.com/AryaanB9/sirius_aryaan/internal/sdk_cassandra"
 
 	"github.com/gocql/gocql"
 )
@@ -879,6 +879,22 @@ func (c *Cassandra) DeleteBulk(connStr, username, password string, keyValues []K
 }
 
 func (c *Cassandra) TouchBulk(connStr, username, password string, keyValues []KeyValue, extra Extras) BulkOperationResult {
+	// TODO
+	panic("Implement the function")
+}
+func (c *Cassandra) CreateDatabase(connStr, username, password string, extra Extras, templateName string, docSize int) (string, error) {
+	// TODO
+	panic("Implement the function")
+}
+func (c *Cassandra) DeleteDatabase(connStr, username, password string, extra Extras) (string, error) {
+	// TODO
+	panic("Implement the function")
+}
+func (c *Cassandra) Count(connStr, username, password string, extra Extras) (int64, error) {
+	// TODO
+	panic("Implement the function")
+}
+func (c *Cassandra) ListDatabase(connStr, username, password string, extra Extras) (any, error) {
 	// TODO
 	panic("Implement the function")
 }

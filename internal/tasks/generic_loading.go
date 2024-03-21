@@ -11,14 +11,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/barkha06/sirius/internal/db"
-	"github.com/barkha06/sirius/internal/docgenerator"
-	"github.com/barkha06/sirius/internal/err_sirius"
-	"github.com/barkha06/sirius/internal/external_storage"
-	"github.com/barkha06/sirius/internal/meta_data"
-	"github.com/barkha06/sirius/internal/task_result"
-	"github.com/barkha06/sirius/internal/task_state"
-	"github.com/barkha06/sirius/internal/template"
+	"github.com/AryaanB9/sirius_aryaan/internal/db"
+	"github.com/AryaanB9/sirius_aryaan/internal/docgenerator"
+	"github.com/AryaanB9/sirius_aryaan/internal/err_sirius"
+	"github.com/AryaanB9/sirius_aryaan/internal/meta_data"
+	"github.com/AryaanB9/sirius_aryaan/internal/task_result"
+	"github.com/AryaanB9/sirius_aryaan/internal/task_state"
+	"github.com/AryaanB9/sirius_aryaan/internal/template"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -223,6 +222,10 @@ func loadDocumentsInBatches(task *GenericLoadingTask) {
 
 	// default batch size is calculated by dividing the total operations in equal quantity to each thread.
 	batchSize := int64(5000)
+
+	if task.DBType == "dynamodb" {
+		task.Extra.SDKBatchSize = 25
+  }
 
 	/*
 		 * 	For External Storage operations, we need to handle the batchSize and numOfBatches differently.
@@ -440,6 +443,9 @@ func loadDocumentsInBatches(task *GenericLoadingTask) {
 	log.Println("batchSize:", batchSize, "numOfBatches:", numOfBatches, "remainingItems:", remainingItems)
 	t1 := time.Now()
 	for i := int64(0); i < numOfBatches; i++ {
+		// if task.DBType == "dynamodb" && i > 0 && i%1000 == 0 {
+		// 	time.Sleep(1000 * time.Millisecond)
+		// }
 		batchStart := i * batchSize
 		batchEnd := (i + 1) * batchSize
 		t := newLoadingTask(batchStart+task.OperationConfig.Start,

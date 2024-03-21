@@ -1,6 +1,6 @@
 package util_sirius
 
-import "github.com/barkha06/sirius/internal/tasks"
+import "github.com/AryaanB9/sirius_aryaan/internal/tasks"
 
 // ClearTask represents a request structure for clearing everything.
 type ClearTask struct {

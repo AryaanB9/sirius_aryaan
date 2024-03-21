@@ -1,12 +1,11 @@
 package db
 
 import (
-
 	"log"
 
 	"github.com/couchbase/gocb/v2"
 
-	"github.com/barkha06/sirius/internal/sdk_columnar"
+	"github.com/AryaanB9/sirius_aryaan/internal/sdk_columnar"
 )
 
 type columnarOperationResult struct {
@@ -93,7 +92,7 @@ func (c *Columnar) Warmup(connStr, username, password string, extra Extras) erro
 		log.Print("In Columnar Warmup(), error while pinging:", errPing)
 		return errPing
 	}
-  
+
 	for service, pingReports := range pingRes.Services {
 		if service != gocb.ServiceTypeAnalytics {
 			log.Println("We got a service type that we didn't ask for!")
@@ -231,6 +230,23 @@ func (c *Columnar) DeleteBulk(connStr, username, password string, keyValues []Ke
 }
 
 func (c *Columnar) TouchBulk(connStr, username, password string, keyValues []KeyValue, extra Extras) BulkOperationResult {
+	// TODO
+	panic("Implement the function")
+}
+
+func (c *Columnar) CreateDatabase(connStr, username, password string, extra Extras, templateName string, docSize int) (string, error) {
+	// TODO
+	panic("Implement the function")
+}
+func (c *Columnar) DeleteDatabase(connStr, username, password string, extra Extras) (string, error) {
+	// TODO
+	panic("Implement the function")
+}
+func (c *Columnar) Count(connStr, username, password string, extra Extras) (int64, error) {
+	// TODO
+	panic("Implement the function")
+}
+func (c *Columnar) ListDatabase(connStr, username, password string, extra Extras) (any, error) {
 	// TODO
 	panic("Implement the function")
 }

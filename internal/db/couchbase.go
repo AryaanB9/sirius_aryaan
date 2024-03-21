@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/barkha06/sirius/internal/cb_sdk"
-	"github.com/barkha06/sirius/internal/template"
+	"github.com/AryaanB9/sirius_aryaan/internal/cb_sdk"
+	"github.com/AryaanB9/sirius_aryaan/internal/template"
 	"github.com/couchbase/gocb/v2"
 )
 
@@ -1215,4 +1215,20 @@ func (c *Couchbase) TouchBulk(connStr, username, password string, keyValues []Ke
 		}
 	}
 	return result
+}
+func (c *Couchbase) CreateDatabase(connStr, username, password string, extra Extras, templateName string, docSize int) (string, error) {
+	// TODO
+	panic("Implement the function")
+}
+func (c *Couchbase) DeleteDatabase(connStr, username, password string, extra Extras) (string, error) {
+	// TODO
+	panic("Implement the function")
+}
+func (c *Couchbase) Count(connStr, username, password string, extra Extras) (int64, error) {
+	// TODO
+	panic("Implement the function")
+}
+func (c *Couchbase) ListDatabase(connStr, username, password string, extra Extras) (any, error) {
+	// TODO
+	panic("Implement the function")
 }

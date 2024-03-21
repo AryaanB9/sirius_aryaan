@@ -10,6 +10,7 @@ import (
 )
 
 type HotelSql struct {
+
 	ID            string  `json:"id" bson:"_id"`
 	Country       string  `json:"country,omitempty"`
 	Address       string  `json:"address,omitempty"`
@@ -99,7 +100,6 @@ func (h *HotelSql) UpdateDocument(fieldsToChange []string, lastUpdatedDocument i
 		hotel.Email = fake.URL()
 	}
 	hotel.Padding = ""
-
 	currentDocSize := calculateSizeOfStruct(hotel)
 	if currentDocSize < documentSize {
 		hotel.Padding = strings.Repeat("a", documentSize-currentDocSize)
@@ -107,7 +107,7 @@ func (h *HotelSql) UpdateDocument(fieldsToChange []string, lastUpdatedDocument i
 
 	values := []interface{}{&hotel.ID, &hotel.Address, &hotel.FreeParking, &hotel.City, &hotel.URL, &hotel.Phone,
 		&hotel.Price, &hotel.AvgRating, &hotel.FreeBreakfast, &hotel.Name, &hotel.Email, &hotel.Padding, &hotel.Mutated}
-
+  
 	hotel.Value = values
 	return hotel, nil
 }

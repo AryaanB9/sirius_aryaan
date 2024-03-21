@@ -1,18 +1,21 @@
-module github.com/barkha06/sirius
+module github.com/AryaanB9/sirius_aryaan
 
 // module /Users/bgoyal/Documents/project/sirius_temp/sirius
 go 1.19
 
 require (
+
 	github.com/aws/aws-sdk-go-v2 v1.25.3
 	github.com/aws/aws-sdk-go-v2/config v1.27.7
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.7
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.51.4
+
 	github.com/bgadrian/fastfaker v2.1.0+incompatible
 	github.com/couchbase/gocb/v2 v2.6.1
 	github.com/dnlo/struct2csv v0.0.0-20190928115744-2f584471b24e
 	github.com/go-chi/chi/v5 v5.0.8
 	github.com/go-chi/cors v1.2.1
+	github.com/go-sql-driver/mysql v1.8.0
 	github.com/gocql/gocql v1.6.0
 	github.com/iancoleman/strcase v0.3.0
 	github.com/linkedin/goavro/v2 v2.12.0
@@ -23,6 +26,7 @@ require (
 )
 
 require (
+
 	github.com/andybalholm/brotli v1.0.5 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.1 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.15.3 // indirect
@@ -41,11 +45,12 @@ require (
 	github.com/couchbase/gocbcore/v10 v10.2.1 // indirect
 	github.com/engoengine/math v1.0.4 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/google/go-cmp v0.5.8 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed // indirect
+
 	github.com/klauspost/compress v1.17.5 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
+
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/pierrec/lz4/v4 v4.1.18 // indirect

@@ -105,6 +105,7 @@ func (p *Person) GenerateDocument(fake *faker.Faker, key string, documentSize in
 		Age:           fake.Float64Range(1, 100),
 		Email:         fake.Email(),
 		Gender:        fake.Gender(),
+		TemplateType:  "Person",
 		MaritalStatus: fake.RandString(maritalChoices),
 		Hobbies:       fake.RandString(hobbyChoices),
 		Address: Address{

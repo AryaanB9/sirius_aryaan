@@ -5,7 +5,7 @@ import (
 
 	"testing"
 
-	"github.com/barkha06/sirius/internal/template"
+	"github.com/AryaanB9/sirius_aryaan/internal/template"
 	"github.com/bgadrian/fastfaker/faker"
 )
 

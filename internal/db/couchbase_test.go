@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/barkha06/sirius/internal/docgenerator"
-	"github.com/barkha06/sirius/internal/meta_data"
-	"github.com/barkha06/sirius/internal/template"
+	"github.com/AryaanB9/sirius_aryaan/internal/docgenerator"
+	"github.com/AryaanB9/sirius_aryaan/internal/meta_data"
+	"github.com/AryaanB9/sirius_aryaan/internal/template"
 	"github.com/bgadrian/fastfaker/faker"
 )
 
@@ -49,12 +49,17 @@ func TestCouchbase(t *testing.T) {
 		Template: template.InitialiseTemplate("person"),
 	}
 	// update
+
 	for i := int64(0); i < int64(10); i++ {
 		key := i + cm1.Seed
 		docId := gen.BuildKey(key)
 		fake := faker.NewFastFaker()
 		fake.Seed(key)
 		doc := g.Template.GenerateDocument(fake, docId, 10)
+		doc, err = g.Template.GetValues(doc)
+		if err != nil {
+			t.Error(err)
+		}
 		log.Println(docId, doc)
 		x := db.Update(connStr, username, password, KeyValue{
 			Key:    docId,
@@ -78,7 +83,6 @@ func TestCouchbase(t *testing.T) {
 		fake := faker.NewFastFaker()
 		fake.Seed(key)
 		doc := g.Template.GenerateDocument(fake, docId, 10)
-
 		x := db.Update(connStr, username, password, KeyValue{
 			Key:    docId,
 			Doc:    doc,

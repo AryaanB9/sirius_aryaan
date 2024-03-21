@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/barkha06/sirius/internal/tasks"
+	"github.com/AryaanB9/sirius_aryaan/internal/tasks"
 	"github.com/go-chi/chi/v5"
 
 	"github.com/go-chi/chi/v5/middleware"

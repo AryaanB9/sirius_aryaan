@@ -3,11 +3,11 @@ package tasks
 import (
 	"sync"
 
-	"github.com/barkha06/sirius/internal/db"
-	"github.com/barkha06/sirius/internal/docgenerator"
-	"github.com/barkha06/sirius/internal/external_storage"
-	"github.com/barkha06/sirius/internal/task_result"
-	"github.com/barkha06/sirius/internal/task_state"
+	"github.com/AryaanB9/sirius_aryaan/internal/db"
+	"github.com/AryaanB9/sirius_aryaan/internal/docgenerator"
+	"github.com/AryaanB9/sirius_aryaan/internal/task_result"
+	"github.com/AryaanB9/sirius_aryaan/internal/task_state"
+
 )
 
 type BulkTask interface {

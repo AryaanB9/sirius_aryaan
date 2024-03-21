@@ -7,7 +7,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/barkha06/sirius/internal/sdk_mongo"
+	"github.com/AryaanB9/sirius_aryaan/internal/sdk_mongo"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -677,7 +677,7 @@ func (m Mongo) CreateBulk(connStr, username, password string, keyValues []KeyVal
 
 	mongoBulkWriteResult, err := mongoCollection.BulkWrite(context.TODO(), models, opts)
 	if err != nil {
-		log.Println("In MongoDB CreateBulk(), BulkWrite() Error:", err)
+		// log.Println("In MongoDB CreateBulk(), BulkWrite() Error:", err)
 		result.failBulk(keyValues, err)
 		return result
 	} else if int64(len(keyValues)) != mongoBulkWriteResult.InsertedCount {
@@ -862,12 +862,6 @@ func (m Mongo) DeleteBulk(connStr, username, password string, keyValues []KeyVal
 		return result
 	}
 	//log.Printf("Deleted %d document(s)\n", resultOfDelete.DeletedCount)
-	if resultOfDelete.DeletedCount == 0 {
-		for _, x := range keyValues {
-			result.AddResult(x.Key, nil, errors.New("zero documents were deleted"), true, keyToOffset[x.Key])
-		}
-		return result
-	}
 	for _, x := range keyValues {
 		result.AddResult(x.Key, nil, nil, true, keyToOffset[x.Key])
 	}
@@ -992,4 +986,119 @@ func (m Mongo) ReadBulk(connStr, username, password string, keyValues []KeyValue
 		result.AddResult(resultdoc["_id"].(string), resultdoc, nil, true, keyToOffset[resultdoc["_id"].(string)])
 	}
 	return result
+}
+func (m *Mongo) CreateDatabase(connStr, username, password string, extra Extras, templateName string, docSize int) (string, error) {
+	if err := validateStrings(connStr, username, password); err != nil {
+		return "", err
+	}
+	err := m.Connect(connStr, username, password, extra)
+	if err != nil {
+		return "", err
+	}
+	mongoClient := m.connectionManager.Clusters[connStr].MongoClusterClient
+	if extra.Database == "" {
+		return "", errors.New("Empty Database name")
+	}
+	database := mongoClient.Database(extra.Database)
+	if database == nil {
+		return "", errors.New("Database Creation Unsuccessful   : " + extra.Database)
+	}
+	if extra.Collection == "" {
+		return "Database Creation Successful: " + extra.Database, nil
+	}
+	err = database.CreateCollection(context.TODO(), extra.Collection, nil)
+	if err != nil {
+		return "", err
+	} else {
+		return "Collection Creation Successful : " + extra.Database + "  /  " + extra.Collection, nil
+	}
+}
+
+func (m *Mongo) DeleteDatabase(connStr, username, password string, extra Extras) (string, error) {
+	if err := validateStrings(connStr, username, password); err != nil {
+		return "", err
+	}
+	err := m.Connect(connStr, username, password, extra)
+	if err != nil {
+		return "", err
+	}
+	mongoClient := m.connectionManager.Clusters[connStr].MongoClusterClient
+	if extra.Database == "" {
+		return "", errors.New("Empty Database name")
+	}
+	database := mongoClient.Database(extra.Database)
+	if database == nil {
+		return "", errors.New("Database does not exist  : " + extra.Database)
+	} else if extra.Collection == "" {
+		err = database.Drop(context.TODO())
+		if err != nil {
+			return "", err
+		}
+		return "Database Deletion Successful  : " + extra.Database, nil
+	} else {
+		err := database.Collection(extra.Collection).Drop(context.TODO())
+		if err != nil {
+			return "", err
+		} else {
+			return "Collection Deletion Successful  : " + extra.Collection, nil
+		}
+	}
+}
+
+func (m *Mongo) Count(connStr, username, password string, extra Extras) (int64, error) {
+	var count int64
+	if err := validateStrings(connStr, username, password); err != nil {
+		return -1, err
+	}
+	err := m.Connect(connStr, username, password, extra)
+	if err != nil {
+		return -1, err
+	}
+	mongoClient := m.connectionManager.Clusters[connStr].MongoClusterClient
+	if extra.Database == "" {
+		return -1, errors.New("Empty Database name")
+	}
+	database := mongoClient.Database(extra.Database)
+	if database == nil {
+		return -1, errors.New("Database Not Found   : " + extra.Database)
+	} else if extra.Collection == "" {
+		return -1, errors.New("Empty Collection name " + extra.Collection)
+	} else {
+		col := database.Collection(extra.Collection)
+		if col == nil {
+			return -1, errors.New("Collection Not Found   : " + extra.Collection)
+		} else {
+			count, err = col.CountDocuments(context.TODO(), bson.D{})
+			if err != nil {
+				return -1, err
+			}
+			return count, nil
+		}
+	}
+}
+func (m *Mongo) ListDatabase(connStr, username, password string, extra Extras) (any, error) {
+	dblist := make(map[string][]string)
+	if err := validateStrings(connStr, username, password); err != nil {
+		return nil, err
+	}
+	err := m.Connect(connStr, username, password, extra)
+	if err != nil {
+		return nil, err
+	}
+	mongoClient := m.connectionManager.Clusters[connStr].MongoClusterClient
+	databases, err := mongoClient.ListDatabaseNames(context.TODO(), bson.D{})
+	if err != nil {
+		return nil, err
+	} else {
+		for _, db := range databases {
+			collections, err := mongoClient.Database(db).ListCollectionNames(context.TODO(), bson.D{})
+			if err == nil {
+				dblist[db] = collections
+			} else {
+				return nil, err
+			}
+		}
+		return dblist, nil
+	}
+
 }

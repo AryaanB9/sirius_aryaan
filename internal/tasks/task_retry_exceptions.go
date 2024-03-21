@@ -3,8 +3,8 @@ package tasks
 import (
 	"fmt"
 
-	"github.com/barkha06/sirius/internal/err_sirius"
-	"github.com/barkha06/sirius/internal/task_state"
+	"github.com/AryaanB9/sirius_aryaan/internal/err_sirius"
+	"github.com/AryaanB9/sirius_aryaan/internal/task_state"
 )
 
 type RetryExceptions struct {

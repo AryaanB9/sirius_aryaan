@@ -1,7 +1,7 @@
 package cb_sdk
 
 import (
-	"github.com/barkha06/sirius/internal/err_sirius"
+	"github.com/AryaanB9/sirius_aryaan/internal/err_sirius"
 	"github.com/couchbase/gocb/v2"
 )
 
@@ -57,7 +57,6 @@ type InsertOptions struct {
 func ConfigInsertOptions(i *InsertOptions) error {
 	if i == nil {
 		return err_sirius.ParsingInsertOptions
-		return err_sirius.ParsingInsertOptions
 	}
 	if i.Timeout == 0 {
 		i.Timeout = 10
@@ -71,7 +70,6 @@ type TouchOptions struct {
 
 func ConfigTouchOptions(i *TouchOptions) error {
 	if i == nil {
-		return err_sirius.ParsingTouchOptions
 		return err_sirius.ParsingTouchOptions
 	}
 	if i.Timeout == 0 {
@@ -92,7 +90,6 @@ type RemoveOptions struct {
 func ConfigRemoveOptions(r *RemoveOptions) error {
 	if r == nil {
 		return err_sirius.ParsingRemoveOptions
-		return err_sirius.ParsingRemoveOptions
 	}
 	if r.Timeout == 0 {
 		r.Timeout = 10
@@ -112,7 +109,6 @@ type ReplaceOptions struct {
 func ConfigReplaceOptions(r *ReplaceOptions) error {
 	if r == nil {
 		return err_sirius.ParsingReplaceOptions
-		return err_sirius.ParsingReplaceOptions
 	}
 	if r.Timeout == 0 {
 		r.Timeout = 10
@@ -130,7 +126,6 @@ type QueryOperationConfig struct {
 func ConfigQueryOperationConfig(s *QueryOperationConfig) error {
 	if s == nil {
 		return err_sirius.ParsingQueryConfig
-		return err_sirius.ParsingQueryConfig
 	}
 
 	if s.Duration == 0 || s.Duration > MaxQueryRuntime {
@@ -145,7 +140,6 @@ type GetSpecOptions struct {
 
 func ConfigGetSpecOptions(g *GetSpecOptions) error {
 	if g == nil {
-		return err_sirius.ParsingGetSpecOptions
 		return err_sirius.ParsingGetSpecOptions
 	}
 	return nil

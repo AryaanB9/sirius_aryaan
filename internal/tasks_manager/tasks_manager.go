@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/barkha06/sirius/internal/tasks"
+	"github.com/AryaanB9/sirius_aryaan/internal/tasks"
 )
 
 // TaskManager will act as queue which will be responsible for handling

@@ -9,12 +9,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/barkha06/sirius/internal/db"
-	"github.com/barkha06/sirius/internal/docgenerator"
-	"github.com/barkha06/sirius/internal/external_storage"
-	"github.com/barkha06/sirius/internal/task_result"
-	"github.com/barkha06/sirius/internal/task_state"
-	"github.com/barkha06/sirius/internal/template"
+	"github.com/AryaanB9/sirius_aryaan/internal/db"
+	"github.com/AryaanB9/sirius_aryaan/internal/docgenerator"
+	"github.com/AryaanB9/sirius_aryaan/internal/task_result"
+	"github.com/AryaanB9/sirius_aryaan/internal/task_state"
 
 	"github.com/bgadrian/fastfaker/faker"
 	"github.com/couchbase/gocb/v2"
@@ -49,13 +47,20 @@ func insertDocuments(start, end, seed int64, operationConfig *OperationConfig,
 		if _, ok := skip[offset]; ok {
 			continue
 		}
-
 		key := offset + seed
 		docId := gen.BuildKey(key)
 		fake := faker.NewFastFaker()
 		fake.Seed(key)
+
 		doc := gen.Template.GenerateDocument(fake, docId, operationConfig.DocSize)
+		doc, err := gen.Template.GetValues(doc)
 		initTime := time.Now().UTC().Format(time.RFC850)
+		if err != nil {
+			result.IncrementFailure(initTime, docId, err, false, nil, offset)
+			state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: offset}
+			continue
+		}
+
 		operationResult := database.Create(databaseInfo.ConnStr, databaseInfo.Username, databaseInfo.Password, db.KeyValue{
 			Key:    docId,
 			Doc:    doc,
@@ -113,21 +118,21 @@ func upsertDocuments(start, end, seed int64, operationConfig *OperationConfig,
 		fake := faker.NewFastFaker()
 		fake.Seed(key)
 		initTime := time.Now().UTC().Format(time.RFC850)
-
 		originalDoc := gen.Template.GenerateDocument(fake, docId, operationConfig.DocSize)
 		originalDoc, err := retracePreviousMutations(req, identifier, offset, originalDoc, gen, fake,
 			result.ResultSeed)
-		if err != nil {
-			state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: offset}
-			result.IncrementFailure(initTime, docId, err, false, nil, offset)
-			continue
-		}
 
 		docUpdated, err2 := gen.Template.UpdateDocument(operationConfig.FieldsToChange, originalDoc,
 			operationConfig.DocSize, fake)
 		if err2 != nil {
 			state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: offset}
 			result.IncrementFailure(initTime, docId, err2, false, nil, offset)
+			continue
+		}
+		docUpdated, err = gen.Template.GetValues(docUpdated)
+		if err != nil {
+			result.IncrementFailure(initTime, docId, err, false, nil, offset)
+			state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: offset}
 			continue
 		}
 
@@ -600,7 +605,6 @@ func bulkInsertDocuments(start, end, seed int64, operationConfig *OperationConfi
 		result.FailWholeBulkOperation(start, end, dbErr, state, gen, seed)
 		return
 	}
-
 	var keyValues []db.KeyValue
 	for offset := start; offset < end; offset++ {
 		if _, ok := skip[offset]; ok {
@@ -612,6 +616,11 @@ func bulkInsertDocuments(start, end, seed int64, operationConfig *OperationConfi
 		fake := faker.NewFastFaker()
 		fake.Seed(key)
 		doc := gen.Template.GenerateDocument(fake, docId, operationConfig.DocSize)
+		doc, err := gen.Template.GetValues(doc)
+		if err != nil {
+			result.FailWholeBulkOperation(start, end, err, state, gen, seed)
+			return
+		}
 		keyValues = append(keyValues, db.KeyValue{
 			Key:    docId,
 			Doc:    doc,
@@ -669,7 +678,6 @@ func bulkUpsertDocuments(start int64, end int64, seed int64, operationConfig *Op
 		result.FailWholeBulkOperation(start, end, dbErr, state, gen, seed)
 		return
 	}
-
 	var keyValues []db.KeyValue
 	for offset := start; offset < end; offset++ {
 		if _, ok := skip[offset]; ok {
@@ -686,6 +694,11 @@ func bulkUpsertDocuments(start int64, end int64, seed int64, operationConfig *Op
 
 		docUpdated, _ := gen.Template.UpdateDocument(operationConfig.FieldsToChange, originalDoc,
 			operationConfig.DocSize, fake)
+		docUpdated, err := gen.Template.GetValues(docUpdated)
+		if err != nil {
+			result.FailWholeBulkOperation(start, end, err, state, gen, seed)
+			return
+		}
 		keyValues = append(keyValues, db.KeyValue{
 			Key:    docId,
 			Doc:    docUpdated,
@@ -741,7 +754,8 @@ func bulkDeleteDocuments(start, end, seed int64, operationConfig *OperationConfi
 		key := offset + seed
 		docId := gen.BuildKey(key)
 		keyValues = append(keyValues, db.KeyValue{
-			Key: docId,
+			Key:    docId,
+			Offset: offset,
 		})
 	}
 
@@ -795,7 +809,8 @@ func bulkReadDocuments(start, end, seed int64, operationConfig *OperationConfig,
 		key := offset + seed
 		docId := gen.BuildKey(key)
 		keyValues = append(keyValues, db.KeyValue{
-			Key: docId,
+			Key:    docId,
+			Offset: offset,
 		})
 	}
 
@@ -810,6 +825,7 @@ func bulkReadDocuments(start, end, seed int64, operationConfig *OperationConfig,
 			state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: x.Offset}
 
 		} else {
+			// log.Println(bulkResult.Value(x.Key))
 			state.StateChannel <- task_state.StateHelper{Status: task_state.COMPLETED, Offset: x.Offset}
 		}
 	}
@@ -910,9 +926,12 @@ func validateDocuments(start, end, seed int64, operationConfig *OperationConfig,
 	}
 	_ = conn2.Warmup(extra.ConnStr, extra.Username, extra.Password, extra)
 	cbCluster := conn2.ConnectionManager.Clusters[extra.ConnStr].Cluster
-	query := "SELECT * from `mongo`.`scope`.`TestCollectionSirius2s` where id IN $ids order by id asc;"
+	query := "SELECT * from `$bucket`.`$scope`.`$collection` where id IN $ids order by id asc;"
 	params := map[string]interface{}{
-		"ids": docIDs,
+		"ids":        docIDs,
+		"bucket":     extra.ColumnarBucket,
+		"scope":      extra.ColumnarScope,
+		"collection": extra.ColumnarCollection,
 	}
 	initTime := time.Now().UTC().Format(time.RFC850)
 	cbresult, errAnalyticsQuery := cbCluster.AnalyticsQuery(query, &gocb.AnalyticsOptions{NamedParameters: params})
@@ -920,37 +939,54 @@ func validateDocuments(start, end, seed int64, operationConfig *OperationConfig,
 		log.Println("In Columnar unable to execute query")
 		log.Println(errAnalyticsQuery)
 		result.FailWholeBulkOperation(start, end, errAnalyticsQuery, state, gen, seed)
+		return
+	}
+	columnarResult := make(map[string]map[string]interface{})
+	var resultDisplay map[string]interface{}
+	for cbresult.Next() {
+		err := cbresult.Row(&resultDisplay)
+		if err != nil {
+			result.FailWholeBulkOperation(start, end, err, state, gen, seed)
+			return
+		}
+		var key interface{}
+		var ok bool
+		if key, ok = resultDisplay["ID"]; !ok {
+			if key, ok = resultDisplay["id"]; !ok {
+				if key, ok = resultDisplay["_id"]; !ok {
+					result.FailWholeBulkOperation(start, end, errors.New("id field not found in columnar result"), state, gen, seed)
+					return
+				}
+			}
+		}
+		columnarResult[resultDisplay[key.(string)].(string)] = resultDisplay
+
 	}
 	bulkResult := database.ReadBulk(databaseInfo.ConnStr, databaseInfo.Username, databaseInfo.Password, keyValues, extra)
 	for _, x := range keyValues {
-		if bulkResult.GetError(x.Key) != nil {
-
-			result.IncrementFailure(initTime, x.Key, bulkResult.GetError(x.Key), false, bulkResult.GetExtra(x.Key),
+		errfoundinDB := bulkResult.GetError(x.Key)
+		_, foundinColumnar := columnarResult[x.Key]
+		if errfoundinDB != nil && !foundinColumnar {
+			state.StateChannel <- task_state.StateHelper{Status: task_state.COMPLETED, Offset: x.Offset}
+		} else if errfoundinDB == nil && foundinColumnar {
+			res, _ := gen.Template.Compare(bulkResult.Value(x.Key), columnarResult[x.Key])
+			if !res {
+				result.IncrementFailure(initTime, x.Key, errors.New("Template Compare Failed "+databaseInfo.DBType+": "+x.Key+" | columnar:  "+resultDisplay["_id"].(string)), false, bulkResult.GetExtra(x.Key),
+					x.Offset)
+				state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: x.Offset}
+			} else {
+				state.StateChannel <- task_state.StateHelper{Status: task_state.COMPLETED, Offset: x.Offset}
+			}
+		} else {
+			errStr := ""
+			if errfoundinDB != nil {
+				errStr = "  Document in Columnar but error in the Database"
+			} else {
+				errStr = "  Document in Database but not in Columnar"
+			}
+			result.IncrementFailure(initTime, x.Key, errors.New("Mismatched data:  "+databaseInfo.DBType+": "+x.Key+errStr), false, bulkResult.GetExtra(x.Key),
 				x.Offset)
 			state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: x.Offset}
-
-		} else {
-			var resultDisplay map[string]interface{}
-			if cbresult != nil && cbresult.Next() {
-				err := cbresult.Row(&resultDisplay)
-				if err != nil {
-					log.Println("In Columnar Read(), unable to decode result")
-					log.Println(err)
-
-					result.IncrementFailure(initTime, x.Key, err, false, bulkResult.GetExtra(x.Key),
-						x.Offset)
-					state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: x.Offset}
-				} else {
-					res, _ := gen.Template.Compare(bulkResult.Value(x.Key), resultDisplay)
-					if !res {
-						result.IncrementFailure(initTime, x.Key, errors.New("Template Compare Failed "+databaseInfo.DBType+": "+x.Key+" | columnar:  "+resultDisplay["_id"].(string)), false, bulkResult.GetExtra(x.Key),
-							x.Offset)
-						state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: x.Offset}
-					} else {
-						state.StateChannel <- task_state.StateHelper{Status: task_state.COMPLETED, Offset: x.Offset}
-					}
-				}
-			}
 		}
 	}
 }
