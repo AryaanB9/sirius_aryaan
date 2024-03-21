@@ -16,14 +16,16 @@ import (
 func TestCassandraDB(t *testing.T) {
 	/*
 		This test does the following
-		1. Insert in the range of 0-10
-		2. Bulk Insert documents in the range of 10-50
-		3. Update Documents from range 0-10
-		4. Bulk Update documents in the range 10-50
-		5. Read Docs from 0-10 and check if they are updated
-		6. Bulk Read Docs in the range 10-50 and check if they are updated
-		7. Delete in the range of 40-50
-		8. Bulk Delete documents in the range of 0-40
+		1. Create a Keyspace and Table
+		2. Insert in the range of 0-10. Check the count
+		3. Bulk Insert documents in the range of 10-50. Check the count
+		4. Update Documents from range 0-10
+		5. Bulk Update documents in the range 10-50
+		6. Read Docs from 0-10 and check if they are updated
+		7. Bulk Read Docs in the range 10-50 and check if they are updated
+		8. Delete in the range of 40-50
+		9. Bulk Delete documents in the range of 0-40
+		10. Delete the Table and Keyspace
 	*/
 
 	db, err := ConfigDatabase("cassandra")
