@@ -12,7 +12,7 @@ import (
 type ProductRating struct {
 	RatingValue  float64 `json:"rating_value,omitempty" dynamodbav:"rating_value" parquet:"name=rating_value, type=DOUBLE"`
 	Performance  float64 `json:"performance,omitempty" dynamodbav:"performance" parquet:"name=performance, type=DOUBLE"`
-	Utility      float64 `json:"usability,omitempty" dynamodbav:"usability" parquet:"name=usability, type=DOUBLE"`
+	Utility      float64 `json:"utility,omitempty" dynamodbav:"utility" parquet:"name=utility, type=DOUBLE"`
 	Pricing      float64 `json:"pricing,omitempty" dynamodbav:"pricing" parquet:"name=pricing, type=DOUBLE"`
 	BuildQuality float64 `json:"build_quality,omitempty" dynamodbav:"build_quality" parquet:"name=build_quality, type=DOUBLE"`
 }
@@ -242,4 +242,9 @@ func (p *Product) GenerateSubPathAndValue(fake *faker.Faker, subDocSize int) map
 	return map[string]interface{}{
 		"SubDoc": strings.Repeat(fake.Letter(), subDocSize),
 	}
+}
+
+func (p *Product) GetValues(interface{}) (interface{}, error) {
+	// TODO
+	panic("In template_product.go, to be implemented")
 }
