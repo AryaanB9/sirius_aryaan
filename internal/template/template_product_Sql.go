@@ -21,7 +21,7 @@ type ProductSql struct {
 	SellerName     string  `json:"seller_name,omitempty"`
 	SellerLocation string  `json:"seller_location,omitempty"`
 	SellerVerified bool    `json:"seller_verified,omitempty"`
-	TemplateType   string  `json:"template_type"`
+	TemplateName   string  `json:"template_name"`
 	Value          []interface{}
 	Mutated        float64 `json:"mutated"`
 	Padding        string  `json:"padding"`
@@ -41,7 +41,7 @@ func (p *ProductSql) GenerateDocument(fake *faker.Faker, key string, documentSiz
 		SellerName:     fake.BeerName(),
 		SellerLocation: fake.Address().City + ", " + fake.Address().Country,
 		SellerVerified: fake.Bool(),
-		TemplateType:   "Product_sql",
+		TemplateName:   "Product_sql",
 		Mutated:        MutatedPathDefaultValue,
 	}
 	product.Padding = ""
@@ -49,7 +49,7 @@ func (p *ProductSql) GenerateDocument(fake *faker.Faker, key string, documentSiz
 	if (currentDocSize) < int(documentSize) {
 		product.Padding = strings.Repeat("a", int(documentSize)-(currentDocSize))
 	}
-	values := []interface{}{&product.TemplateType, &product.ID, &product.ProductName, &product.ProductLink, &product.Price, &product.AvgRating, &product.NumSold,
+	values := []interface{}{&product.TemplateName, &product.ID, &product.ProductName, &product.ProductLink, &product.Price, &product.AvgRating, &product.NumSold,
 		&product.UploadDate, &product.Weight, &product.Quantity, &product.SellerName, &product.SellerLocation, &product.SellerVerified,
 		&product.Padding, &product.Mutated}
 	product.Value = values
@@ -109,7 +109,7 @@ func (p *ProductSql) UpdateDocument(fieldsToChange []string, lastUpdatedDocument
 	if (currentDocSize) < int(documentSize) {
 		product.Padding = strings.Repeat("a", int(documentSize)-(currentDocSize))
 	}
-	values := []interface{}{&product.TemplateType, &product.ID, &product.ProductName, &product.ProductLink, &product.Price, &product.AvgRating, &product.NumSold,
+	values := []interface{}{&product.TemplateName, &product.ID, &product.ProductName, &product.ProductLink, &product.Price, &product.AvgRating, &product.NumSold,
 		&product.UploadDate, &product.Weight, &product.Quantity, &product.SellerName, &product.SellerLocation, &product.SellerVerified,
 		&product.Padding, &product.Mutated}
 	product.Value = values

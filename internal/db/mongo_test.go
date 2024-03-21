@@ -220,7 +220,7 @@ func TestMongoDB(t *testing.T) {
 	}
 
 	// Closing the Connection to MongoDB
-	if err = db.Close(connStr); err != nil {
+	if err = db.Close(connStr, Extras{}); err != nil {
 		t.Error(err)
 		t.Fail()
 	}

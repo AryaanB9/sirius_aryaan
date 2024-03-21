@@ -206,7 +206,7 @@ func TestCouchbase(t *testing.T) {
 		}
 	}
 
-	if err = db.Close(connStr); err != nil {
+	if err = db.Close(connStr, Extras{}); err != nil {
 		t.Error(err)
 		t.Fail()
 	}

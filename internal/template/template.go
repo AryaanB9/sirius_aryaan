@@ -111,7 +111,7 @@ func GetSQLSchema(templateName string, table string, size int) string {
 	case "small_sql":
 		query = fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s(template_name VARCHAR(20),_id VARCHAR(30) PRIMARY KEY,d VARCHAR(%d),mutated DOUBLE')`, table, size)
 	case "product_sql":
-		query = fmt.Sprintf(`CREATE TABLE  IF NOT EXISTS %s(template_type VARCHAR(20), _id VARCHAR(30) PRIMARY KEY, product_name VARCHAR(255), product_link VARCHAR(255), price DECIMAL(10, 2), avg_rating DECIMAL(5, 2), num_sold BIGINT, upload_date DATE, weight DECIMAL(10, 2), quantity BIGINT, seller_name VARCHAR(255), seller_location VARCHAR(255), seller_verified BOOLEAN, value JSONB, mutated DECIMAL(10, 2), padding VARCHAR(%d))`, table, size)
+		query = fmt.Sprintf(`CREATE TABLE  IF NOT EXISTS %s(template_name VARCHAR(20), _id VARCHAR(30) PRIMARY KEY, product_name VARCHAR(255), product_link VARCHAR(255), price DECIMAL(10, 2), avg_rating DECIMAL(5, 2), num_sold BIGINT, upload_date DATE, weight DECIMAL(10, 2), quantity BIGINT, seller_name VARCHAR(255), seller_location VARCHAR(255), seller_verified BOOLEAN, value JSONB, mutated DECIMAL(10, 2), padding VARCHAR(%d))`, table, size)
 
 	}
 	return query
@@ -386,20 +386,21 @@ func GetAvroSchema(templateName string) (string, error) {
 	}
 }
 
+// GetCassandraSchema returns a slice of queries to be executed in order to create a table for a template in cassandra
 func GetCassandraSchema(templateName, tableName string) ([]string, error) {
 	templateName = strings.ToLower(templateName)
 	var cassSchemeDefinitions []string
 
 	switch templateName {
 	case "hotel":
-		udtRatingQuery := `CREATE TYPE rating (
+		udtRatingQuery := `CREATE TYPE IF NOT EXISTS rating (
 									rating_value DOUBLE,
 									cleanliness DOUBLE,
 									overall DOUBLE, 
 									checkin DOUBLE,  
 									rooms DOUBLE
 								);`
-		udtReviewQuery := `CREATE TYPE review (
+		udtReviewQuery := `CREATE TYPE IF NOT EXISTS review (
 									date TEXT,
 									author TEXT,
 									rating frozen <rating>
@@ -410,7 +411,7 @@ func GetCassandraSchema(templateName, tableName string) ([]string, error) {
 									address TEXT,
 									free_parking BOOLEAN,
 									city TEXT,
-									template_type TEXT,
+									template_name TEXT,
 									url TEXT,
 									reviews LIST<frozen <review>>,
 									phone TEXT,
@@ -460,14 +461,14 @@ func GetCassandraSchema(templateName, tableName string) ([]string, error) {
 		cassSchemeDefinitions = []string{udtAddressQuery, udtHairQuery, udtAttributesQuery, createTableQuery}
 		return cassSchemeDefinitions, nil
 	case "product":
-		udtProductRatingQuery := `CREATE TYPE product_rating_type (
+		udtProductRatingQuery := `CREATE TYPE IF NOT EXISTS product_rating_type (
 									rating_value DOUBLE,
 									performance DOUBLE,
 									utility DOUBLE,
 									pricing DOUBLE,
 									build_quality DOUBLE
 								);`
-		udtProductReviewQuery := `CREATE TYPE product_review (
+		udtProductReviewQuery := `CREATE TYPE IF NOT EXISTS product_review (
 									date TEXT,
 									author TEXT,
 									product_rating frozen <product_rating_type>

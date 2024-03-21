@@ -19,7 +19,7 @@ type PersonSql struct {
 	Hobbies       string  `json:"hobbies,omitempty"`
 	Value         []interface{}
 	Mutated       float64 `json:"mutated"`
-	TemplateName  string  `json:"template_name" dynamodbav:"template_type"`
+	TemplateName  string  `json:"template_name" dynamodbav:"template_name"`
 	Padding       string  `json:"payload"`
 }
 
@@ -35,7 +35,7 @@ func (p *PersonSql) GenerateDocument(fake *faker.Faker, key string, documentSize
 		Mutated:       MutatedPathDefaultValue,
 		TemplateName:  "person_sql",
 	}
-  
+
 	currentDocSize := calculateSizeOfStruct(person)
 	if (currentDocSize) < int(documentSize) {
 		person.Padding = strings.Repeat("a", int(documentSize)-(currentDocSize))
