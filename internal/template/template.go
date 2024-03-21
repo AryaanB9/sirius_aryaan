@@ -77,7 +77,7 @@ func calculateSizeOfStruct(person interface{}) int {
 	return size
 }
 
-func getSQLSchema(templateName string, table string, size int) string {
+func GetSQLSchema(templateName string, table string, size int) string {
 	var query string
 	switch templateName {
 	case "hotel_sql":

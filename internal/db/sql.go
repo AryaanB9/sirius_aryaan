@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/AryaanB9/sirius_aryaan/internal/sdk_mysql"
+	"github.com/AryaanB9/sirius_aryaan/internal/template"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -623,7 +624,7 @@ func (m *Sql) CreateDatabase(connStr, username, password string, extra Extras, t
 		if err != nil {
 			return "", err
 		}
-		query = template.getSQLSchema(templateName, extra.Table, docSize)
+		query = template.GetSQLSchema(templateName, extra.Table, docSize)
 		_, err = db.ExecContext(context.TODO(), query)
 		if err != nil {
 			return "", err
