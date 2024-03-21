@@ -5,7 +5,6 @@ import (
 	"github.com/AryaanB9/sirius_aryaan/internal/meta_data"
 	"github.com/AryaanB9/sirius_aryaan/internal/template"
 
-	// "github.com/jaswdr/faker"
 	"log"
 
 	"github.com/bgadrian/fastfaker/faker"
@@ -13,7 +12,7 @@ import (
 	"testing"
 )
 
-func TestMongoDB(t *testing.T) {
+func TestSqlDB(t *testing.T) {
 	/*
 		This test does the following
 		1. Insert in the range of 0-10
@@ -26,69 +25,97 @@ func TestMongoDB(t *testing.T) {
 		8. Bulk Delete documents in the range of 0-40
 	*/
 
-	db, err := ConfigDatabase("mongodb")
+	db, err := ConfigDatabase("mysql")
 	if err != nil {
 		t.Fatal(err)
 	}
-	connStr := "connection string"
-	username := "username"
-	password := "password"
-	if err := db.Connect(connStr, username, password, Extras{}); err != nil {
+	connStr := "database-2.cu0pzohindsg.ap-south-1.rds.amazonaws.com"
+	username := "admin"
+	password := "couchbase"
+
+	extra := Extras{
+		Database: "sirius",
+		Table:    "testing_sirius",
+	}
+	if err := db.Connect(connStr, username, password, extra); err != nil {
 		t.Error(err)
 	}
 
 	m := meta_data.NewMetaData()
 	cm1 := m.GetCollectionMetadata("x")
 
-	temp := template.InitialiseTemplate("hotel")
+	temp := template.InitialiseTemplate("person_sql")
 	g := docgenerator.Generator{
 		Template: temp,
 	}
 	gen := &docgenerator.Generator{
 		KeySize:  0,
 		DocType:  "json",
-		Template: template.InitialiseTemplate("hotel"),
+		Template: template.InitialiseTemplate("person_sql"),
 	}
-
-	// Inserting Documents into MongoDB
+	//Creating Table
+	_, err = db.CreateDatabase(connStr, username, password, extra, "person_sql", 1024)
+	if err != nil {
+		t.Error(err)
+	}
+	// listing tables:
+	tables, err := db.ListDatabase(connStr, username, password, extra)
+	if err != nil {
+		t.Error(err)
+	} else {
+		log.Println("Listing Database and Tables:\n", tables)
+	}
+	// Inserting Documents into Sql
 	for i := int64(0); i < int64(10); i++ {
 		key := i + cm1.Seed
 		docId := gen.BuildKey(key)
 		fake := faker.NewFastFaker()
 		fake.Seed(key)
 		doc := g.Template.GenerateDocument(fake, docId, 1024)
+		doc, err = g.Template.GetValues(doc)
+		if err != nil {
+			t.Fail()
+		}
 		//log.Println(docId, Doc)
 		createResult := db.Create(connStr, username, password, KeyValue{
 			Key:    docId,
 			Doc:    doc,
 			Offset: i,
-		}, Extras{
-			Database:   "TestMongoDatabase",
-			Collection: "TestingMongoSirius",
-		})
+		}, extra)
 		if createResult.GetError() != nil {
 			t.Error(createResult.GetError())
 		} else {
 			log.Println("Inserting", createResult.Key(), " ", createResult.Value())
 		}
 	}
+	count, err := db.Count(connStr, username, password, extra)
+	if err != nil {
+		t.Error(err)
+	} else {
+		log.Println("Table Document Count:\n", count)
+	}
 
-	// Bulk Inserting Documents into MongoDB
+	if count != 10 {
+		t.Fail()
+	}
+
+	// Bulk Inserting Documents into Sql
 	var keyValues []KeyValue
-	for i := int64(10); i < int64(50); i++ {
+	for i := int64(10); i < int64(35); i++ {
 		key := i + cm1.Seed
 		docId := gen.BuildKey(key)
 		fake := faker.NewFastFaker()
 		fake.Seed(key)
 		doc := g.Template.GenerateDocument(fake, docId, 1024)
+		doc, err = g.Template.GetValues(doc)
+		if err != nil {
+			t.Fail()
+		}
 		//log.Println(docId, Doc)
 		keyVal := KeyValue{docId, doc, i}
 		keyValues = append(keyValues, keyVal)
 	}
-	createBulkResult := db.CreateBulk(connStr, username, password, keyValues, Extras{
-		Database:   "TestMongoDatabase",
-		Collection: "TestingMongoSirius",
-	})
+	createBulkResult := db.CreateBulk(connStr, username, password, keyValues, extra)
 	for _, i := range keyValues {
 		if createBulkResult.GetError(i.Key) != nil {
 			t.Error(createBulkResult.GetError(i.Key))
@@ -96,8 +123,14 @@ func TestMongoDB(t *testing.T) {
 			log.Println("Bulk Insert, Inserted Key:", i.Key, "| Value:", i.Doc)
 		}
 	}
+	count, err = db.Count(connStr, username, password, extra)
+	if err != nil {
+		t.Error(err)
+	} else {
+		log.Println("Table Document Count:\n", count)
+	}
 
-	//Upserting Documents into MongoDB
+	//Upserting Documents into Sql
 	for i := int64(0); i < int64(10); i++ {
 		key := i + cm1.Seed
 		docId := gen.BuildKey(key)
@@ -105,40 +138,53 @@ func TestMongoDB(t *testing.T) {
 		fake.Seed(key)
 
 		doc := g.Template.GenerateDocument(fake, docId, 1024) // Original Doc
-		doc = g.Template.GenerateDocument(fake, docId, 1024)  // 1 Time Mutated Doc
+		doc, err = g.Template.UpdateDocument([]string{}, doc, 1024, fake)
+		if err != nil {
+			t.Fail()
+		}
+		doc, err = g.Template.GetValues(doc)
+		if err != nil {
+			t.Fail()
+		} // 1 Time Mutated Doc
 		//log.Println(docId, doc)
 		updateResult := db.Update(connStr, username, password, KeyValue{
 			Key:    docId,
 			Doc:    doc,
 			Offset: i,
-		}, Extras{
-			Database:   "TestMongoDatabase",
-			Collection: "TestingMongoSirius",
-		})
+		}, extra)
 		if updateResult.GetError() != nil {
 			t.Error(updateResult.GetError())
 		} else {
 			log.Println("Upserting", updateResult.Key(), " ", updateResult.Value())
 		}
 	}
-
-	// Bulk Updating Documents into MongoDB
+	count, err = db.Count(connStr, username, password, extra)
+	if err != nil {
+		t.Error(err)
+	} else {
+		log.Println("Table Document Count:\n", count)
+	}
+	// Bulk Updating Documents into Sql
 	keyValues = nil
-	for i := int64(10); i < int64(50); i++ {
+	for i := int64(10); i < int64(35); i++ {
 		key := i + cm1.Seed
 		docId := gen.BuildKey(key)
 		fake := faker.NewFastFaker()
 		fake.Seed(key)
-		doc := g.Template.GenerateDocument(fake, docId, 1024)
-		doc = g.Template.GenerateDocument(fake, docId, 1024) // 1 Time Mutated Doc
-		//log.Println(docId, Doc)
+		doc := g.Template.GenerateDocument(fake, docId, 1024)             // Original Doc
+		doc, err = g.Template.UpdateDocument([]string{}, doc, 1024, fake) //mutated once
+		if err != nil {
+			t.Fail()
+		}
+		doc, err = g.Template.GetValues(doc)
+		if err != nil {
+			t.Fail()
+		}
+
 		keyVal := KeyValue{docId, doc, i}
 		keyValues = append(keyValues, keyVal)
 	}
-	updateBulkResult := db.UpdateBulk(connStr, username, password, keyValues, Extras{
-		Database:   "TestMongoDatabase",
-		Collection: "TestingMongoSirius",
-	})
+	updateBulkResult := db.UpdateBulk(connStr, username, password, keyValues, extra)
 	for _, i := range keyValues {
 		if updateBulkResult.GetError(i.Key) != nil {
 			t.Error(updateBulkResult.GetError(i.Key))
@@ -147,33 +193,27 @@ func TestMongoDB(t *testing.T) {
 		}
 	}
 
-	//  Reading Documents into MongoDB
-	for i := int64(0); i < int64(50); i++ {
+	//  Reading Documents into Sql
+	for i := int64(0); i < int64(35); i++ {
 		key := i + cm1.Seed
 		docId := gen.BuildKey(key)
-		createResult := db.Read(connStr, username, password, docId, i, Extras{
-			Database:   "TestMongoDatabase",
-			Collection: "TestingMongoSirius",
-		})
+		createResult := db.Read(connStr, username, password, docId, i, extra)
 		if createResult.GetError() != nil {
 			t.Error(createResult.GetError())
 		} else {
 			log.Println("Inserting", createResult.Key(), " ", createResult.Value())
 		}
 	}
-	//  Bulk Reading Documents into MongoDB
+	//  Bulk Reading Documents into Sql
 	keyValues = nil
-	for i := int64(0); i < int64(50); i++ {
+	for i := int64(0); i < int64(35); i++ {
 		key := i + cm1.Seed
 		docId := gen.BuildKey(key)
 		keyValues = append(keyValues, KeyValue{
 			Key: docId,
 		})
 	}
-	readBulkResult := db.ReadBulk(connStr, username, password, keyValues, Extras{
-		Database:   "TestMongoDatabase",
-		Collection: "TestingMongoSirius",
-	})
+	readBulkResult := db.ReadBulk(connStr, username, password, keyValues, extra)
 	for _, i := range keyValues {
 		if readBulkResult.GetError(i.Key) != nil {
 			t.Error(updateBulkResult.GetError(i.Key))
@@ -182,35 +222,37 @@ func TestMongoDB(t *testing.T) {
 		}
 	}
 
-	// Deleting Documents from MongoDB
-	for i := int64(40); i < int64(50); i++ {
+	// Deleting Documents from Sql
+	for i := int64(25); i < int64(35); i++ {
 		key := i + cm1.Seed
 		docId := gen.BuildKey(key)
 
-		deleteResult := db.Delete(connStr, username, password, docId, i, Extras{
-			Database:   "TestMongoDatabase",
-			Collection: "TestingMongoSirius",
-		})
+		deleteResult := db.Delete(connStr, username, password, docId, i, extra)
 		if deleteResult.GetError() != nil {
 			t.Error(deleteResult.GetError())
 		} else {
 			log.Println("Deleting", deleteResult.Key())
 		}
 	}
+	count, err = db.Count(connStr, username, password, extra)
+	if err != nil {
+		t.Error(err)
+	} else {
+		log.Println("Table Document Count:\n", count)
+	}
+	//Sub doc ops:
+	// db.InsertSubDoc(connStr, username, password,KeyValue(),extra)
 
-	// Bulk Deleting Documents from MongoDB
+	// Bulk Deleting Documents from Sql
 	keyValues = nil
-	for i := int64(0); i < int64(40); i++ {
+	for i := int64(0); i < int64(25); i++ {
 		key := i + cm1.Seed
 		docId := gen.BuildKey(key)
 
 		keyVal := KeyValue{docId, nil, i}
 		keyValues = append(keyValues, keyVal)
 	}
-	deleteBulkResult := db.DeleteBulk(connStr, username, password, keyValues, Extras{
-		Database:   "TestMongoDatabase",
-		Collection: "TestingMongoSirius",
-	})
+	deleteBulkResult := db.DeleteBulk(connStr, username, password, keyValues, extra)
 	for _, i := range keyValues {
 		if deleteBulkResult.GetError(i.Key) != nil {
 			t.Error(deleteBulkResult.GetError(i.Key))
@@ -218,9 +260,21 @@ func TestMongoDB(t *testing.T) {
 			log.Println("Bulk Deleting, Deleted Key:", i.Key)
 		}
 	}
-
-	// Closing the Connection to MongoDB
-	if err = db.Close(connStr, Extras{}); err != nil {
+	count, err = db.Count(connStr, username, password, extra)
+	if err != nil {
+		t.Error(err)
+	} else {
+		log.Println("Table Document Count:\n", count)
+	}
+	//deleting table
+	resp, errX := db.DeleteDatabase(connStr, username, password, extra)
+	if errX != nil {
+		t.Error(err)
+	} else {
+		log.Println(resp, "Table deleted")
+	}
+	// Closing the Connection to Sql
+	if err = db.Close(connStr, extra); err != nil {
 		t.Error(err)
 		t.Fail()
 	}

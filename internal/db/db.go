@@ -65,7 +65,7 @@ type Database interface {
 	DeleteDatabase(connStr, username, password string, extra Extras) (string, error)
 	Count(connStr, username, password string, extra Extras) (int64, error)
 	ListDatabase(connStr, username, password string, extra Extras) (any, error)
-	Close(connStr string) error
+	Close(connStr string, extra Extras) error
 }
 
 var couchbase *Couchbase
