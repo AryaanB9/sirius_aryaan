@@ -868,7 +868,7 @@ func (c *Couchbase) Warmup(connStr, username, password string, extra Extras) err
 	return err1
 }
 
-func (c *Couchbase) Close(connStr string, extra Extras) error {
+func (c *Couchbase) Close(connStr string) error {
 	return c.connectionManager.Disconnect(connStr)
 }
 

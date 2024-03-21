@@ -39,14 +39,14 @@ func TestCouchbase(t *testing.T) {
 	m := meta_data.NewMetaData()
 	cm1 := m.GetCollectionMetadata("x")
 
-	temp := template.InitialiseTemplate("hotel")
+	temp := template.InitialiseTemplate("person")
 	g := docgenerator.Generator{
 		Template: temp,
 	}
 	gen := &docgenerator.Generator{
 		KeySize:  0,
 		DocType:  "json",
-		Template: template.InitialiseTemplate("hotel"),
+		Template: template.InitialiseTemplate("person"),
 	}
 	// update
 
@@ -206,7 +206,7 @@ func TestCouchbase(t *testing.T) {
 		}
 	}
 
-	if err = db.Close(connStr, Extras{}); err != nil {
+	if err = db.Close(connStr); err != nil {
 		t.Error(err)
 		t.Fail()
 	}
