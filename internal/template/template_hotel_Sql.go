@@ -10,7 +10,7 @@ import (
 )
 
 type HotelSql struct {
-	ID            string  `json:"id" bson:"_id"`
+	ID            string  `json:"id" bson:"id"`
 	Country       string  `json:"country,omitempty"`
 	Address       string  `json:"address,omitempty"`
 	FreeParking   bool    `json:"free_parking,omitempty"`

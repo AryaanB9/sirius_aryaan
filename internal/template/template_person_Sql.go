@@ -10,7 +10,7 @@ import (
 )
 
 type PersonSql struct {
-	ID            string  `json:"_id" bson:"_id"`
+	ID            string  `json:"id" bson:"id"`
 	FirstName     string  `json:"firstName,omitempty"`
 	Age           float64 `json:"age,omitempty"`
 	Email         string  `json:"email,omitempty"`

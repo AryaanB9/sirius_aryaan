@@ -254,7 +254,7 @@ func (d Dynamo) Create(connStr, username, password string, keyValue KeyValue, ex
 	}
 
 	out, err := DynamoDbClient.PutItem(context.TODO(), &dynamodb.PutItemInput{
-		TableName: aws.String(extra.Table), Item: item, ConditionExpression: aws.String("attribute_not_exists(_id)")})
+		TableName: aws.String(extra.Table), Item: item, ConditionExpression: aws.String("attribute_not_exists(id)")})
 	if err != nil {
 		return newDynamoOperationResult(keyValue.Key, keyValue.Doc, err, false, keyValue.Offset)
 	}
@@ -310,7 +310,7 @@ func (d Dynamo) Read(connStr, username, password, key string, offset int64, extr
 		return newDynamoOperationResult(key, nil, err, false, offset)
 	}
 	response, err := DynamoDbClient.GetItem(context.TODO(), &dynamodb.GetItemInput{
-		Key: map[string]types.AttributeValue{"_id": filter}, TableName: aws.String(extra.Table),
+		Key: map[string]types.AttributeValue{"id": filter}, TableName: aws.String(extra.Table),
 	})
 	if err != nil {
 		return newDynamoOperationResult(key, nil, err, false, offset)
@@ -343,7 +343,7 @@ func (d Dynamo) Delete(connStr, username, password, key string, offset int64, ex
 	DynamoDbClient := d.connectionManager.Clusters[connStr].DynamoClusterClient
 	filter, _ := attributevalue.Marshal(key)
 	out, err := DynamoDbClient.DeleteItem(context.TODO(), &dynamodb.DeleteItemInput{
-		TableName: aws.String(extra.Table), Key: map[string]types.AttributeValue{"_id": filter}})
+		TableName: aws.String(extra.Table), Key: map[string]types.AttributeValue{"id": filter}})
 	if err != nil {
 		return newDynamoOperationResult(key, nil, err, false, offset)
 	}
@@ -375,7 +375,7 @@ func (d Dynamo) Touch(connStr, username, password, key string, offset int64, ext
 	}
 	out, err := DynamoDbClient.UpdateItem(context.TODO(), &dynamodb.UpdateItemInput{
 		TableName:                 aws.String(extra.Table),
-		Key:                       map[string]types.AttributeValue{"_id": filter},
+		Key:                       map[string]types.AttributeValue{"id": filter},
 		ExpressionAttributeValues: map[string]types.AttributeValue{":ttl": ttl},
 		UpdateExpression:          aws.String("SET #ttlAttr = :ttl"),
 		ExpressionAttributeNames: map[string]string{
@@ -454,7 +454,7 @@ func (d Dynamo) CreateBulk(connStr, username, password string, keyValues []KeyVa
 		req := dynamoBulkWriteResult.UnprocessedItems[extra.Table]
 		for _, r := range req {
 			_ = attributevalue.UnmarshalMap(r.PutRequest.Item, &fail)
-			failed[fail["_id"].(string)] = false
+			failed[fail["id"].(string)] = false
 
 		}
 	}
@@ -546,7 +546,7 @@ func (d Dynamo) UpdateBulk(connStr, username, password string, keyValues []KeyVa
 		req := dynamoBulkWriteResult.UnprocessedItems[extra.Table]
 		for _, r := range req {
 			_ = attributevalue.UnmarshalMap(r.PutRequest.Item, &fail)
-			failed[fail["_id"].(string)] = false
+			failed[fail["id"].(string)] = false
 
 		}
 	}
@@ -587,7 +587,7 @@ func (d Dynamo) DeleteBulk(connStr, username, password string, keyValues []KeyVa
 		} else {
 			writeReqs = append(
 				writeReqs,
-				types.WriteRequest{DeleteRequest: &types.DeleteRequest{Key: map[string]types.AttributeValue{"_id": item}}},
+				types.WriteRequest{DeleteRequest: &types.DeleteRequest{Key: map[string]types.AttributeValue{"id": item}}},
 			)
 		}
 	}
@@ -614,7 +614,7 @@ func (d Dynamo) DeleteBulk(connStr, username, password string, keyValues []KeyVa
 		req := dynamoBulkWriteResult.UnprocessedItems[extra.Table]
 		for _, r := range req {
 			_ = attributevalue.UnmarshalMap(r.PutRequest.Item, &fail)
-			failed[fail["_id"].(string)] = false
+			failed[fail["id"].(string)] = false
 
 		}
 	}
@@ -652,7 +652,7 @@ func (d Dynamo) ReadBulk(connStr, username, password string, keyValues []KeyValu
 			return result
 		} else {
 
-			docs = append(docs, map[string]types.AttributeValue{"_id": item})
+			docs = append(docs, map[string]types.AttributeValue{"id": item})
 		}
 	}
 	dynamoBulkWriteResult := &dynamodb.BatchGetItemOutput{}
@@ -678,25 +678,25 @@ func (d Dynamo) ReadBulk(connStr, username, password string, keyValues []KeyValu
 		req := dynamoBulkWriteResult.UnprocessedKeys[extra.Table]
 		for _, r := range req.Keys {
 			_ = attributevalue.UnmarshalMap(r, &resultDoc)
-			results[resultDoc["_id"].(string)] = resultDoc
-			result.AddResult(resultDoc["_id"].(string), nil, errors.New("document unprocessed"), false, keyToOffset[resultDoc["_id"].(string)])
+			results[resultDoc["id"].(string)] = resultDoc
+			result.AddResult(resultDoc["id"].(string), nil, errors.New("document unprocessed"), false, keyToOffset[resultDoc["id"].(string)])
 		}
 	}
 
 	for _, doc := range dynamoBulkWriteResult.Responses[extra.Table] {
 		_ = attributevalue.UnmarshalMap(doc, &resultDoc)
-		results[resultDoc["_id"].(string)] = resultDoc
+		results[resultDoc["id"].(string)] = resultDoc
 		if resultDoc == nil {
-			result.AddResult(resultDoc["_id"].(string), nil, errors.New("result is nil even after successful READ operation"), false, keyToOffset[resultDoc["_id"].(string)])
+			result.AddResult(resultDoc["id"].(string), nil, errors.New("result is nil even after successful READ operation"), false, keyToOffset[resultDoc["id"].(string)])
 		} else {
 			log.Println(resultDoc)
-			result.AddResult(resultDoc["_id"].(string), resultDoc, nil, true, keyToOffset[resultDoc["_id"].(string)])
+			result.AddResult(resultDoc["id"].(string), resultDoc, nil, true, keyToOffset[resultDoc["id"].(string)])
 		}
 	}
 	if len(keyValues) > len(results) {
 		for _, x := range keyValues {
 			if results[x.Key] == nil {
-				result.AddResult(resultDoc["_id"].(string), nil, errors.New("document unprocessed"), false, keyToOffset[resultDoc["_id"].(string)])
+				result.AddResult(resultDoc["id"].(string), nil, errors.New("document unprocessed"), false, keyToOffset[resultDoc["id"].(string)])
 			}
 		}
 	}
@@ -717,8 +717,9 @@ func (d Dynamo) InsertSubDoc(connStr, username, password, key string, keyValues 
 	var update expression.UpdateBuilder
 	var attributeMap map[string]map[string]interface{}
 	for _, keyVal := range keyValues {
-		update.Set(expression.Name(keyVal.Key), expression.IfNotExists(expression.Name(keyVal.Key), expression.Value(keyVal.Doc)))
+		update = update.Set(expression.Name(*aws.String(keyVal.Key)), expression.IfNotExists(expression.Name(keyVal.Key), expression.Value(keyVal.Doc)))
 	}
+	update = update.Add(expression.Name("mutated"), expression.Value(1))
 	expr, err := expression.NewBuilder().WithUpdate(update).Build()
 	if err != nil {
 		return newDynamoSubDocOperationResult(key, keyValues, errors.New("Couldn't build expression for update. Here's why: %v\n"+err.Error()), false, offset)
@@ -726,7 +727,7 @@ func (d Dynamo) InsertSubDoc(connStr, username, password, key string, keyValues 
 		filter, _ := attributevalue.Marshal(key)
 		response, err = DynamoDbClient.UpdateItem(context.TODO(), &dynamodb.UpdateItemInput{
 			TableName:                 aws.String(extra.Table),
-			Key:                       map[string]types.AttributeValue{"_id": filter},
+			Key:                       map[string]types.AttributeValue{"id": filter},
 			ExpressionAttributeNames:  expr.Names(),
 			ExpressionAttributeValues: expr.Values(),
 			UpdateExpression:          expr.Update(),
@@ -740,7 +741,9 @@ func (d Dynamo) InsertSubDoc(connStr, username, password, key string, keyValues 
 			if err != nil {
 				return newDynamoSubDocOperationResult(key, keyValues, err, false, offset)
 			}
+
 		}
+
 		return newDynamoSubDocOperationResult(key, keyValues, nil, true, offset)
 	}
 }
@@ -759,8 +762,9 @@ func (d Dynamo) UpsertSubDoc(connStr, username, password, key string, keyValues 
 	var update expression.UpdateBuilder
 	var attributeMap map[string]map[string]interface{}
 	for _, keyVal := range keyValues {
-		update.Set(expression.Name(keyVal.Key), expression.Value(keyVal.Doc))
+		update = update.Set(expression.Name(keyVal.Key), expression.Value(keyVal.Doc))
 	}
+	update = update.Add(expression.Name("mutated"), expression.Value(1))
 	expr, err := expression.NewBuilder().WithUpdate(update).Build()
 	if err != nil {
 		return newDynamoSubDocOperationResult(key, keyValues, errors.New("Couldn't build expression for update. Here's why: %v\n"+err.Error()), false, offset)
@@ -768,7 +772,7 @@ func (d Dynamo) UpsertSubDoc(connStr, username, password, key string, keyValues 
 		filter, _ := attributevalue.Marshal(key)
 		response, err = DynamoDbClient.UpdateItem(context.TODO(), &dynamodb.UpdateItemInput{
 			TableName:                 aws.String(extra.Table),
-			Key:                       map[string]types.AttributeValue{"_id": filter},
+			Key:                       map[string]types.AttributeValue{"id": filter},
 			ExpressionAttributeNames:  expr.Names(),
 			ExpressionAttributeValues: expr.Values(),
 			UpdateExpression:          expr.Update(),
@@ -806,8 +810,9 @@ func (d Dynamo) ReplaceSubDoc(connStr, username, password, key string, keyValues
 	var update expression.UpdateBuilder
 	var attributeMap map[string]map[string]interface{}
 	for _, keyVal := range keyValues {
-		update.Set(expression.Name(keyVal.Key), expression.Value(keyVal.Doc))
+		update = update.Set(expression.Name(keyVal.Key), expression.Value(keyVal.Doc))
 	}
+	update = update.Add(expression.Name("mutated"), expression.Value(1))
 	expr, err := expression.NewBuilder().WithUpdate(update).Build()
 	if err != nil {
 		return newDynamoSubDocOperationResult(key, keyValues, errors.New("Couldn't build expression for update. Here's why: %v\n"+err.Error()), false, offset)
@@ -815,7 +820,7 @@ func (d Dynamo) ReplaceSubDoc(connStr, username, password, key string, keyValues
 		filter, _ := attributevalue.Marshal(key)
 		response, err = DynamoDbClient.UpdateItem(context.TODO(), &dynamodb.UpdateItemInput{
 			TableName:                 aws.String(extra.Table),
-			Key:                       map[string]types.AttributeValue{"_id": filter},
+			Key:                       map[string]types.AttributeValue{"id": filter},
 			ExpressionAttributeNames:  expr.Names(),
 			ExpressionAttributeValues: expr.Values(),
 			UpdateExpression:          expr.Update(),
@@ -848,8 +853,9 @@ func (d Dynamo) DeleteSubDoc(connStr, username, password, key string, keyValues 
 	var update expression.UpdateBuilder
 	var attributeMap map[string]map[string]interface{}
 	for _, keyVal := range keyValues {
-		update.Remove(expression.Name(keyVal.Key))
+		update = update.Remove(expression.Name(keyVal.Key))
 	}
+	update = update.Add(expression.Name("mutated"), expression.Value(1))
 	expr, err := expression.NewBuilder().WithUpdate(update).Build()
 	if err != nil {
 		return newDynamoSubDocOperationResult(key, keyValues, errors.New("Couldn't build expression for update. Here's why: %v\n"+err.Error()), false, offset)
@@ -857,7 +863,7 @@ func (d Dynamo) DeleteSubDoc(connStr, username, password, key string, keyValues 
 		filter, _ := attributevalue.Marshal(key)
 		response, err = DynamoDbClient.UpdateItem(context.TODO(), &dynamodb.UpdateItemInput{
 			TableName:                 aws.String(extra.Table),
-			Key:                       map[string]types.AttributeValue{"_id": filter},
+			Key:                       map[string]types.AttributeValue{"id": filter},
 			ExpressionAttributeNames:  expr.Names(),
 			ExpressionAttributeValues: expr.Values(),
 			UpdateExpression:          expr.Update(),
@@ -896,7 +902,7 @@ func (d Dynamo) ReadSubDoc(connStr, username, password, key string, keyValues []
 		projection = projection + key.Key + ","
 	}
 	response, err := DynamoDbClient.GetItem(context.TODO(), &dynamodb.GetItemInput{
-		Key:                  map[string]types.AttributeValue{"_id": filter},
+		Key:                  map[string]types.AttributeValue{"id": filter},
 		TableName:            aws.String(extra.Table),
 		ProjectionExpression: aws.String(projection[:len(projection)-1]),
 	})
@@ -933,11 +939,11 @@ func (d Dynamo) CreateDatabase(connStr, username, password string, extra Extras,
 	dynamoDbClient := d.connectionManager.Clusters[connStr].DynamoClusterClient
 	var dynamoInput dynamodb.CreateTableInput
 	dynamoInput.AttributeDefinitions = []types.AttributeDefinition{{
-		AttributeName: aws.String("_id"),
+		AttributeName: aws.String("id"),
 		AttributeType: types.ScalarAttributeTypeS,
 	}}
 	dynamoInput.KeySchema = []types.KeySchemaElement{{
-		AttributeName: aws.String("_id"),
+		AttributeName: aws.String("id"),
 		KeyType:       types.KeyTypeHash,
 	}}
 	dynamoInput.TableName = aws.String(extra.Table)

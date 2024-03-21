@@ -9,7 +9,7 @@ import (
 )
 
 type Small struct {
-	ID           string  `json:"_id" bson:"_id" dynamodbav:"_id"`
+	ID           string  `json:"id" bson:"_id" dynamodbav:"id"`
 	RandomData   string  `json:"d,omitempty" dynamodbav:"d"`
 	Mutated      float64 `json:"mutated,omitempty" dynamodbav:"mutated"`
 	TemplateType string  `json:"template_type" dynamodbav:"template_type"`

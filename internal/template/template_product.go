@@ -24,7 +24,7 @@ type ProductReview struct {
 }
 
 type Product struct {
-	ID                string            `json:"_id" bson:"_id" dynamodbav:"_id"`
+	ID                string            `json:"id" bson:"_id" dynamodbav:"id"`
 	ProductName       string            `json:"product_name,omitempty" dynamodbav:"product_name"`
 	ProductLink       string            `json:"product_link,omitempty" dynamodbav:"product_link"`
 	ProductFeatures   []string          `json:"product_features,omitempty" dynamodbav:"product_features"`

@@ -23,7 +23,7 @@ type Review struct {
 }
 
 type Hotel struct {
-	ID            string   `json:"_id" bson:"_id" dynamodbav:"_id"`
+	ID            string   `json:"id" bson:"_id" dynamodbav:"id"`
 	Country       string   `json:"country,omitempty" dynamodbav:"country"`
 	Address       string   `json:"address,omitempty" dynamodbav:"address"`
 	FreeParking   bool     `json:"free_parking,omitempty" dynamodbav:"free_parking"`

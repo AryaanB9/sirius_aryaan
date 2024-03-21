@@ -83,7 +83,7 @@ type Attribute struct {
 }
 
 type Person struct {
-	ID            string    `json:"_id" bson:"_id" dynamodbav:"_id"`
+	ID            string    `json:"id" bson:"_id" dynamodbav:"id"`
 	FirstName     string    `json:"firstName,omitempty" dynamodbav:"firstName"`
 	Age           float64   `json:"age,omitempty" dynamodbav:"age"`
 	Email         string    `json:"email,omitempty" dynamodbav:"email"`

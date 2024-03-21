@@ -9,7 +9,7 @@ import (
 )
 
 type SmallSql struct {
-	ID           string  `json:"_id" bson:"_id"`
+	ID           string  `json:"id" bson:"_id"`
 	RandomData   string  `json:"d,omitempty"`
 	Mutated      float64 `json:"mutated,omitempty"`
 	Value        []interface{}
