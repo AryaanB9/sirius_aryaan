@@ -127,10 +127,10 @@ func (p *Person) GenerateDocument(fake *faker.Faker, key string, documentSize in
 	}
 
 	currentDocSize := calculateSizeOfStruct(person)
-
-	if (currentDocSize) < int(documentSize) {
+	if currentDocSize < documentSize {
 		person.Padding = strings.Repeat("a", int(documentSize)-(currentDocSize))
 	}
+
 	return person
 }
 
@@ -198,8 +198,8 @@ func (p *Person) UpdateDocument(fieldsToChange []string, lastUpdatedDocument int
 	person.Padding = ""
 
 	currentDocSize := calculateSizeOfStruct(person)
-	if (currentDocSize) < int(documentSize) {
-		person.Padding = strings.Repeat("a", int(documentSize)-(currentDocSize))
+	if currentDocSize < documentSize {
+		person.Padding = strings.Repeat("a", documentSize-currentDocSize)
 	}
 
 	return person, nil
@@ -222,4 +222,7 @@ func (p *Person) GenerateSubPathAndValue(fake *faker.Faker, subDocSize int) map[
 	return map[string]interface{}{
 		"SubDoc": strings.Repeat(fake.Letter(), subDocSize),
 	}
+}
+func (p *Person) GetValues(document interface{}) (interface{}, error) {
+	return document, nil
 }
