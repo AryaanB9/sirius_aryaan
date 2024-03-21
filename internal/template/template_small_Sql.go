@@ -9,19 +9,19 @@ import (
 )
 
 type SmallSql struct {
-	ID         string  `json:"id" bson:"_id" dynamodbav:"id" parquet:"name=id, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-	RandomData string  `json:"random_data,omitempty" dynamodbav:"random_data" parquet:"name=random_data, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-	Mutated    float64 `json:"mutated,omitempty" dynamodbav:"mutated" parquet:"name=mutated, type=DOUBLE"`
-	Value      []interface{}
-  TemplateName string `json:"template_name" dynamodbav:"template_name" parquet:"name=template_name, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	ID           string  `json:"id" bson:"_id" dynamodbav:"id" parquet:"name=id, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	RandomData   string  `json:"random_data,omitempty" dynamodbav:"random_data" parquet:"name=random_data, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	Mutated      float64 `json:"mutated,omitempty" dynamodbav:"mutated" parquet:"name=mutated, type=DOUBLE"`
+	TemplateName string  `json:"template_name" dynamodbav:"template_name" parquet:"name=template_name, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	Value        []interface{}
 }
 
 func (s *SmallSql) GenerateDocument(fake *faker.Faker, key string, documentSize int) interface{} {
 	small := &SmallSql{
-		ID:         key,
-		RandomData: strings.Repeat(fake.Letter(), documentSize),
-		Mutated:    MutatedPathDefaultValue,
-    TemplateName: "small_sql"
+		ID:           key,
+		RandomData:   strings.Repeat(fake.Letter(), documentSize),
+		Mutated:      MutatedPathDefaultValue,
+		TemplateName: "small_sql",
 	}
 	values := []interface{}{&small.ID, &small.RandomData, &small.Mutated}
 	small.Value = values

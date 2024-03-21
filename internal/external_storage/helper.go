@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/barkha06/sirius/internal/err_sirius"
+	"github.com/AryaanB9/sirius_aryaan/internal/err_sirius"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )

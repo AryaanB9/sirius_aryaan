@@ -5,9 +5,9 @@ import (
 
 	"github.com/AryaanB9/sirius_aryaan/internal/db"
 	"github.com/AryaanB9/sirius_aryaan/internal/docgenerator"
+	"github.com/AryaanB9/sirius_aryaan/internal/external_storage"
 	"github.com/AryaanB9/sirius_aryaan/internal/task_result"
 	"github.com/AryaanB9/sirius_aryaan/internal/task_state"
-
 )
 
 type BulkTask interface {

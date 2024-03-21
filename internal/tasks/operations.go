@@ -11,8 +11,10 @@ import (
 
 	"github.com/AryaanB9/sirius_aryaan/internal/db"
 	"github.com/AryaanB9/sirius_aryaan/internal/docgenerator"
+	"github.com/AryaanB9/sirius_aryaan/internal/external_storage"
 	"github.com/AryaanB9/sirius_aryaan/internal/task_result"
 	"github.com/AryaanB9/sirius_aryaan/internal/task_state"
+	"github.com/AryaanB9/sirius_aryaan/internal/template"
 
 	"github.com/bgadrian/fastfaker/faker"
 	"github.com/couchbase/gocb/v2"
@@ -1259,7 +1261,7 @@ func insertFiles(start, end, seed int64, operationConfig *OperationConfig,
 				log.Println("In operations.go insertFiles(), writing avro data to buffer failed:", err)
 			}
 		}
-		
+
 		fileToUpload = bufferAvroFile.Bytes()
 		bufferAvroFile.Reset()
 

@@ -1,16 +1,14 @@
 package db
 
 import (
+	"log"
+	"testing"
+
 	"github.com/AryaanB9/sirius_aryaan/internal/docgenerator"
 	"github.com/AryaanB9/sirius_aryaan/internal/meta_data"
 	"github.com/AryaanB9/sirius_aryaan/internal/template"
 
-	// "github.com/jaswdr/faker"
-	"log"
-
 	"github.com/bgadrian/fastfaker/faker"
-
-	"testing"
 )
 
 func TestCassandraDB(t *testing.T) {

@@ -16,6 +16,7 @@ type Rating struct {
 	CheckIn     float64 `json:"checkin,omitempty" dynamodbav:"checkin" parquet:"name=checkin, type=DOUBLE"`
 	Rooms       float64 `json:"rooms,omitempty" dynamodbav:"rooms" parquet:"name=rooms, type=DOUBLE"`
 }
+
 type Review struct {
 	Date   string `json:"date,omitempty" dynamodbav:"date" parquet:"name=date, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
 	Author string `json:"author,omitempty" dynamodbav:"author" parquet:"name=author, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
@@ -401,7 +402,4 @@ func StringMapToHotel(data map[string]interface{}) *Hotel {
 	}
 
 	return hotel
-}
-func (h *Hotel) GetValues(document interface{}) (interface{}, error) {
-	return document, nil
 }

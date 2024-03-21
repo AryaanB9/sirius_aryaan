@@ -14,6 +14,7 @@ import (
 	"github.com/AryaanB9/sirius_aryaan/internal/db"
 	"github.com/AryaanB9/sirius_aryaan/internal/docgenerator"
 	"github.com/AryaanB9/sirius_aryaan/internal/err_sirius"
+	"github.com/AryaanB9/sirius_aryaan/internal/external_storage"
 	"github.com/AryaanB9/sirius_aryaan/internal/meta_data"
 	"github.com/AryaanB9/sirius_aryaan/internal/task_result"
 	"github.com/AryaanB9/sirius_aryaan/internal/task_state"
@@ -225,7 +226,7 @@ func loadDocumentsInBatches(task *GenericLoadingTask) {
 
 	if task.DBType == "dynamodb" {
 		task.Extra.SDKBatchSize = 25
-  }
+	}
 
 	/*
 		 * 	For External Storage operations, we need to handle the batchSize and numOfBatches differently.

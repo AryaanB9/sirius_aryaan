@@ -5,12 +5,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/AryaanB9/sirius_aryaan/internal/sdk_s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
-	"github.com/barkha06/sirius/internal/sdk_s3"
 	"log"
 	"strings"
-	//"github.com/barkha06/sirius/internal/sdk_s3"
+	//"github.com/AryaanB9/sirius_aryaan/internal/sdk_s3"
 )
 
 type AmazonS3 struct {

@@ -20,8 +20,8 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gocql/gocql"
 
-	"github.com/barkha06/sirius/internal/tasks"
-	"github.com/barkha06/sirius/internal/template"
+	"github.com/AryaanB9/sirius_aryaan/internal/tasks"
+	"github.com/AryaanB9/sirius_aryaan/internal/template"
 
 )
 
@@ -116,9 +116,9 @@ func createDBOp(task *tasks.GenericLoadingTask) (string, bool) {
 				}
 
 				createKeyspaceQuery := fmt.Sprintf(`
-							CREATE KEYSPACE IF NOT EXISTS %s 
+							CREATE KEYSPACE IF NOT EXISTS %s
 							WITH replication = {
-								'class': '%s', 
+								'class': '%s',
 								'replication_factor': %v
 							};`, task.Extra.Keyspace, task.Extra.CassandraClass, task.Extra.ReplicationFactor)
 				errCreateKeyspace := cassandraSession.Query(createKeyspaceQuery).Exec()

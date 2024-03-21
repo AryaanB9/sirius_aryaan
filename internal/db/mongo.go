@@ -198,7 +198,7 @@ func (m *mongoSubDocOperationResult) GetOffset() int64 {
 	return m.result.offset
 }
 
-func (m Mongo) Connect(connStr, username, password string, extra Extras) error {
+func (m *Mongo) Connect(connStr, username, password string, extra Extras) error {
 	clusterConfig := &sdk_mongo.MongoClusterConfig{
 		ConnectionString: connStr,
 		Username:         username,
@@ -212,7 +212,7 @@ func (m Mongo) Connect(connStr, username, password string, extra Extras) error {
 	return nil
 }
 
-func (m Mongo) Create(connStr, username, password string, keyValue KeyValue, extra Extras) OperationResult {
+func (m *Mongo) Create(connStr, username, password string, keyValue KeyValue, extra Extras) OperationResult {
 	if err := validateStrings(connStr, username, password); err != nil {
 		return newMongoOperationResult(keyValue.Key, keyValue.Doc, err, false, keyValue.Offset)
 	}
@@ -244,7 +244,7 @@ func (m Mongo) Create(connStr, username, password string, keyValue KeyValue, ext
 	return newMongoOperationResult(keyValue.Key, keyValue.Doc, nil, true, keyValue.Offset)
 }
 
-func (m Mongo) Update(connStr, username, password string, keyValue KeyValue, extra Extras) OperationResult {
+func (m *Mongo) Update(connStr, username, password string, keyValue KeyValue, extra Extras) OperationResult {
 	if err := validateStrings(connStr, username, password); err != nil {
 		return newMongoOperationResult(keyValue.Key, keyValue.Doc, err, false, keyValue.Offset)
 	}
@@ -280,7 +280,7 @@ func (m Mongo) Update(connStr, username, password string, keyValue KeyValue, ext
 	return newMongoOperationResult(keyValue.Key, keyValue.Doc, nil, true, keyValue.Offset)
 }
 
-func (m Mongo) Read(connStr, username, password, key string, offset int64, extra Extras) OperationResult {
+func (m *Mongo) Read(connStr, username, password, key string, offset int64, extra Extras) OperationResult {
 	if err := validateStrings(connStr, username, password); err != nil {
 		return newMongoOperationResult(key, nil, err, false, offset)
 	}
@@ -317,7 +317,7 @@ func (m Mongo) Read(connStr, username, password, key string, offset int64, extra
 
 }
 
-func (m Mongo) Delete(connStr, username, password, key string, offset int64, extra Extras) OperationResult {
+func (m *Mongo) Delete(connStr, username, password, key string, offset int64, extra Extras) OperationResult {
 	if err := validateStrings(connStr, username, password); err != nil {
 		return newMongoOperationResult(key, nil, err, false, offset)
 	}
@@ -355,7 +355,7 @@ func (m Mongo) Delete(connStr, username, password, key string, offset int64, ext
 	return newMongoOperationResult(key, nil, nil, true, offset)
 }
 
-func (m Mongo) Touch(connStr, username, password, key string, offset int64, extra Extras) OperationResult {
+func (m *Mongo) Touch(connStr, username, password, key string, offset int64, extra Extras) OperationResult {
 	//TODO implement me
 	// panic("implement me")
 	if err := validateStrings(connStr, username, password); err != nil {
@@ -393,7 +393,7 @@ func (m Mongo) Touch(connStr, username, password, key string, offset int64, extr
 	return newMongoOperationResult(key, nil, nil, true, offset)
 }
 
-func (m Mongo) InsertSubDoc(connStr, username, password, key string, keyValues []KeyValue, offset int64, extra Extras) SubDocOperationResult {
+func (m *Mongo) InsertSubDoc(connStr, username, password, key string, keyValues []KeyValue, offset int64, extra Extras) SubDocOperationResult {
 
 	if err := validateStrings(connStr, username, password); err != nil {
 		return newMongoSubDocOperationResult(key, keyValues, err, false, offset)
@@ -443,7 +443,7 @@ func (m Mongo) InsertSubDoc(connStr, username, password, key string, keyValues [
 	return newMongoSubDocOperationResult(key, keyValues, nil, true, offset)
 }
 
-func (m Mongo) UpsertSubDoc(connStr, username, password, key string, keyValue []KeyValue, offset int64, extra Extras) SubDocOperationResult {
+func (m *Mongo) UpsertSubDoc(connStr, username, password, key string, keyValue []KeyValue, offset int64, extra Extras) SubDocOperationResult {
 	//TODO implement me
 	// panic("implement me")
 	if err := validateStrings(connStr, username, password); err != nil {
@@ -494,12 +494,12 @@ func (m Mongo) UpsertSubDoc(connStr, username, password, key string, keyValue []
 
 }
 
-func (m Mongo) Increment(connStr, username, password, key string, keyValue []KeyValue, offset int64, extra Extras) SubDocOperationResult {
+func (m *Mongo) Increment(connStr, username, password, key string, keyValue []KeyValue, offset int64, extra Extras) SubDocOperationResult {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m Mongo) ReplaceSubDoc(connStr, username, password, key string, keyValue []KeyValue, offset int64, extra Extras) SubDocOperationResult {
+func (m *Mongo) ReplaceSubDoc(connStr, username, password, key string, keyValue []KeyValue, offset int64, extra Extras) SubDocOperationResult {
 	//TODO implement me
 	// panic("implement me")
 	if err := validateStrings(connStr, username, password); err != nil {
@@ -551,7 +551,7 @@ func (m Mongo) ReplaceSubDoc(connStr, username, password, key string, keyValue [
 
 }
 
-func (m Mongo) ReadSubDoc(connStr, username, password, key string, keyValue []KeyValue, offset int64, extra Extras) SubDocOperationResult {
+func (m *Mongo) ReadSubDoc(connStr, username, password, key string, keyValue []KeyValue, offset int64, extra Extras) SubDocOperationResult {
 	//TODO implement me
 	if err := validateStrings(connStr, username, password); err != nil {
 		return newMongoSubDocOperationResult(key, keyValue, err, false, offset)
@@ -594,7 +594,7 @@ func (m Mongo) ReadSubDoc(connStr, username, password, key string, keyValue []Ke
 	// panic("implement me")
 }
 
-func (m Mongo) DeleteSubDoc(connStr, username, password, key string, keyValue []KeyValue, offset int64, extra Extras) SubDocOperationResult {
+func (m *Mongo) DeleteSubDoc(connStr, username, password, key string, keyValue []KeyValue, offset int64, extra Extras) SubDocOperationResult {
 	if err := validateStrings(connStr, username, password); err != nil {
 		return newMongoSubDocOperationResult(key, keyValue, err, false, offset)
 	}
@@ -641,7 +641,7 @@ func (m Mongo) DeleteSubDoc(connStr, username, password, key string, keyValue []
 	return newMongoSubDocOperationResult(key, keyValue, nil, true, offset)
 }
 
-func (m Mongo) CreateBulk(connStr, username, password string, keyValues []KeyValue, extra Extras) BulkOperationResult {
+func (m *Mongo) CreateBulk(connStr, username, password string, keyValues []KeyValue, extra Extras) BulkOperationResult {
 
 	result := newMongoBulkOperation()
 	if err := validateStrings(connStr, username, password); err != nil {
@@ -700,7 +700,7 @@ func (m Mongo) CreateBulk(connStr, username, password string, keyValues []KeyVal
  * TODO Checks if the MongoDB Database or Collection exists
  * TODO If Database or Collection name is not specified then we create a Default
  */
-func (m Mongo) Warmup(connStr, username, password string, extra Extras) error {
+func (m *Mongo) Warmup(connStr, username, password string, extra Extras) error {
 	if err := validateStrings(connStr, username, password); err != nil {
 		return err
 	}
@@ -737,7 +737,7 @@ func (m Mongo) Warmup(connStr, username, password string, extra Extras) error {
 	return nil
 }
 
-func (m Mongo) Close(connStr string) error {
+func (m *Mongo) Close(connStr string) error {
 	if err := m.connectionManager.Clusters[connStr].MongoClusterClient.Disconnect(context.TODO()); err != nil {
 		log.Println("MongoDB Close(): Disconnect failed!")
 		return err
@@ -745,7 +745,7 @@ func (m Mongo) Close(connStr string) error {
 	return nil
 }
 
-func (m Mongo) UpdateBulk(connStr, username, password string, keyValues []KeyValue, extra Extras) BulkOperationResult {
+func (m *Mongo) UpdateBulk(connStr, username, password string, keyValues []KeyValue, extra Extras) BulkOperationResult {
 	result := newMongoBulkOperation()
 	if err := validateStrings(connStr, username, password); err != nil {
 		result.failBulk(keyValues, err)
@@ -803,7 +803,7 @@ func (m Mongo) UpdateBulk(connStr, username, password string, keyValues []KeyVal
 	return result
 }
 
-func (m Mongo) DeleteBulk(connStr, username, password string, keyValues []KeyValue, extra Extras) BulkOperationResult {
+func (m *Mongo) DeleteBulk(connStr, username, password string, keyValues []KeyValue, extra Extras) BulkOperationResult {
 	result := newMongoBulkOperation()
 
 	if err := validateStrings(connStr, username, password); err != nil {
@@ -868,7 +868,7 @@ func (m Mongo) DeleteBulk(connStr, username, password string, keyValues []KeyVal
 	return result
 }
 
-func (m Mongo) TouchBulk(connStr, username, password string, keyValues []KeyValue, extra Extras) BulkOperationResult {
+func (m *Mongo) TouchBulk(connStr, username, password string, keyValues []KeyValue, extra Extras) BulkOperationResult {
 	//TODO implement me
 	// panic("implement me")
 	result := newMongoBulkOperation()
@@ -932,7 +932,7 @@ func (m Mongo) TouchBulk(connStr, username, password string, keyValues []KeyValu
 	return result
 }
 
-func (m Mongo) ReadBulk(connStr, username, password string, keyValues []KeyValue, extra Extras) BulkOperationResult {
+func (m *Mongo) ReadBulk(connStr, username, password string, keyValues []KeyValue, extra Extras) BulkOperationResult {
 	result := newMongoBulkOperation()
 
 	if err := validateStrings(connStr, username, password); err != nil {
@@ -987,6 +987,7 @@ func (m Mongo) ReadBulk(connStr, username, password string, keyValues []KeyValue
 	}
 	return result
 }
+
 func (m *Mongo) CreateDatabase(connStr, username, password string, extra Extras, templateName string, docSize int) (string, error) {
 	if err := validateStrings(connStr, username, password); err != nil {
 		return "", err
