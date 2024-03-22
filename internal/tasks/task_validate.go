@@ -136,7 +136,7 @@ package tasks
 //		return task.TearUp()
 //	}
 //
-//	validateDocuments(task, collectionObject)
+//	validateColumnar(task, collectionObject)
 //
 //	task.Result.Success = task.State.SeedEnd - task.State.SeedStart - task.Result.Failure
 //
@@ -144,7 +144,7 @@ package tasks
 //}
 //
 //// ValidateDocuments return the validity of the collection using TaskState
-//func validateDocuments(task *ValidateTask, collectionObject *cb_sdk.CollectionObject) {
+//func validateColumnar(task *ValidateTask, collectionObject *cb_sdk.CollectionObject) {
 //
 //	if task.req.ContextClosed() {
 //		return

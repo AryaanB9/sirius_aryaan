@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/AryaanB9/sirius_aryaan/internal/external_storage"
 	"log"
 	"net/http"
-  
+
 	"github.com/AryaanB9/sirius_aryaan/internal/db"
 	"github.com/AryaanB9/sirius_aryaan/internal/task_result"
 	"github.com/AryaanB9/sirius_aryaan/internal/tasks"
@@ -69,8 +70,8 @@ func (app *Config) taskResult(w http.ResponseWriter, r *http.Request) {
 	_ = app.writeJSON(w, http.StatusOK, respPayload)
 }
 
-//// validateTask is validating the cluster's current state.
-//func (app *Config) validateTask(w http.ResponseWriter, r *http.Request) {
+//// validateColumnarTask is validating the cluster's current state.
+//func (app *Config) validateColumnarTask(w http.ResponseWriter, r *http.Request) {
 //	task := &tasks.ValidateTask{}
 //	if err_sirius := app.readJSON(w, r, task); err_sirius != nil {
 //		_ = app.errorJSON(w, err_sirius, http.StatusUnprocessableEntity)
@@ -151,7 +152,7 @@ func (app *Config) insertTask(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = app.writeJSON(w, http.StatusOK, resPayload)
 }
-func (app *Config) validateTask(w http.ResponseWriter, r *http.Request) {
+func (app *Config) validateColumnarTask(w http.ResponseWriter, r *http.Request) {
 	task := &tasks.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)

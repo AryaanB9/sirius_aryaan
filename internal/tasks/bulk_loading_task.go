@@ -1,13 +1,13 @@
 package tasks
 
 import (
+	"github.com/AryaanB9/sirius_aryaan/internal/external_storage"
 	"sync"
 
 	"github.com/AryaanB9/sirius_aryaan/internal/db"
 	"github.com/AryaanB9/sirius_aryaan/internal/docgenerator"
 	"github.com/AryaanB9/sirius_aryaan/internal/task_result"
 	"github.com/AryaanB9/sirius_aryaan/internal/task_state"
-
 )
 
 type BulkTask interface {
@@ -140,7 +140,7 @@ func (l *loadingTask) Run() {
 		}
 	case ValidateDocOperation:
 		{
-			validateDocuments(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
+			validateColumnar(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.extra, l.wg)
 		}
 

@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"github.com/AryaanB9/sirius_aryaan/internal/external_storage"
+	"github.com/AryaanB9/sirius_aryaan/internal/template"
 	"log"
 	"strings"
 	"sync"
@@ -882,7 +884,7 @@ func bulkTouchDocuments(start, end, seed int64, operationConfig *OperationConfig
 	}
 }
 
-func validateDocuments(start, end, seed int64, operationConfig *OperationConfig,
+func validateColumnar(start, end, seed int64, operationConfig *OperationConfig,
 	rerun bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
 	databaseInfo DatabaseInformation, extra db.Extras, wg *sync.WaitGroup) {
 
@@ -1259,7 +1261,7 @@ func insertFiles(start, end, seed int64, operationConfig *OperationConfig,
 				log.Println("In operations.go insertFiles(), writing avro data to buffer failed:", err)
 			}
 		}
-		
+
 		fileToUpload = bufferAvroFile.Bytes()
 		bufferAvroFile.Reset()
 
