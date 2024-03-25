@@ -2,7 +2,10 @@ package external_storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log"
+	"path/filepath"
 	"strings"
 
 	"github.com/AryaanB9/sirius_aryaan/internal/err_sirius"
@@ -44,134 +47,76 @@ func validateStrings(values ...string) error {
 	return nil
 }
 
-func my(filePaths []string, root *Folder) Folder {
+// extractFolderAndUploadToS3 extracts all the folder paths from file path and adding all the folder objects to S3 before inserting file to S3.
+func extractFolderAndUploadToS3(ctx context.Context, s3Client *s3.Client, bucketName, folderPath string) error {
 
-	//currFolder := *root
-	//tempFolder := *root
-	//for _, filePath := range filePaths {
-	//	dir, file := filepath.Split(filePath)
-	//	if file == "" {
-	//		// It means a new folder has come up
-	//		currFolder.NumFolders++
-	//		currFolder.Folders[dir] = Folder{}
-	//		tempFolder = currFolder
-	//		currFolder = currFolder.Folders[dir]
-	//	} else {
-	//		currFolder.NumFiles++
-	//		currFolder.Files[file] = File{Size: 1}
-	//	}
-	//}
-	return Folder{}
-}
-
-func buildDirectoryStructure(filePaths []string) map[string]Folder {
-	root := make(map[string]Folder)
-	//root := Folder{}
-	for _, filePath := range filePaths {
-		pathParts := strings.Split(filePath, "/")
-		current := root
-
-		for i, part := range pathParts {
-			if part == "" {
-				continue
-			}
-
-			if _, ok := current[part]; !ok {
-				current[part] = Folder{
-					Files:   make(map[string]File),
-					Folders: make(map[string]Folder),
-				}
-			}
-
-			if i == len(pathParts)-1 {
-				current[part] = Folder{
-					NumFolders: current[part].NumFolders,
-					NumFiles:   current[part].NumFiles + 1,
-					Files:      current[part].Files,
-					Folders:    current[part].Folders,
-				}
-			} else {
-				current[part] = Folder{
-					NumFolders: current[part].NumFolders + 1,
-					NumFiles:   current[part].NumFiles,
-					Files:      current[part].Files,
-					Folders:    current[part].Folders,
-				}
-			}
-
-			current = current[part].Folders
+	for folderPath != "/" && folderPath != "." {
+		folderObjKey := folderPath + "/"
+		_, errUploadToS3 := s3Client.PutObject(ctx, &s3.PutObjectInput{
+			Bucket: &bucketName,
+			Key:    &folderObjKey,
+		})
+		if errUploadToS3 != nil {
+			log.Println("creating folder: unable to upload folder to S3:", errUploadToS3)
+			return errors.New("creating folder: unable to upload folder to S3: " + errUploadToS3.Error())
 		}
+		folderPath = filepath.Dir(folderPath)
 	}
-
-	return root
+	return nil
 }
 
-func listObjectsRecursive(ctx context.Context, client *s3.Client, folder *Folder, bucketName, prefix string) (Folder, error) {
-	listObjectsOutput, err := client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
+// traverseFolder traverses through the whole bucket in S3 and returns the directory structure
+/*
+ *	The bucket must have empty objects for the folders. E.g. an object having path : "folder1/folder2/"
+ *	Returns the size of the files in bytes
+ */
+func traverseFolder(ctx context.Context, s3Client *s3.Client, bucketName, prefix string, folder *Folder, lvl int) {
+
+	numOfOutputKeys := int32(1000)
+	listObjectsOutput, err := s3Client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
 		Bucket: &bucketName,
 		Prefix: &prefix,
 	})
 	if err != nil {
-		return Folder{}, err
+		log.Println("traversing a folder in bucket: unable to list objects in folder:", err)
+		return
 	}
 
-	//log.Println("len:", len(listObjectsOutput.Contents))
-
-	maxLevel := 0
-	for _, obj := range listObjectsOutput.Contents {
-		if obj.Key == nil {
-			continue
-		}
-		key := *obj.Key
-		keyArr := strings.Split(key, "/")
-		var newArr []string
-		for _, x := range keyArr {
-			if x != "" {
-				newArr = append(newArr, x)
-			}
-		}
-
-		if maxLevel < len(newArr) {
-			maxLevel = len(newArr)
+	// We check if the output of list objects is truncated, then we increase the size of ListObjectsV2Input.MaxKeys
+	// determines the maximum number of keys returned.
+	for *listObjectsOutput.IsTruncated {
+		numOfOutputKeys = numOfOutputKeys * 10
+		listObjectsOutput, err = s3Client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
+			Bucket:  &bucketName,
+			Prefix:  &prefix,
+			MaxKeys: &numOfOutputKeys,
+		})
+		if err != nil {
+			log.Println("traversing a folder in bucket: unable to list objects in folder:", err)
+			return
 		}
 	}
 
 	folder.Files = make(map[string]File)
 	folder.Folders = make(map[string]Folder)
-	currFolder := folder
-	mainFolder := currFolder
 
-	for lvl := 1; lvl <= maxLevel; lvl++ {
-		subFolder := Folder{}
-		for _, obj := range listObjectsOutput.Contents {
-			if obj.Key == nil {
-				continue
-			}
-
-			key := *obj.Key
-			keyArr := strings.Split(key, "/")
-			var newArr []string
-			for _, x := range keyArr {
-				if x != "" {
-					newArr = append(newArr, x)
-				}
-			}
-
-			if len(newArr) == lvl {
-				if *obj.Size != 0 {
-					subFolder.Files[key] = File{Size: *obj.Size}
-					subFolder.NumFiles++
-				} else {
-					anotherSubFolder := Folder{}
-					subFolder.Folders[key] = anotherSubFolder
-					subFolder.NumFolders++
-				}
-			}
+	for _, obj := range listObjectsOutput.Contents {
+		if *obj.Key == prefix || len(*obj.Key) == 0 {
+			// Skip if the object is the folder itself, or if it is empty
+			continue
 		}
-		//currFolder.Folders = subFolder
-		currFolder.Folders = make(map[string]Folder)
-		currFolder.Files = make(map[string]File)
-	}
+		tempString := *obj.Key
+		if tempString[len(tempString)-1] == '/' && strings.Count(tempString, "/") == lvl {
+			// For a sub folder
+			subFolder := Folder{}
+			traverseFolder(ctx, s3Client, bucketName, *obj.Key, &subFolder, lvl+1)
 
-	return *mainFolder, nil
+			folder.Folders[tempString[len(prefix):len(tempString)-1]] = subFolder
+			folder.NumFolders++
+		} else if tempString[len(tempString)-1] != '/' && strings.Count(tempString, "/") == lvl-1 {
+			// For file
+			folder.Files[tempString[len(prefix):]] = File{Size: *obj.Size}
+			folder.NumFiles++
+		}
+	}
 }
