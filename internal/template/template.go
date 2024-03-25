@@ -434,14 +434,14 @@ func GetCassandraSchema(templateName, tableName string) ([]string, error) {
 		udtHairQuery := `CREATE TYPE IF NOT EXISTS hair (
 									hair_type TEXT,
 									hair_colour TEXT,
-									length TEXT, 
+									length TEXT,
 									thickness TEXT
 								);`
 		udtAttributesQuery := `CREATE TYPE IF NOT EXISTS attributes (
 									weight DOUBLE,
 									height DOUBLE,
-									colour TEXT, 
-									hair frozen <hair>,  
+									colour TEXT,
+									hair frozen <hair>,
 									body_type TEXT
 								);`
 		createTableQuery := fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (

@@ -139,7 +139,7 @@ func generateRandomString(length int) string {
  */
 func getFolderNameFromDictionary(folderLvlNames map[string]string, folderLevel, randStringLength int, randInteger int64) string {
 
-	folderName := folderLvlNames["level_"+strconv.Itoa(int(folderLevel))]
+	folderName := folderLvlNames["level_"+strconv.Itoa(folderLevel)]
 
 	if strings.Contains(folderName, "{string}") {
 		folderName = strings.Replace(folderName, "{string}", generateRandomString(randStringLength), 1)
@@ -169,8 +169,8 @@ func generateFolderPaths(numFolders, maxFolderDepth, foldersPerDepth int64, fold
 	if folderLevelNames != nil {
 		for i := int64(0); i < numFolders; i++ {
 
-			// Randomizing the Depths for different folders.
-			depth := rand.Int63n(maxFolderDepth)
+			//Randomizing the Depths for different folders.
+			depth := rand.Int63n(maxFolderDepth + 1)
 			if depth == 0 {
 				depth = 1
 			}
@@ -186,14 +186,14 @@ func generateFolderPaths(numFolders, maxFolderDepth, foldersPerDepth int64, fold
 
 				for k := int64(0); k < foldersPerDepth-1; k++ {
 
-					folderName2 := getFolderNameFromDictionary(folderLevelNames, lvl, 8, int64(math.Pow(2, 32)))
+					folderName2 := getFolderNameFromDictionary(folderLevelNames, lvl+1, 8, int64(math.Pow(2, 32)))
 					path2 := path1 + folderName2 + "/"
 					folderPaths = append(folderPaths, path2)
 				}
 				lvl++
 				currentPath = path1
 
-				if j == depth-1 {
+				if j+1 == depth-1 {
 					folderName2 := getFolderNameFromDictionary(folderLevelNames, lvl, 8, int64(math.Pow(2, 32)))
 					path2 := path1 + folderName2 + "/"
 					folderPaths = append(folderPaths, path2)
@@ -203,7 +203,7 @@ func generateFolderPaths(numFolders, maxFolderDepth, foldersPerDepth int64, fold
 	} else {
 		for i := int64(0); i < numFolders; i++ {
 			// Randomizing the Depths for different folders.
-			depth := rand.Int63n(maxFolderDepth)
+			depth := rand.Int63n(maxFolderDepth + 1)
 			if depth == 0 {
 				depth = 1
 			}

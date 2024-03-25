@@ -244,7 +244,6 @@ func (p *Product) GenerateSubPathAndValue(fake *faker.Faker, subDocSize int) map
 	}
 }
 
-func (p *Product) GetValues(interface{}) (interface{}, error) {
-	// TODO
-	panic("In template_product.go, to be implemented")
+func (p *Product) GetValues(doc interface{}) (interface{}, error) {
+	return doc, nil
 }
