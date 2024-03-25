@@ -2,7 +2,8 @@ package sdk_s3
 
 import (
 	"context"
-	"fmt"
+	"errors"
+	"log"
 	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -49,14 +50,14 @@ func (s3cm *S3ConnectionManager) getS3ClusterObject(awsAccessKey, awsSecretKey, 
 					AccessKeyID:     awsAccessKey,
 					SecretAccessKey: awsSecretKey,
 					//SessionToken:    awsSessionToken,
-					Source: "Credentials received from user",
+					Source: "credentials received from user",
 				},
 			}),
 			config.WithRegion(awsRegion),
 		)
 		if err != nil {
-			fmt.Println("Error loading AWS SDK config:", err)
-			return nil, err
+			log.Println("getting s3 cluster object: unable to load aws sdk config:", err)
+			return nil, errors.New("getting s3 cluster object: unable to load aws sdk config: " + err.Error())
 		}
 		s3Client := s3.NewFromConfig(cfg)
 
