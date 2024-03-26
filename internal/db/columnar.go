@@ -377,7 +377,6 @@ func (c *Columnar) ReadBulk(connStr, username, password string, keyValues []KeyV
 		OffsetTokey[x.Offset] = x.Key
 		docIDs = append(docIDs, x.Key)
 	}
-	//dv, _ := json.Marshal(docIDs)
 	query := "Select * from " + bucket + "." + scope + "." + collection + "  where id in $ids order by id asc;"
 	params := map[string]interface{}{
 		"ids": docIDs,
