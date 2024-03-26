@@ -1,4 +1,4 @@
-package tasks
+package data_loading
 
 import (
 	"encoding/json"
@@ -12,6 +12,8 @@ import (
 	"github.com/AryaanB9/sirius_aryaan/internal/err_sirius"
 	"github.com/AryaanB9/sirius_aryaan/internal/task_result"
 	"github.com/AryaanB9/sirius_aryaan/internal/task_state"
+	"github.com/AryaanB9/sirius_aryaan/internal/tasks"
+
 	"github.com/bgadrian/fastfaker/faker"
 )
 
@@ -217,7 +219,7 @@ func ConfigureOperationConfig(o *OperationConfig) error {
 //	}
 //
 // retracePreviousMutations returns an updated document after mutating the original documents.
-func retracePreviousMutations(r *Request, collectionIdentifier string, offset int64, doc interface{},
+func retracePreviousMutations(r *tasks.Request, collectionIdentifier string, offset int64, doc interface{},
 	gen *docgenerator.Generator, fake *faker.Faker, resultSeed int64) (interface{}, error) {
 	if r == nil {
 		return doc, err_sirius.RequestIsNil
@@ -226,7 +228,7 @@ func retracePreviousMutations(r *Request, collectionIdentifier string, offset in
 	r.Lock()
 	for i := range r.Tasks {
 		td := r.Tasks[i]
-		if td.Operation == UpsertOperation || td.Operation == BulkUpsertOperation {
+		if td.Operation == tasks.UpsertOperation || td.Operation == tasks.BulkUpsertOperation {
 			if tempX, ok := td.Task.(BulkTask); ok {
 				u, ok := tempX.(*GenericLoadingTask)
 				if ok {
@@ -257,7 +259,7 @@ func retracePreviousMutations(r *Request, collectionIdentifier string, offset in
 }
 
 // retracePreviousSubDocMutations retraces mutation in sub documents.
-func retracePreviousSubDocMutations(r *Request, collectionIdentifier string, offset int64,
+func retracePreviousSubDocMutations(r *tasks.Request, collectionIdentifier string, offset int64,
 	gen *docgenerator.Generator, fake *faker.Faker, resultSeed int64, subDocumentMap map[string]any) (map[string]any,
 	error) {
 	if r == nil {
@@ -268,7 +270,7 @@ func retracePreviousSubDocMutations(r *Request, collectionIdentifier string, off
 	var result map[string]any = subDocumentMap
 	for i := range r.Tasks {
 		td := r.Tasks[i]
-		if td.Operation == SubDocUpsertOperation {
+		if td.Operation == tasks.SubDocUpsertOperation {
 			if task, ok := td.Task.(BulkTask); ok {
 				u, ok1 := task.(*GenericLoadingTask)
 				if ok1 {
@@ -429,7 +431,7 @@ func configExtraParameters(dbType string, d *db.Extras) error {
 func loadBatch(task *GenericLoadingTask, t *loadingTask, batchStart int64, batchEnd int64) {
 	retryBatchCounter := 10
 	for ; retryBatchCounter > 0; retryBatchCounter-- {
-		if err := Pool.Execute(t); err == nil {
+		if err := tasks.Pool.Execute(t); err == nil {
 			break
 		}
 		time.Sleep(1 * time.Minute)

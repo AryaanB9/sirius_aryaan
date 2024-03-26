@@ -4,6 +4,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"errors"
+	"github.com/AryaanB9/sirius_aryaan/internal/tasks/data_loading"
 	"net/http"
 
 	"github.com/AryaanB9/sirius_aryaan/internal/meta_data"
@@ -86,7 +87,7 @@ func registerInterfaces() {
 	gob.Register(&template.Hotel{})
 	gob.Register(&template.Small{})
 	gob.Register(&server_requests.ServerRequests{})
-	gob.Register(&tasks.GenericLoadingTask{})
+	gob.Register(&data_loading.GenericLoadingTask{})
 	gob.Register(&util_sirius.TaskResult{})
 	//gob.Register(&bulk_loading.ValidateTask{})
 	gob.Register(&task_result.TaskResult{})
@@ -94,7 +95,7 @@ func registerInterfaces() {
 	//gob.Register(&bulk_query_cb.QueryTask{})
 	gob.Register(&meta_data.MetaData{})
 	gob.Register(&meta_data.CollectionMetaData{})
-	gob.Register(&tasks.RetryExceptions{})
+	gob.Register(&data_loading.RetryExceptions{})
 	gob.Register(&tasks.BucketWarmUpTask{})
 
 	r := sirius_documentation.Register{}

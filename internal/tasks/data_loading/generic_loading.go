@@ -1,4 +1,4 @@
-package tasks
+package data_loading
 
 import (
 	"fmt"
@@ -18,6 +18,7 @@ import (
 	"github.com/AryaanB9/sirius_aryaan/internal/meta_data"
 	"github.com/AryaanB9/sirius_aryaan/internal/task_result"
 	"github.com/AryaanB9/sirius_aryaan/internal/task_state"
+	"github.com/AryaanB9/sirius_aryaan/internal/tasks"
 	"github.com/AryaanB9/sirius_aryaan/internal/template"
 
 	"golang.org/x/sync/errgroup"
@@ -25,7 +26,7 @@ import (
 
 type GenericLoadingTask struct {
 	IdentifierToken string `json:"identifierToken" doc:"true"`
-	DatabaseInformation
+	tasks.DatabaseInformation
 	ExternalStorageExtras external_storage.ExternalStorageExtras `json:"externalStorageExtras" doc:"true"`
 	ResultSeed            int64                                  `json:"resultSeed" doc:"false"`
 	TaskPending           bool                                   `json:"taskPending" doc:"false"`
@@ -35,7 +36,7 @@ type GenericLoadingTask struct {
 	Operation             string                                 `json:"operation" doc:"false"`
 	Result                *task_result.TaskResult                `json:"-" doc:"false"`
 	gen                   *docgenerator.Generator                `json:"-" doc:"false"`
-	req                   *Request                               `json:"-" doc:"false"`
+	req                   *tasks.Request                         `json:"-" doc:"false"`
 	rerun                 bool                                   `json:"-" doc:"false"`
 	lock                  sync.Mutex                             `json:"-" doc:"false"`
 }
@@ -63,7 +64,7 @@ func (t *GenericLoadingTask) CheckIfPending() bool {
 }
 
 // Config configures the insert task
-func (t *GenericLoadingTask) Config(req *Request, reRun bool) (int64, error) {
+func (t *GenericLoadingTask) Config(req *tasks.Request, reRun bool) (int64, error) {
 	t.TaskPending = true
 	t.req = req
 
@@ -259,8 +260,8 @@ func loadDocumentsInBatches(task *GenericLoadingTask) {
 			//}
 		}
 
-		if batchSize > (task.OperationConfig.End-task.OperationConfig.Start)/int64(MaxThreads) {
-			batchSize = (task.OperationConfig.End - task.OperationConfig.Start) / int64(MaxThreads)
+		if batchSize > (task.OperationConfig.End-task.OperationConfig.Start)/int64(tasks.MaxThreads) {
+			batchSize = (task.OperationConfig.End - task.OperationConfig.Start) / int64(tasks.MaxThreads)
 		}
 	}
 
@@ -280,11 +281,11 @@ func loadDocumentsInBatches(task *GenericLoadingTask) {
 	 * numOfBatches = number of file paths which is simply the number of files to be inserted.
 	 * batchSize = Num of Docs to be generated to get the file size in range [MinFileSize, MaxFileSize-1]
 	 */
-	if task.Operation == InsertFilesInFoldersOperation {
+	if task.Operation == tasks.InsertFilesInFoldersOperation {
 		// Num of Batches = Num Folders * Max Depth * Folders per Depth * Num Files per Folder = len(filePaths)
-		folderPaths := generateFolderPaths(task.ExternalStorageExtras.NumFolders, task.ExternalStorageExtras.MaxFolderDepth,
+		folderPaths := tasks.GenerateFolderPaths(task.ExternalStorageExtras.NumFolders, task.ExternalStorageExtras.MaxFolderDepth,
 			task.ExternalStorageExtras.FoldersPerDepth, task.ExternalStorageExtras.FolderLevelNames)
-		filePaths := generateFilePaths(folderPaths, task.ExternalStorageExtras.FilesPerFolder, task.ExternalStorageExtras.FileFormat)
+		filePaths := tasks.GenerateFilePaths(folderPaths, task.ExternalStorageExtras.FilesPerFolder, task.ExternalStorageExtras.FileFormat)
 		numOfBatches = int64(len(filePaths))
 
 		log.Println("folder paths")
@@ -362,9 +363,9 @@ func loadDocumentsInBatches(task *GenericLoadingTask) {
 		log.Println("completed :- ", task.Operation, task.IdentifierToken, task.ResultSeed)
 		log.Println()
 		return
-	} else if task.Operation == UpdateFilesInFolderOperation {
+	} else if task.Operation == tasks.UpdateFilesInFolderOperation {
 		// Here, we have to update files in a single folder. So we generate the file paths w.r.t that folder
-		filePaths := generateFilePaths([]string{task.ExternalStorageExtras.FolderPath}, task.ExternalStorageExtras.FilesPerFolder, task.ExternalStorageExtras.FileFormat)
+		filePaths := tasks.GenerateFilePaths([]string{task.ExternalStorageExtras.FolderPath}, task.ExternalStorageExtras.FilesPerFolder, task.ExternalStorageExtras.FileFormat)
 		numOfBatches = int64(len(filePaths))
 
 		// Just making sure that the given folder is created in S3 before updating files.
@@ -510,8 +511,8 @@ func (t *GenericLoadingTask) PostTaskExceptionHandling() {
 
 	for _, exception := range exceptionList {
 
-		routineLimiter := make(chan struct{}, MaxRetryingRoutines)
-		dataChannel := make(chan int64, MaxRetryingRoutines)
+		routineLimiter := make(chan struct{}, tasks.MaxRetryingRoutines)
+		dataChannel := make(chan int64, tasks.MaxRetryingRoutines)
 
 		failedDocuments := t.Result.BulkError[exception]
 		delete(t.Result.BulkError, exception)

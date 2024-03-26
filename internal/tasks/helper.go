@@ -150,13 +150,13 @@ func getFolderNameFromDictionary(folderLvlNames map[string]string, folderLevel, 
 	return folderName
 }
 
-// generateFolderPaths generates the required number of folders in which files will be inserted.
+// GenerateFolderPaths generates the required number of folders in which files will be inserted.
 /*
  * Total Number of Folders generated = numFolders * (random(maxFolderDepth)-1) * foldersPerDepth + 1 // For root folder
  * Returns a slice containing folder paths
  * If folderLevelNames is not provided then a fixed type of naming is used : folder_level_{lvl}_{random-string}
  */
-func generateFolderPaths(numFolders, maxFolderDepth, foldersPerDepth int64, folderLevelNames map[string]string) []string {
+func GenerateFolderPaths(numFolders, maxFolderDepth, foldersPerDepth int64, folderLevelNames map[string]string) []string {
 	rootPath := ""
 	var folderPaths []string
 
@@ -226,14 +226,14 @@ func generateFolderPaths(numFolders, maxFolderDepth, foldersPerDepth int64, fold
 	return folderPaths
 }
 
-// generateFilePaths generates the files names with file formats as specified by user and returns the file paths.
+// GenerateFilePaths generates the files names with file formats as specified by user and returns the file paths.
 /*
  * The number of files to be generated = len(folderPaths) * filesPerFolder
  * Returns a slice containing the full path of file(s)
  * fileFormats is a string containing different file format(s) separated by commas.
 	For e.g. "json" or "json, csv" or "json,parquet,csv" or "tsv,csv, avro"
 */
-func generateFilePaths(folderPaths []string, filesPerFolder int64, fileFormats string) []string {
+func GenerateFilePaths(folderPaths []string, filesPerFolder int64, fileFormats string) []string {
 	var filePaths []string
 
 	// Getting the file formats from the string into a slice. "json, csv,parquet" into ["json", "csv", "parquet"]

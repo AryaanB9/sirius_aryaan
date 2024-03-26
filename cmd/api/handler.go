@@ -9,6 +9,7 @@ import (
 	"github.com/AryaanB9/sirius_aryaan/internal/external_storage"
 	"github.com/AryaanB9/sirius_aryaan/internal/task_result"
 	"github.com/AryaanB9/sirius_aryaan/internal/tasks"
+	"github.com/AryaanB9/sirius_aryaan/internal/tasks/data_loading"
 	"github.com/AryaanB9/sirius_aryaan/internal/tasks/util_sirius"
 )
 
@@ -113,7 +114,7 @@ func (app *Config) taskResult(w http.ResponseWriter, r *http.Request) {
 
 // insertTask is used to insert documents.
 func (app *Config) insertTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -153,7 +154,7 @@ func (app *Config) insertTask(w http.ResponseWriter, r *http.Request) {
 	_ = app.writeJSON(w, http.StatusOK, resPayload)
 }
 func (app *Config) validateTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -195,7 +196,7 @@ func (app *Config) validateTask(w http.ResponseWriter, r *http.Request) {
 
 // bulkInsertTask is used to insert documents.
 func (app *Config) bulkInsertTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -237,7 +238,7 @@ func (app *Config) bulkInsertTask(w http.ResponseWriter, r *http.Request) {
 
 // deleteTask is used to delete documents.
 func (app *Config) deleteTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -279,7 +280,7 @@ func (app *Config) deleteTask(w http.ResponseWriter, r *http.Request) {
 
 // bulkDeleteTask is used to delete documents.
 func (app *Config) bulkDeleteTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -321,7 +322,7 @@ func (app *Config) bulkDeleteTask(w http.ResponseWriter, r *http.Request) {
 
 // upsertTask is used to update documents.
 func (app *Config) upsertTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -363,7 +364,7 @@ func (app *Config) upsertTask(w http.ResponseWriter, r *http.Request) {
 
 // bulkUpsertTask is used to update documents.
 func (app *Config) bulkUpsertTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -405,7 +406,7 @@ func (app *Config) bulkUpsertTask(w http.ResponseWriter, r *http.Request) {
 
 // touchTask is used to update the expiry of documents
 func (app *Config) touchTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -445,7 +446,7 @@ func (app *Config) touchTask(w http.ResponseWriter, r *http.Request) {
 	_ = app.writeJSON(w, http.StatusOK, resPayload)
 }
 func (app *Config) createDBTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -476,7 +477,7 @@ func (app *Config) createDBTask(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *Config) deleteDBTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -507,7 +508,7 @@ func (app *Config) deleteDBTask(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *Config) listDBTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -537,7 +538,7 @@ func (app *Config) listDBTask(w http.ResponseWriter, r *http.Request) {
 	_ = app.writeJSON(w, http.StatusOK, resPayload)
 }
 func (app *Config) CountTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -569,7 +570,7 @@ func (app *Config) CountTask(w http.ResponseWriter, r *http.Request) {
 
 // bulkTouchTask is used to update the expiry of documents
 func (app *Config) bulkTouchTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -611,7 +612,7 @@ func (app *Config) bulkTouchTask(w http.ResponseWriter, r *http.Request) {
 
 // readTask is to read documents.
 func (app *Config) readTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -653,7 +654,7 @@ func (app *Config) readTask(w http.ResponseWriter, r *http.Request) {
 
 // bulkReadTask is to read documents.
 func (app *Config) bulkReadTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -695,7 +696,7 @@ func (app *Config) bulkReadTask(w http.ResponseWriter, r *http.Request) {
 
 // SubDocInsertTask is used to load bulk sub documents into buckets
 func (app *Config) SubDocInsertTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -737,7 +738,7 @@ func (app *Config) SubDocInsertTask(w http.ResponseWriter, r *http.Request) {
 
 // SubDocUpsertTask is used to bulk updating sub documents into buckets
 func (app *Config) SubDocUpsertTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -779,7 +780,7 @@ func (app *Config) SubDocUpsertTask(w http.ResponseWriter, r *http.Request) {
 
 // SubDocDeleteTask is used to bulk updating sub documents into buckets
 func (app *Config) SubDocDeleteTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -821,7 +822,7 @@ func (app *Config) SubDocDeleteTask(w http.ResponseWriter, r *http.Request) {
 
 // SubDocReadTask is used to bulk updating sub documents into bucketsSubDocReadOperation
 func (app *Config) SubDocReadTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -864,7 +865,7 @@ func (app *Config) SubDocReadTask(w http.ResponseWriter, r *http.Request) {
 // SubDocReplaceTask is used to bulk updating sub documents into buckets
 
 func (app *Config) SubDocReplaceTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -1534,7 +1535,7 @@ func (app *Config) WarmUpBucket(w http.ResponseWriter, r *http.Request) {
 
 // createS3BucketTask is used to create a bucket in S3.
 func (app *Config) createS3BucketTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -1576,7 +1577,7 @@ func (app *Config) createS3BucketTask(w http.ResponseWriter, r *http.Request) {
 
 // deleteS3BucketTask is used to delete a bucket in S3.
 func (app *Config) deleteS3BucketTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -1618,7 +1619,7 @@ func (app *Config) deleteS3BucketTask(w http.ResponseWriter, r *http.Request) {
 
 // folderInsertTask is used to create a folder.
 func (app *Config) folderInsertTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -1660,7 +1661,7 @@ func (app *Config) folderInsertTask(w http.ResponseWriter, r *http.Request) {
 
 // folderDeleteTask is used to delete a folder along with all the Objects that it contains.
 func (app *Config) folderDeleteTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -1702,7 +1703,7 @@ func (app *Config) folderDeleteTask(w http.ResponseWriter, r *http.Request) {
 
 // fileInsertTask is used to insert a File.
 func (app *Config) fileInsertTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -1744,7 +1745,7 @@ func (app *Config) fileInsertTask(w http.ResponseWriter, r *http.Request) {
 
 // fileUpdateTask is used to update a file.
 func (app *Config) fileUpdateTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -1786,7 +1787,7 @@ func (app *Config) fileUpdateTask(w http.ResponseWriter, r *http.Request) {
 
 // fileDeleteTask is used to delete a file.
 func (app *Config) fileDeleteTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -1828,7 +1829,7 @@ func (app *Config) fileDeleteTask(w http.ResponseWriter, r *http.Request) {
 
 // insertFilesInFoldersTask is used to insert multiples files into multiple folders.
 func (app *Config) insertFilesInFoldersTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -1870,7 +1871,7 @@ func (app *Config) insertFilesInFoldersTask(w http.ResponseWriter, r *http.Reque
 
 // updateFilesInFoldersTask is used to update multiples files into multiple folders.
 func (app *Config) updateFilesInFolderTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -1912,7 +1913,7 @@ func (app *Config) updateFilesInFolderTask(w http.ResponseWriter, r *http.Reques
 
 // deleteFilesInFolderTask is used to delete files in a folder.
 func (app *Config) deleteFilesInFolderTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -1954,7 +1955,7 @@ func (app *Config) deleteFilesInFolderTask(w http.ResponseWriter, r *http.Reques
 
 // getInfoTask is used to get the directory structure of an S3 bucket.
 func (app *Config) getInfoTask(w http.ResponseWriter, r *http.Request) {
-	task := &tasks.GenericLoadingTask{}
+	task := &data_loading.GenericLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
