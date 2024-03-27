@@ -1,15 +1,15 @@
 package db
 
 import (
+	"log"
+	"os"
+	"testing"
+
 	"github.com/AryaanB9/sirius_aryaan/internal/docgenerator"
 	"github.com/AryaanB9/sirius_aryaan/internal/meta_data"
 	"github.com/AryaanB9/sirius_aryaan/internal/template"
 
-	"log"
-
 	"github.com/bgadrian/fastfaker/faker"
-
-	"testing"
 )
 
 func TestSqlDB(t *testing.T) {
@@ -29,9 +29,19 @@ func TestSqlDB(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	connStr := "empty"
-	username := "empty"
-	password := "empty"
+	connStr, ok := os.LookupEnv("sirius_mysql_connStr")
+	if !ok {
+		t.Error("connStr not found")
+	}
+	username, ok := os.LookupEnv("sirius_mysql_username")
+	if !ok {
+		t.Error("username not found")
+
+	}
+	password, ok := os.LookupEnv("sirius_mysql_password")
+	if !ok {
+		t.Error("password not found")
+	}
 
 	extra := Extras{
 		Database: "sirius",
@@ -39,6 +49,7 @@ func TestSqlDB(t *testing.T) {
 	}
 	if err := db.Connect(connStr, username, password, extra); err != nil {
 		t.Error(err)
+		t.FailNow()
 	}
 
 	m := meta_data.NewMetaData()

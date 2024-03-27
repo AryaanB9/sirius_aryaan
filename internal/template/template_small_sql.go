@@ -23,7 +23,7 @@ func (s *SmallSql) GenerateDocument(fake *faker.Faker, key string, documentSize 
 		Mutated:      MutatedPathDefaultValue,
 		TemplateName: "small_sql",
 	}
-	values := []interface{}{&small.ID, &small.RandomData, &small.Mutated}
+	values := []interface{}{&small.TemplateName, &small.ID, &small.RandomData, &small.Mutated}
 	small.Value = values
 	return small
 }

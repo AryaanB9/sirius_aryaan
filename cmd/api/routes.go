@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 
 	"github.com/AryaanB9/sirius_aryaan/internal/tasks"
-	"github.com/go-chi/chi/v5"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 )
@@ -35,6 +35,9 @@ func (app *Config) routes() http.Handler {
 	mux.Post("/clear_data", app.clearRequestFromServer)
 	mux.Post("/warmup-bucket", app.WarmUpBucket)
 
+	mux.Post("/validate", app.validateTask)
+	mux.Post("/retry-exceptions", app.RetryExceptionTask)
+
 	mux.Post("/create", app.insertTask)
 	mux.Post("/bulk-create", app.bulkInsertTask)
 	mux.Post("/read", app.readTask)
@@ -57,7 +60,7 @@ func (app *Config) routes() http.Handler {
 	mux.Post("/delete-database", app.deleteDBTask)
 	mux.Post("/count", app.CountTask)
 
-	mux.Post("/validate", app.validateTask)
+	mux.Post("/validate-columnar", app.validateColumnarTask)
 
 	//mux.Post("/validate", app.validateTask)
 	//mux.Post("/retry-exceptions", app.RetryExceptionTask)

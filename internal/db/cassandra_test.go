@@ -2,6 +2,7 @@ package db
 
 import (
 	"log"
+	"os"
 	"testing"
 
 	"github.com/AryaanB9/sirius_aryaan/internal/docgenerator"
@@ -30,9 +31,22 @@ func TestCassandraDB(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	connStr := "127.0.0.1:9042"
-	username := "username"
-	password := "password"
+
+	connStr, ok := os.LookupEnv("sirius_cassandra_connStr")
+	if !ok {
+		t.Error("connStr not found")
+		t.FailNow()
+	}
+	username, ok := os.LookupEnv("sirius_cassandra_username")
+	if !ok {
+		t.Error("username not found")
+		t.FailNow()
+	}
+	password, ok := os.LookupEnv("sirius_cassandra_password")
+	if !ok {
+		t.Error("password not found")
+		t.FailNow()
+	}
 
 	extra := Extras{
 		Keyspace:          "testing_sirius",

@@ -1,19 +1,18 @@
 package tasks
 
 import (
-	"sync"
+	"runtime"
 
 	"github.com/AryaanB9/sirius_aryaan/internal/db"
+
 	"github.com/shettyh/threadpool"
 )
 
-var MaxRetryingRoutines = 32
-var MaxConcurrentRoutines = 10
-var MaxThreads = 25
-var MAXQueueSize int64 = 1000000
-var Pool = threadpool.NewThreadPool(MaxThreads, MAXQueueSize)
+var MaxRetryingRoutines = 250
 
-var lock = sync.Mutex{}
+var MaxThreads = runtime.NumCPU()
+var MAXQueueSize int64 = 10000000
+var Pool = threadpool.NewThreadPool(MaxThreads, MAXQueueSize)
 
 type Task interface {
 	Describe() string

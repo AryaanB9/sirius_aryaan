@@ -47,7 +47,8 @@ func (t *GenericLoadingTask) Describe() string {
 
 func (t *GenericLoadingTask) MetaDataIdentifier() string {
 	if t.DBType == db.CouchbaseDb {
-		return strings.Join([]string{t.IdentifierToken, t.ConnStr, t.Extra.Bucket, t.Extra.Scope, t.Extra.Collection}, ":")
+		return strings.Join([]string{t.IdentifierToken, t.ConnStr, t.Extra.Bucket, t.Extra.Scope,
+			t.Extra.Collection}, ":")
 	} else if t.DBType == db.MongoDb {
 		return strings.Join([]string{t.IdentifierToken, t.ConnStr, t.Extra.Database, t.Extra.Collection}, ":")
 	} else if t.DBType == db.CassandraDb {
@@ -117,16 +118,16 @@ func (t *GenericLoadingTask) Config(req *tasks.Request, reRun bool) (int64, erro
 		}
 		t.req.Unlock()
 
+		t.State = task_state.ConfigTaskState(t.ResultSeed)
+
 	} else {
+		if t.State == nil {
+			t.State = task_state.ConfigTaskState(t.ResultSeed)
+		} else {
+			t.State.SetupStoringKeys()
+		}
 		_ = task_result.DeleteResultFile(t.ResultSeed)
 		log.Println("retrying :- ", t.Operation, t.IdentifierToken, t.ResultSeed)
-	}
-
-	if t.State == nil {
-		t.State = task_state.ConfigTaskState(t.ResultSeed)
-	}
-	if t.State.StateChannel == nil {
-		t.State.SetupStoringKeys()
 	}
 
 	t.gen = docgenerator.ConfigGenerator(
@@ -222,12 +223,8 @@ func loadDocumentsInBatches(task *GenericLoadingTask) {
 	wg := &sync.WaitGroup{}
 	numOfBatches := int64(0)
 
-	// default batch size is calculated by dividing the total operations in equal quantity to each thread.
-	batchSize := int64(5000)
-
-	if task.DBType == "dynamodb" {
-		task.Extra.SDKBatchSize = 25
-	}
+	//default batch size is calculated by dividing the total operations in equal quantity to each thread.
+	batchSize := (task.OperationConfig.End - task.OperationConfig.Start) / int64(tasks.MaxThreads)
 
 	/*
 		 * 	For External Storage operations, we need to handle the batchSize and numOfBatches differently.
@@ -245,100 +242,213 @@ func loadDocumentsInBatches(task *GenericLoadingTask) {
 	} else {
 		// if we are using sdk Batching call, then fetch the batch size from extras.
 		// current default value of a batch for SDK batching is 100 but will be picked from os.env
-		//if CheckBulkOperation(task.Operation) {
-		if task.Extra.SDKBatchSize > 0 {
-			batchSize = (task.OperationConfig.End - task.OperationConfig.Start) / int64(task.Extra.SDKBatchSize)
-		} else {
-			envBatchSize := os.Getenv("sirius_sdk_batch_size")
-			if len(envBatchSize) == 0 {
-				batchSize = 100
+		if tasks.CheckBulkOperation(task.Operation) {
+			if task.Extra.SDKBatchSize > 0 {
+				batchSize = int64(task.Extra.SDKBatchSize)
 			} else {
-				if x, e := strconv.Atoi(envBatchSize); e != nil {
-					batchSize = int64(x)
+				envBatchSize := os.Getenv("sirius_sdk_batch_size")
+				if len(envBatchSize) == 0 {
+					batchSize = 500
+				} else {
+					if x, e := strconv.Atoi(envBatchSize); e != nil {
+						batchSize = int64(x)
+					}
 				}
 			}
-			//}
+			if batchSize > (task.OperationConfig.End-task.OperationConfig.Start)/int64(tasks.MaxThreads) {
+				batchSize = (task.OperationConfig.End - task.OperationConfig.Start) / int64(tasks.MaxThreads)
+			}
 		}
 
-		if batchSize > (task.OperationConfig.End-task.OperationConfig.Start)/int64(tasks.MaxThreads) {
-			batchSize = (task.OperationConfig.End - task.OperationConfig.Start) / int64(tasks.MaxThreads)
+		if task.DBType == "dynamodb" {
+			batchSize = 25
 		}
-	}
 
-	if batchSize > 0 {
-		numOfBatches = (task.OperationConfig.End - task.OperationConfig.Start) / batchSize
-	}
-	remainingItems := (task.OperationConfig.End - task.OperationConfig.Start) - (numOfBatches * batchSize)
+		if batchSize > 0 {
+			numOfBatches = (task.OperationConfig.End - task.OperationConfig.Start) / (batchSize)
+		}
+		remainingItems := (task.OperationConfig.End - task.OperationConfig.Start) - (numOfBatches * batchSize)
 
-	// ==========================================================================================
-	//         Handling the Loading Task for a few special External Storage Operations         //
-	// ==========================================================================================
+		// ==========================================================================================
+		//         Handling the Loading Task for a few special External Storage Operations         //
+		// ==========================================================================================
 
-	/*
-	 * Specifically handling the loading for InsertFilesInFoldersOperation and UpdateFilesInFolderOperation.
-	 * As for these operations, we need to create multiple files and in each file we need to bulk insert multiple documents.
-	 * So each file creation will be in a new batch which takes its own thread. So multiple batches will be created for multiple files insert.
-	 * numOfBatches = number of file paths which is simply the number of files to be inserted.
-	 * batchSize = Num of Docs to be generated to get the file size in range [MinFileSize, MaxFileSize-1]
-	 */
-	if task.Operation == tasks.InsertFilesInFoldersOperation {
-		// Num of Batches = Num Folders * Max Depth * Folders per Depth * Num Files per Folder = len(filePaths)
-		folderPaths := tasks.GenerateFolderPaths(task.ExternalStorageExtras.NumFolders, task.ExternalStorageExtras.MaxFolderDepth,
-			task.ExternalStorageExtras.FoldersPerDepth, task.ExternalStorageExtras.FolderLevelNames)
-		filePaths := tasks.GenerateFilePaths(folderPaths, task.ExternalStorageExtras.FilesPerFolder, task.ExternalStorageExtras.FileFormat)
-		numOfBatches = int64(len(filePaths))
+		/*
+		 * Specifically handling the loading for InsertFilesInFoldersOperation and UpdateFilesInFolderOperation.
+		 * As for these operations, we need to create multiple files and in each file we need to bulk insert multiple documents.
+		 * So each file creation will be in a new batch which takes its own thread. So multiple batches will be created for multiple files insert.
+		 * numOfBatches = number of file paths which is simply the number of files to be inserted.
+		 * batchSize = Num of Docs to be generated to get the file size in range [MinFileSize, MaxFileSize-1]
+		 */
+		if task.Operation == tasks.InsertFilesInFoldersOperation {
+			// Num of Batches = Num Folders * Max Depth * Folders per Depth * Num Files per Folder = len(filePaths)
+			folderPaths := tasks.GenerateFolderPaths(task.ExternalStorageExtras.NumFolders, task.ExternalStorageExtras.MaxFolderDepth,
+				task.ExternalStorageExtras.FoldersPerDepth, task.ExternalStorageExtras.FolderLevelNames)
+			filePaths := tasks.GenerateFilePaths(folderPaths, task.ExternalStorageExtras.FilesPerFolder, task.ExternalStorageExtras.FileFormat)
+			numOfBatches = int64(len(filePaths))
 
-		log.Println("folder paths")
-		log.Println(folderPaths)
+			log.Println("folder paths")
+			log.Println(folderPaths)
 
-		// Creating all the necessary folders before inserting files.
-		// Skipping first index 0 as it is root "" path
-		as3 := external_storage.NewAmazonS3ConnectionManager()
-		err := as3.Connect(task.ExternalStorageExtras)
-		if err != nil {
-			log.Println("In handler.go getInfoTask(), err connecting to aws:", err)
+			// Creating all the necessary folders before inserting files.
+			// Skipping first index 0 as it is root "" path
+			as3 := external_storage.NewAmazonS3ConnectionManager()
+			err := as3.Connect(task.ExternalStorageExtras)
+			if err != nil {
+				log.Println("In handler.go getInfoTask(), err connecting to aws:", err)
+				return
+			}
+			for i := 1; i < len(folderPaths); i++ {
+				task.ExternalStorageExtras.FolderPath = folderPaths[i]
+				_ = as3.CreateFolder(external_storage.KeyValue{}, task.ExternalStorageExtras)
+			}
+			err = as3.Close(task.ExternalStorageExtras.AwsAccessKey)
+			if err != nil {
+				log.Println("In handler.go getInfoTask(), err disconnecting :", err)
+				return
+			}
+
+			log.Println("file paths")
+			log.Println(filePaths)
+
+			// Batch Size = Num of Docs to generate to get file size somewhere between MinFileSize and MaxFileSize
+			var documentSize int64
+			if task.ExternalStorageExtras.MaxFileSize != 0 && task.ExternalStorageExtras.MinFileSize != 0 {
+				diffMinMax := task.ExternalStorageExtras.MaxFileSize - task.ExternalStorageExtras.MinFileSize
+				if diffMinMax <= 0 {
+					documentSize = 1048576 // 1 MB
+				} else {
+					documentSize = task.ExternalStorageExtras.MinFileSize + rand.Int63n(diffMinMax)
+				}
+			} else {
+				documentSize = 1048576 // 1 MB
+			}
+
+			log.Println("documentSize =", documentSize)
+			batchSize := documentSize / int64(task.OperationConfig.DocSize)
+
+			log.Println("batchSize:", batchSize, "numOfBatches:", numOfBatches)
+			t1 := time.Now()
+			for i := int64(0); i < numOfBatches; i++ {
+				// Making required changes in order to start operation of File Insert
+				batchStart := i * batchSize
+				batchEnd := (i + 1) * batchSize
+				task.ExternalStorageExtras.FilePath = filePaths[i]
+				extractedFileFormat := filepath.Ext(filePaths[i])               // E.g. returns ".json"
+				task.ExternalStorageExtras.FileFormat = extractedFileFormat[1:] // Now it is "json"
+
+				// Starting the Insert Task
+				t := newLoadingTask(batchStart+task.OperationConfig.Start,
+					batchEnd+task.OperationConfig.Start,
+					task.MetaData.Seed,
+					task.OperationConfig,
+					task.Operation,
+					task.rerun,
+					task.gen,
+					task.State,
+					task.Result,
+					task.DatabaseInformation,
+					task.Extra,
+					task.ExternalStorageExtras,
+					task.req,
+					task.MetaDataIdentifier(),
+					wg)
+				loadBatch(task, t, batchStart, batchEnd, nil)
+				wg.Add(1)
+			}
+
+			wg.Wait()
+			log.Println("result ", task.ResultSeed, " time took: ", time.Now().Sub(t1))
+			log.Println("completed :- ", task.Operation, task.IdentifierToken, task.ResultSeed)
+			log.Println()
 			return
-		}
-		for i := 1; i < len(folderPaths); i++ {
-			task.ExternalStorageExtras.FolderPath = folderPaths[i]
+		} else if task.Operation == tasks.UpdateFilesInFolderOperation {
+			// Here, we have to update files in a single folder. So we generate the file paths w.r.t that folder
+			filePaths := tasks.GenerateFilePaths([]string{task.ExternalStorageExtras.FolderPath}, task.ExternalStorageExtras.FilesPerFolder, task.ExternalStorageExtras.FileFormat)
+			numOfBatches = int64(len(filePaths))
+
+			// Just making sure that the given folder is created in S3 before updating files.
+			as3 := external_storage.NewAmazonS3ConnectionManager()
+			err := as3.Connect(task.ExternalStorageExtras)
+			if err != nil {
+				log.Println("In handler.go getInfoTask(), err connecting to aws:", err)
+				return
+			}
 			_ = as3.CreateFolder(external_storage.KeyValue{}, task.ExternalStorageExtras)
-		}
-		err = as3.Close(task.ExternalStorageExtras.AwsAccessKey)
-		if err != nil {
-			log.Println("In handler.go getInfoTask(), err disconnecting :", err)
+			err = as3.Close(task.ExternalStorageExtras.AwsAccessKey)
+			if err != nil {
+				log.Println("In handler.go getInfoTask(), err disconnecting :", err)
+				return
+			}
+
+			log.Println("file paths")
+			log.Println(filePaths)
+
+			// Batch Size = Num of Docs to generate to get file size somewhere between MinFileSize and MaxFileSize
+			var documentSize int64
+			if task.ExternalStorageExtras.MaxFileSize != 0 && task.ExternalStorageExtras.MinFileSize != 0 {
+				diffMinMax := task.ExternalStorageExtras.MaxFileSize - task.ExternalStorageExtras.MinFileSize
+				if diffMinMax <= 0 {
+					documentSize = 1048576 // 1 MB
+				} else {
+					documentSize = task.ExternalStorageExtras.MinFileSize + rand.Int63n(diffMinMax)
+				}
+			} else {
+				documentSize = 1048576 // 1 MB
+			}
+
+			log.Println("documentSize =", documentSize)
+			batchSize := documentSize / int64(task.OperationConfig.DocSize)
+
+			log.Println("batchSize:", batchSize, "numOfBatches:", numOfBatches)
+			t1 := time.Now()
+			for i := int64(0); i < numOfBatches; i++ {
+				// Making required changes in order to start operation of File Insert
+				batchStart := i * batchSize
+				batchEnd := (i + 1) * batchSize
+				task.ExternalStorageExtras.FilePath = filePaths[i]
+				extractedFileFormat := filepath.Ext(filePaths[i])               // E.g. returns ".json"
+				task.ExternalStorageExtras.FileFormat = extractedFileFormat[1:] // Now it is "json"
+
+				// Starting the Insert Task
+				t := newLoadingTask(batchStart+task.OperationConfig.Start,
+					batchEnd+task.OperationConfig.Start,
+					task.MetaData.Seed,
+					task.OperationConfig,
+					task.Operation,
+					task.rerun,
+					task.gen,
+					task.State,
+					task.Result,
+					task.DatabaseInformation,
+					task.Extra,
+					task.ExternalStorageExtras,
+					task.req,
+					task.MetaDataIdentifier(),
+					wg)
+				loadBatch(task, t, batchStart, batchEnd, nil)
+				wg.Add(1)
+			}
+
+			wg.Wait()
+			log.Println("result ", task.ResultSeed, " time took: ", time.Now().Sub(t1))
+			log.Println("completed :- ", task.Operation, task.IdentifierToken, task.ResultSeed)
+			log.Println()
 			return
 		}
 
-		log.Println("file paths")
-		log.Println(filePaths)
+		// ==========================================================================================
+		//         Loading the batches for normal Database or External Storage Operations          //
+		// ==========================================================================================
 
-		// Batch Size = Num of Docs to generate to get file size somewhere between MinFileSize and MaxFileSize
-		var documentSize int64
-		if task.ExternalStorageExtras.MaxFileSize != 0 && task.ExternalStorageExtras.MinFileSize != 0 {
-			diffMinMax := task.ExternalStorageExtras.MaxFileSize - task.ExternalStorageExtras.MinFileSize
-			if diffMinMax <= 0 {
-				documentSize = 1048576 // 1 MB
-			} else {
-				documentSize = task.ExternalStorageExtras.MinFileSize + rand.Int63n(diffMinMax)
-			}
-		} else {
-			documentSize = 1048576 // 1 MB
-		}
-
-		log.Println("documentSize =", documentSize)
-		batchSize := documentSize / int64(task.OperationConfig.DocSize)
-
-		log.Println("batchSize:", batchSize, "numOfBatches:", numOfBatches)
+		log.Println("batchSize:", batchSize, "numOfBatches:", numOfBatches, "remainingItems:", remainingItems)
 		t1 := time.Now()
 		for i := int64(0); i < numOfBatches; i++ {
-			// Making required changes in order to start operation of File Insert
+			// if task.DBType == "dynamodb" && i > 0 && i%1000 == 0 {
+			// 	time.Sleep(1000 * time.Millisecond)
+			// }
 			batchStart := i * batchSize
 			batchEnd := (i + 1) * batchSize
-			task.ExternalStorageExtras.FilePath = filePaths[i]
-			extractedFileFormat := filepath.Ext(filePaths[i])               // E.g. returns ".json"
-			task.ExternalStorageExtras.FileFormat = extractedFileFormat[1:] // Now it is "json"
-
-			// Starting the Insert Task
 			t := newLoadingTask(batchStart+task.OperationConfig.Start,
 				batchEnd+task.OperationConfig.Start,
 				task.MetaData.Seed,
@@ -354,66 +464,14 @@ func loadDocumentsInBatches(task *GenericLoadingTask) {
 				task.req,
 				task.MetaDataIdentifier(),
 				wg)
-			loadBatch(task, t, batchStart, batchEnd)
+			loadBatch(task, t, batchStart, batchEnd, nil)
 			wg.Add(1)
 		}
 
-		wg.Wait()
-		log.Println("result ", task.ResultSeed, " time took: ", time.Now().Sub(t1))
-		log.Println("completed :- ", task.Operation, task.IdentifierToken, task.ResultSeed)
-		log.Println()
-		return
-	} else if task.Operation == tasks.UpdateFilesInFolderOperation {
-		// Here, we have to update files in a single folder. So we generate the file paths w.r.t that folder
-		filePaths := tasks.GenerateFilePaths([]string{task.ExternalStorageExtras.FolderPath}, task.ExternalStorageExtras.FilesPerFolder, task.ExternalStorageExtras.FileFormat)
-		numOfBatches = int64(len(filePaths))
-
-		// Just making sure that the given folder is created in S3 before updating files.
-		as3 := external_storage.NewAmazonS3ConnectionManager()
-		err := as3.Connect(task.ExternalStorageExtras)
-		if err != nil {
-			log.Println("In handler.go getInfoTask(), err connecting to aws:", err)
-			return
-		}
-		_ = as3.CreateFolder(external_storage.KeyValue{}, task.ExternalStorageExtras)
-		err = as3.Close(task.ExternalStorageExtras.AwsAccessKey)
-		if err != nil {
-			log.Println("In handler.go getInfoTask(), err disconnecting :", err)
-			return
-		}
-
-		log.Println("file paths")
-		log.Println(filePaths)
-
-		// Batch Size = Num of Docs to generate to get file size somewhere between MinFileSize and MaxFileSize
-		var documentSize int64
-		if task.ExternalStorageExtras.MaxFileSize != 0 && task.ExternalStorageExtras.MinFileSize != 0 {
-			diffMinMax := task.ExternalStorageExtras.MaxFileSize - task.ExternalStorageExtras.MinFileSize
-			if diffMinMax <= 0 {
-				documentSize = 1048576 // 1 MB
-			} else {
-				documentSize = task.ExternalStorageExtras.MinFileSize + rand.Int63n(diffMinMax)
-			}
-		} else {
-			documentSize = 1048576 // 1 MB
-		}
-
-		log.Println("documentSize =", documentSize)
-		batchSize := documentSize / int64(task.OperationConfig.DocSize)
-
-		log.Println("batchSize:", batchSize, "numOfBatches:", numOfBatches)
-		t1 := time.Now()
-		for i := int64(0); i < numOfBatches; i++ {
-			// Making required changes in order to start operation of File Insert
-			batchStart := i * batchSize
-			batchEnd := (i + 1) * batchSize
-			task.ExternalStorageExtras.FilePath = filePaths[i]
-			extractedFileFormat := filepath.Ext(filePaths[i])               // E.g. returns ".json"
-			task.ExternalStorageExtras.FileFormat = extractedFileFormat[1:] // Now it is "json"
-
-			// Starting the Insert Task
-			t := newLoadingTask(batchStart+task.OperationConfig.Start,
-				batchEnd+task.OperationConfig.Start,
+		if remainingItems > 0 {
+			t := newLoadingTask(
+				numOfBatches*batchSize+task.OperationConfig.Start,
+				task.OperationConfig.End,
 				task.MetaData.Seed,
 				task.OperationConfig,
 				task.Operation,
@@ -427,7 +485,7 @@ func loadDocumentsInBatches(task *GenericLoadingTask) {
 				task.req,
 				task.MetaDataIdentifier(),
 				wg)
-			loadBatch(task, t, batchStart, batchEnd)
+			loadBatch(task, t, numOfBatches*batchSize, task.OperationConfig.End, nil)
 			wg.Add(1)
 		}
 
@@ -435,82 +493,19 @@ func loadDocumentsInBatches(task *GenericLoadingTask) {
 		log.Println("result ", task.ResultSeed, " time took: ", time.Now().Sub(t1))
 		log.Println("completed :- ", task.Operation, task.IdentifierToken, task.ResultSeed)
 		log.Println()
-		return
+
 	}
-
-	// ==========================================================================================
-	//         Loading the batches for normal Database or External Storage Operations          //
-	// ==========================================================================================
-
-	log.Println("batchSize:", batchSize, "numOfBatches:", numOfBatches, "remainingItems:", remainingItems)
-	t1 := time.Now()
-	for i := int64(0); i < numOfBatches; i++ {
-		// if task.DBType == "dynamodb" && i > 0 && i%1000 == 0 {
-		// 	time.Sleep(1000 * time.Millisecond)
-		// }
-		batchStart := i * batchSize
-		batchEnd := (i + 1) * batchSize
-		t := newLoadingTask(batchStart+task.OperationConfig.Start,
-			batchEnd+task.OperationConfig.Start,
-			task.MetaData.Seed,
-			task.OperationConfig,
-			task.Operation,
-			task.rerun,
-			task.gen,
-			task.State,
-			task.Result,
-			task.DatabaseInformation,
-			task.Extra,
-			task.ExternalStorageExtras,
-			task.req,
-			task.MetaDataIdentifier(),
-			wg)
-		loadBatch(task, t, batchStart, batchEnd)
-		wg.Add(1)
-	}
-
-	if remainingItems > 0 {
-		t := newLoadingTask(
-			numOfBatches*batchSize+task.OperationConfig.Start,
-			task.OperationConfig.End,
-			task.MetaData.Seed,
-			task.OperationConfig,
-			task.Operation,
-			task.rerun,
-			task.gen,
-			task.State,
-			task.Result,
-			task.DatabaseInformation,
-			task.Extra,
-			task.ExternalStorageExtras,
-			task.req,
-			task.MetaDataIdentifier(),
-			wg)
-		loadBatch(task, t, numOfBatches*batchSize, task.OperationConfig.End)
-		wg.Add(1)
-	}
-
-	wg.Wait()
-	log.Println("result ", task.ResultSeed, " time took: ", time.Now().Sub(t1))
-	log.Println("completed :- ", task.Operation, task.IdentifierToken, task.ResultSeed)
-	log.Println()
-
 }
 
 func (t *GenericLoadingTask) PostTaskExceptionHandling() {
 
-	if t.State == nil {
-		t.State = task_state.ConfigTaskState(t.ResultSeed)
-	}
-	t.State.StopStoringState()
-
-	// For the offset in ignore exceptions :-> move them from error to completed
 	shiftErrToCompletedOnIgnore(t.OperationConfig.Exceptions.IgnoreExceptions, t.Result, t.State)
+
+	_ = t.State.SaveTaskSateOnDisk()
 
 	exceptionList := GetExceptions(t.Result, t.OperationConfig.Exceptions.RetryExceptions)
 
 	for _, exception := range exceptionList {
-
 		routineLimiter := make(chan struct{}, tasks.MaxRetryingRoutines)
 		dataChannel := make(chan int64, tasks.MaxRetryingRoutines)
 
@@ -579,6 +574,5 @@ func (t *GenericLoadingTask) SetException(exceptions Exceptions) {
 }
 
 func (t *GenericLoadingTask) GetOperationConfig() (*OperationConfig, *task_state.TaskState) {
-
 	return t.OperationConfig, t.State
 }

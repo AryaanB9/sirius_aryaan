@@ -1,15 +1,15 @@
 package db
 
 import (
+	"log"
+	"os"
+	"testing"
+
 	"github.com/AryaanB9/sirius_aryaan/internal/docgenerator"
 	"github.com/AryaanB9/sirius_aryaan/internal/meta_data"
 	"github.com/AryaanB9/sirius_aryaan/internal/template"
 
-	"log"
-
 	"github.com/bgadrian/fastfaker/faker"
-
-	"testing"
 )
 
 func TestDynamoDB(t *testing.T) {
@@ -29,11 +29,22 @@ func TestDynamoDB(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	connStr := "ap-south-1"
-	username := ""
-	password := ""
+	connStr, ok := os.LookupEnv("sirius_dynamo_connStr")
+	if !ok {
+		t.Error("connStr not found")
+	}
+	username, ok := os.LookupEnv("sirius_dynamo_username")
+	if !ok {
+		t.Error("username not found")
+
+	}
+	password, ok := os.LookupEnv("sirius_dynamo_password")
+	if !ok {
+		t.Error("password not found")
+	}
 	if err := db.Connect(connStr, username, password, Extras{}); err != nil {
 		t.Error(err)
+		t.FailNow()
 	}
 	extra := Extras{
 		Table: "testing_sirius",

@@ -737,7 +737,7 @@ func (m *Mongo) Warmup(connStr, username, password string, extra Extras) error {
 	return nil
 }
 
-func (m *Mongo) Close(connStr string, extras Extras) error {
+func (m *Mongo) Close(connStr string, extra Extras) error {
 	if err := m.connectionManager.Clusters[connStr].MongoClusterClient.Disconnect(context.TODO()); err != nil {
 		log.Println("MongoDB Close(): Disconnect failed!")
 		return err
@@ -989,55 +989,64 @@ func (m *Mongo) ReadBulk(connStr, username, password string, keyValues []KeyValu
 }
 
 func (m *Mongo) CreateDatabase(connStr, username, password string, extra Extras, templateName string, docSize int) (string, error) {
+
 	if err := validateStrings(connStr, username, password); err != nil {
 		return "", err
 	}
-	err := m.Connect(connStr, username, password, extra)
+
+	mongoClient, err := m.connectionManager.GetMongoCluster(connStr, username, password, nil)
 	if err != nil {
-		return "", err
+		return "", errors.New("creating mongo database or collection: unable to get mongo cluster client: " + err.Error())
 	}
-	mongoClient := m.connectionManager.Clusters[connStr].MongoClusterClient
+
 	if extra.Database == "" {
-		return "", errors.New("Empty Database name")
+		return "", errors.New("creating mongo database: database name not provided")
 	}
+
 	database := mongoClient.Database(extra.Database)
 	if database == nil {
-		return "", errors.New("Database Creation Unsuccessful   : " + extra.Database)
+		return "", errors.New("creating mongo database or collection: unable to get mongo database client")
 	}
 	if extra.Collection == "" {
-		return "Database Creation Successful: " + extra.Database, nil
+		return "Database '" + extra.Database + "' created successfully", nil
 	}
+
 	err = database.CreateCollection(context.TODO(), extra.Collection, nil)
 	if err != nil {
 		return "", err
 	} else {
-		return "Collection Creation Successful : " + extra.Database + "  /  " + extra.Collection, nil
+		return "Collection '" + extra.Collection + "' in Database '" + extra.Database + "' created successfully in MongoDB", nil
 	}
 }
 
 func (m *Mongo) DeleteDatabase(connStr, username, password string, extra Extras) (string, error) {
+
 	if err := validateStrings(connStr, username, password); err != nil {
 		return "", err
 	}
-	err := m.Connect(connStr, username, password, extra)
+
+	mongoClient, err := m.connectionManager.GetMongoCluster(connStr, username, password, nil)
 	if err != nil {
-		return "", err
+		return "", errors.New("deleting mongo database or collection: unable to get mongo cluster client: " + err.Error())
 	}
-	mongoClient := m.connectionManager.Clusters[connStr].MongoClusterClient
+
 	if extra.Database == "" {
-		return "", errors.New("Empty Database name")
+		return "", errors.New("deleting mongo database or collection: database name not provided")
 	}
-	database := mongoClient.Database(extra.Database)
-	if database == nil {
-		return "", errors.New("Database does not exist  : " + extra.Database)
-	} else if extra.Collection == "" {
-		err = database.Drop(context.TODO())
+
+	mongoDatabase := mongoClient.Database(extra.Database)
+	if mongoDatabase == nil {
+		return "", errors.New("deleting mongo database or collection: database '" + extra.Database + "' not found in cluster")
+	}
+
+	if extra.Collection == "" {
+		err = mongoDatabase.Drop(context.TODO())
 		if err != nil {
-			return "", err
+			return "", errors.New("deleting mongo database or collection: database '" + extra.Database + "' not found in cluster")
 		}
-		return "Database Deletion Successful  : " + extra.Database, nil
+		return "Database " + extra.Database + " Deletion Successful", nil
 	} else {
-		err := database.Collection(extra.Collection).Drop(context.TODO())
+		err := mongoDatabase.Collection(extra.Collection).Drop(context.TODO())
 		if err != nil {
 			return "", err
 		} else {
@@ -1047,59 +1056,67 @@ func (m *Mongo) DeleteDatabase(connStr, username, password string, extra Extras)
 }
 
 func (m *Mongo) Count(connStr, username, password string, extra Extras) (int64, error) {
-	var count int64
+
 	if err := validateStrings(connStr, username, password); err != nil {
-		return -1, err
-	}
-	err := m.Connect(connStr, username, password, extra)
-	if err != nil {
-		return -1, err
-	}
-	mongoClient := m.connectionManager.Clusters[connStr].MongoClusterClient
-	if extra.Database == "" {
-		return -1, errors.New("Empty Database name")
-	}
-	database := mongoClient.Database(extra.Database)
-	if database == nil {
-		return -1, errors.New("Database Not Found   : " + extra.Database)
-	} else if extra.Collection == "" {
-		return -1, errors.New("Empty Collection name " + extra.Collection)
-	} else {
-		col := database.Collection(extra.Collection)
-		if col == nil {
-			return -1, errors.New("Collection Not Found   : " + extra.Collection)
-		} else {
-			count, err = col.CountDocuments(context.TODO(), bson.D{})
-			if err != nil {
-				return -1, err
-			}
-			return count, nil
-		}
-	}
-}
-func (m *Mongo) ListDatabase(connStr, username, password string, extra Extras) (any, error) {
-	dblist := make(map[string][]string)
-	if err := validateStrings(connStr, username, password); err != nil {
-		return nil, err
-	}
-	err := m.Connect(connStr, username, password, extra)
-	if err != nil {
-		return nil, err
-	}
-	mongoClient := m.connectionManager.Clusters[connStr].MongoClusterClient
-	databases, err := mongoClient.ListDatabaseNames(context.TODO(), bson.D{})
-	if err != nil {
-		return nil, err
-	} else {
-		for _, db := range databases {
-			collections, err := mongoClient.Database(db).ListCollectionNames(context.TODO(), bson.D{})
-			if err == nil {
-				dblist[db] = collections
-			} else {
-				return nil, err
-			}
-		}
-		return dblist, nil
+		return -1, errors.New("listing count of documents in mongo collection: connection string or auth parameters not provided")
 	}
 
+	mongoClient, err := m.connectionManager.GetMongoCluster(connStr, username, password, nil)
+	if err != nil {
+		return -1, errors.New("listing count of documents in mongo collection: unable to get mongo cluster client: " + err.Error())
+	}
+
+	if extra.Database == "" {
+		return -1, errors.New("listing count of documents in mongo collection: database name not provided")
+	}
+	if extra.Collection == "" {
+		return -1, errors.New("listing count of documents in mongo collection: collection name not provided")
+	}
+
+	mongoDatabase := mongoClient.Database(extra.Database)
+	if mongoDatabase == nil {
+		return -1, errors.New("listing count of documents in mongo collection: database '" + extra.Database + "' not found in cluster")
+	}
+
+	mongoCollection := mongoDatabase.Collection(extra.Collection)
+	if mongoCollection == nil {
+		return -1, errors.New("listing count of documents in mongo collection: collection '" + extra.Collection + "' not found in database '" + extra.Database + "'")
+	}
+
+	count, err := mongoCollection.CountDocuments(context.TODO(), bson.D{})
+	if err != nil {
+		return -1, errors.New("listing count of documents in mongo collection: unable to count documents: " + err.Error())
+	}
+
+	return count, nil
+}
+
+func (m *Mongo) ListDatabase(connStr, username, password string, extra Extras) (any, error) {
+
+	dbList := make(map[string][]string)
+	if err := validateStrings(connStr, username, password); err != nil {
+		return nil, errors.New("listing mongo databases or collections: connection string or auth parameters not provided")
+	}
+
+	mongoClient, err := m.connectionManager.GetMongoCluster(connStr, username, password, nil)
+	if err != nil {
+		return nil, errors.New("listing mongo databases or collections: unable to get mongo cluster client: " + err.Error())
+	}
+
+	// Getting all the databases for MongoDB cluster
+	databases, err := mongoClient.ListDatabaseNames(context.TODO(), bson.D{})
+	if err != nil {
+		return nil, errors.New("listing mongo databases: " + err.Error())
+	}
+
+	// Getting all the collections for all the databases in MongoDB cluster
+	for _, mongoDatabase := range databases {
+		collections, err := mongoClient.Database(mongoDatabase).ListCollectionNames(context.TODO(), bson.D{})
+		if err != nil {
+			return nil, errors.New("listing mongo collections for database " + mongoDatabase + ":" + err.Error())
+		}
+
+		dbList[mongoDatabase] = collections
+	}
+	return dbList, nil
 }

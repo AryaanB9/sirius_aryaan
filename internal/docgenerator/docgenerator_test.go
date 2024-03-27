@@ -2,7 +2,6 @@ package docgenerator
 
 import (
 	"log"
-
 	"testing"
 
 	"github.com/AryaanB9/sirius_aryaan/internal/template"
@@ -24,8 +23,10 @@ func TestGenerator_GetNextKey(t *testing.T) {
 		log.Println(docId)
 		fake := faker.NewFastFaker()
 		fake.Seed(key)
-		_ = g.Template.GenerateDocument(fake, docId, 1024)
-
+		doc := g.Template.GenerateDocument(fake, docId, 1024)
+		if doc == nil {
+			t.Fail()
+		}
 	}
 
 }

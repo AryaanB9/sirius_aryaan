@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"math"
 	"strconv"
 	"time"
@@ -281,7 +280,6 @@ func (d Dynamo) Update(connStr, username, password string, keyValue KeyValue, ex
 	if err != nil {
 		return newDynamoOperationResult(keyValue.Key, keyValue.Doc, err, false, keyValue.Offset)
 	}
-	log.Println(item)
 	out, err := DynamoDbClient.PutItem(context.TODO(), &dynamodb.PutItemInput{
 		TableName: aws.String(extra.Table), Item: item})
 	if err != nil {
@@ -326,7 +324,6 @@ func (d Dynamo) Read(connStr, username, password, key string, offset int64, extr
 				fmt.Errorf("result is nil even after successful READ operation %s ", connStr), false,
 				offset)
 		}
-		log.Println(response, '\n', result)
 		return newDynamoOperationResult(key, result, nil, true, offset)
 
 	}
@@ -487,7 +484,7 @@ func (d Dynamo) Warmup(connStr, username, password string, extra Extras) error {
 	return nil
 }
 
-func (d Dynamo) Close(connStr string, extras Extras) error {
+func (d Dynamo) Close(connStr string, extra Extras) error {
 	d.connectionManager.DisconnectAll()
 	return nil
 }
@@ -689,7 +686,6 @@ func (d Dynamo) ReadBulk(connStr, username, password string, keyValues []KeyValu
 		if resultDoc == nil {
 			result.AddResult(resultDoc["id"].(string), nil, errors.New("result is nil even after successful READ operation"), false, keyToOffset[resultDoc["id"].(string)])
 		} else {
-			log.Println(resultDoc)
 			result.AddResult(resultDoc["id"].(string), resultDoc, nil, true, keyToOffset[resultDoc["id"].(string)])
 		}
 	}
@@ -919,7 +915,6 @@ func (d Dynamo) ReadSubDoc(connStr, username, password, key string, keyValues []
 				fmt.Errorf("result is nil even after successful READ operation %s ", connStr), false,
 				offset)
 		}
-		log.Println(response, '\n', result)
 		return newDynamoSubDocOperationResult(key, keyValues, nil, true, offset)
 
 	}

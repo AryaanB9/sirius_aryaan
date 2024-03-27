@@ -1,16 +1,15 @@
 package db
 
 import (
+	"log"
+	"os"
+	"testing"
+
 	"github.com/AryaanB9/sirius_aryaan/internal/docgenerator"
 	"github.com/AryaanB9/sirius_aryaan/internal/meta_data"
 	"github.com/AryaanB9/sirius_aryaan/internal/template"
 
-	// "github.com/jaswdr/faker"
-	"log"
-
 	"github.com/bgadrian/fastfaker/faker"
-
-	"testing"
 )
 
 func TestMongoDB(t *testing.T) {
@@ -30,11 +29,34 @@ func TestMongoDB(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	connStr := "connection string"
-	username := "username"
-	password := "password"
+	connStr, ok := os.LookupEnv("sirius_mongo_connStr")
+	if !ok {
+		t.Error("connStr not found")
+	}
+	username, ok := os.LookupEnv("sirius_mongo_username")
+	if !ok {
+		t.Error("username not found")
+
+	}
+	password, ok := os.LookupEnv("sirius_mongo_password")
+	if !ok {
+		t.Error("password not found")
+	}
 	if err := db.Connect(connStr, username, password, Extras{}); err != nil {
 		t.Error(err)
+		t.FailNow()
+	}
+
+	// Creating the Database and Collection
+	resultString, err := db.CreateDatabase(connStr, username, password, Extras{
+		Database:   "TestMongoDatabase",
+		Collection: "TestingMongoSirius",
+	}, "", 0)
+	if err != nil {
+		log.Println("creating database and collection:", err)
+		t.Error("creating database and collection:", err)
+	} else {
+		log.Println(resultString)
 	}
 
 	m := meta_data.NewMetaData()
@@ -217,6 +239,18 @@ func TestMongoDB(t *testing.T) {
 		} else {
 			log.Println("Bulk Deleting, Deleted Key:", i.Key)
 		}
+	}
+
+	// Deleting the Collection
+	resultString, err = db.DeleteDatabase(connStr, username, password, Extras{
+		Database:   "TestMongoDatabase",
+		Collection: "TestingMongoSirius",
+	})
+	if err != nil {
+		log.Println("deleting database and collection:", err)
+		t.Error("deleting database and collection:", err)
+	} else {
+		log.Println(resultString)
 	}
 
 	// Closing the Connection to MongoDB

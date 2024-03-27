@@ -95,14 +95,6 @@ func (t *TaskState) AddOffsetToErrSet(offset int64) {
 
 func (t *TaskState) RemoveOffsetFromErrSet(offset int64) {
 
-	if sort.SliceIsSorted(t.KeyStates.Err, func(i, j int) bool {
-		return t.KeyStates.Err[i] < t.KeyStates.Err[j]
-	}) {
-		sort.Slice(t.KeyStates.Err, func(i, j int) bool {
-			return t.KeyStates.Err[i] < t.KeyStates.Err[j]
-		})
-	}
-
 	index := sort.Search(len(t.KeyStates.Err), func(i int) bool {
 		return t.KeyStates.Err[i] >= offset
 	})
@@ -125,8 +117,8 @@ func (t *TaskState) CheckOffsetInErr(offset int64) bool {
 
 // ReturnCompletedOffset returns a lookup table for searching completed offsets
 func (t *TaskState) ReturnCompletedOffset() map[int64]struct{} {
-	//defer t.lock.Unlock()
-	//t.lock.lock()
+	defer t.lock.Unlock()
+	t.lock.Lock()
 	completed := make(map[int64]struct{})
 	for _, v := range t.KeyStates.Completed {
 		completed[v] = struct{}{}

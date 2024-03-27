@@ -115,7 +115,7 @@ func (c *Columnar) Warmup(connStr, username, password string, extra Extras) erro
 	return nil
 }
 
-func (c *Columnar) Close(connStr string, extras Extras) error {
+func (c *Columnar) Close(connStr string, extra Extras) error {
 	return c.ConnectionManager.Disconnect(connStr)
 }
 

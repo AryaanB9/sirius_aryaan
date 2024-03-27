@@ -4,7 +4,6 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"errors"
-	"github.com/AryaanB9/sirius_aryaan/internal/tasks/data_loading"
 	"net/http"
 
 	"github.com/AryaanB9/sirius_aryaan/internal/meta_data"
@@ -13,6 +12,7 @@ import (
 	"github.com/AryaanB9/sirius_aryaan/internal/task_result"
 	"github.com/AryaanB9/sirius_aryaan/internal/task_state"
 	"github.com/AryaanB9/sirius_aryaan/internal/tasks"
+	"github.com/AryaanB9/sirius_aryaan/internal/tasks/data_loading"
 	"github.com/AryaanB9/sirius_aryaan/internal/tasks/util_sirius"
 	"github.com/AryaanB9/sirius_aryaan/internal/template"
 )
@@ -89,14 +89,12 @@ func registerInterfaces() {
 	gob.Register(&server_requests.ServerRequests{})
 	gob.Register(&data_loading.GenericLoadingTask{})
 	gob.Register(&util_sirius.TaskResult{})
-	//gob.Register(&bulk_loading.ValidateTask{})
 	gob.Register(&task_result.TaskResult{})
 	gob.Register(&task_state.TaskState{})
-	//gob.Register(&bulk_query_cb.QueryTask{})
 	gob.Register(&meta_data.MetaData{})
 	gob.Register(&meta_data.CollectionMetaData{})
 	gob.Register(&data_loading.RetryExceptions{})
-	gob.Register(&tasks.BucketWarmUpTask{})
+	gob.Register(&util_sirius.BucketWarmUpTask{})
 
 	r := sirius_documentation.Register{}
 	for _, taskReg := range r.RegisteredTasks() {

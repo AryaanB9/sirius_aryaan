@@ -12,6 +12,7 @@ type RetryExceptions struct {
 	IdentifierToken string         `json:"identifierToken" doc:"true"`
 	ResultSeed      string         `json:"resultSeed" doc:"true"`
 	Exceptions      Exceptions     `json:"exceptions" doc:"true"`
+	Operation       string         `json:"-" doc:"false"`
 	Task            BulkTask       `json:"-" doc:"false"`
 	req             *tasks.Request `json:"-" doc:"false"`
 }
@@ -70,7 +71,7 @@ func (r *RetryExceptions) CheckIfPending() bool {
 }
 
 func (r *RetryExceptions) PostTaskExceptionHandling() {
-
+	r.Task.PostTaskExceptionHandling()
 }
 
 func (r *RetryExceptions) TearUp() error {

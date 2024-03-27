@@ -2,6 +2,7 @@ package db
 
 import (
 	"log"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -29,11 +30,25 @@ func TestCouchbase(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	connStr := "couchbase://172.23.100.12"
-	username := "Administrator"
-	password := "password"
+	connStr, ok := os.LookupEnv("sirius_couchbase_connStr")
+	if !ok {
+		t.Error("connStr not found")
+		t.FailNow()
+	}
+	username, ok := os.LookupEnv("sirius_couchbase_username")
+	if !ok {
+		t.Error("username not found")
+		t.FailNow()
+	}
+	password, ok := os.LookupEnv("sirius_couchbase_password")
+	if !ok {
+		t.Error("password not found")
+		t.FailNow()
+	}
+
 	if err := db.Connect(connStr, username, password, Extras{}); err != nil {
 		t.Error(err)
+		t.FailNow()
 	}
 
 	m := meta_data.NewMetaData()
@@ -48,8 +63,8 @@ func TestCouchbase(t *testing.T) {
 		DocType:  "json",
 		Template: template.InitialiseTemplate("person"),
 	}
-	// update
 
+	// update
 	for i := int64(0); i < int64(10); i++ {
 		key := i + cm1.Seed
 		docId := gen.BuildKey(key)
@@ -71,7 +86,7 @@ func TestCouchbase(t *testing.T) {
 		if x.GetError() != nil {
 			t.Error(x.GetError())
 		} else {
-			log.Println("Update", x.Key(), " ", x.Value())
+			log.Println("Update", x.Key())
 		}
 
 	}
@@ -106,7 +121,8 @@ func TestCouchbase(t *testing.T) {
 		if x.GetError() != nil {
 			t.Error(x.GetError())
 		} else {
-			log.Println("Read", x.Value(), " key ", x.Key())
+			//log.Println("Read", x.Value(), " key ", x.Key())
+			log.Println(x.Value().(map[string]any))
 		}
 	}
 
@@ -217,9 +233,21 @@ func TestCouchbase_CreateBulk(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	connStr := "couchbase://172.23.100.12"
-	username := "Administrator"
-	password := "password"
+	connStr, ok := os.LookupEnv("sirius_couchbase_connStr")
+	if !ok {
+		t.Error("connStr not found")
+		t.FailNow()
+	}
+	username, ok := os.LookupEnv("sirius_couchbase_username")
+	if !ok {
+		t.Error("username not found")
+		t.FailNow()
+	}
+	password, ok := os.LookupEnv("sirius_couchbase_password")
+	if !ok {
+		t.Error("password not found")
+		t.FailNow()
+	}
 	if err := db.Connect(connStr, username, password, Extras{}); err != nil {
 		t.Error(err)
 	}
@@ -260,11 +288,11 @@ func TestCouchbase_CreateBulk(t *testing.T) {
 			result := db.CreateBulk(connStr, username, password, keyValue, Extras{
 				Bucket: "default",
 			})
-			bulkResult, ok := result.(*couchbaseBulkOperationResult)
+			_, ok := result.(*couchbaseBulkOperationResult)
 			if !ok {
 				t.Fatal("error decoding bulkResult")
 			}
-			log.Println(len(bulkResult.keyValues))
+			//log.Println(len(bulkResult.keyValues))
 
 		}(i)
 	}

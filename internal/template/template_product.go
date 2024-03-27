@@ -198,6 +198,7 @@ func (p *Product) UpdateDocument(fieldsToChange []string, lastUpdatedDocument in
 	}
 
 	currentDocSize := calculateSizeOfStruct(product)
+	//log.Println("Size of doc before appends:", currentDocSize)
 	if currentDocSize < documentSize {
 		remSize := documentSize - currentDocSize
 		numOfReviews := int(remSize/(95*2)) + 1

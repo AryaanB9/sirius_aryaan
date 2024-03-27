@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"github.com/AryaanB9/sirius_aryaan/internal/err_sirius"
 	"log"
 	"strings"
 	"sync"
@@ -23,6 +24,150 @@ import (
 	"github.com/linkedin/goavro/v2"
 	"github.com/parquet-go/parquet-go"
 )
+
+func validateDocuments(start, end, seed int64, operationConfig *OperationConfig,
+	_ bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
+	databaseInfo tasks.DatabaseInformation, extra db.Extras, req *tasks.Request, identifier string, wg *sync.WaitGroup) {
+
+	if wg != nil {
+		defer wg.Done()
+	}
+
+	skip := make(map[int64]struct{})
+	for _, offset := range state.KeyStates.Completed {
+		skip[offset] = struct{}{}
+	}
+	for _, offset := range state.KeyStates.Err {
+		skip[offset] = struct{}{}
+	}
+
+	deletedOffset, err1 := retracePreviousDeletions(req, identifier, result.ResultSeed)
+	if err1 != nil {
+		log.Println(err1)
+		return
+	}
+
+	deletedOffsetSubDoc, err2 := retracePreviousSubDocDeletions(req, identifier, result.ResultSeed)
+	if err2 != nil {
+		log.Println(err2)
+		return
+	}
+
+	database, dbErr := db.ConfigDatabase(databaseInfo.DBType)
+	if dbErr != nil {
+		result.FailWholeBulkOperation(start, end, dbErr, state, gen, seed)
+		return
+	}
+
+	for offset := start; offset < end; offset++ {
+		if _, ok := skip[offset]; ok {
+			continue
+		}
+
+		key := offset + seed
+		docId := gen.BuildKey(key)
+		initTime := time.Now().UTC().Format(time.RFC850)
+
+		operationConfigDoc, err3 := retrieveLastConfig(req, offset, false)
+		if err3 != nil {
+			operationConfigDoc = *operationConfig
+		}
+		operationConfigSubDoc, err4 := retrieveLastConfig(req, offset, true)
+		if err4 != nil {
+			operationConfigSubDoc = *operationConfig
+		}
+
+		/* Resetting the doc generator for the offset as per
+		the last configuration of operation performed on offset.
+		*/
+		genDoc := docgenerator.Reset(
+			operationConfigDoc.KeySize,
+			operationConfigDoc.DocSize,
+			operationConfigDoc.TemplateName)
+
+		genSubDoc := docgenerator.Reset(
+			operationConfigSubDoc.KeySize,
+			operationConfigSubDoc.DocSize,
+			operationConfigSubDoc.TemplateName)
+
+		fake := faker.NewFastFaker()
+		fake.Seed(key)
+		fakeSub := faker.NewFastFaker()
+		fakeSub.Seed(key)
+
+		originalDoc := genDoc.Template.GenerateDocument(fake, docId, operationConfigDoc.DocSize)
+
+		originalDoc, err5 := retracePreviousMutations(req, identifier, offset, originalDoc, genDoc, fake,
+			result.ResultSeed)
+
+		//originalDoc, err5 = gen.Template.GetValues(originalDoc)
+		//if err5 != nil {
+		//	result.IncrementFailure(initTime, docId, errors.New("unable to decode template"), false, nil, offset)
+		//	state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: offset}
+		//	continue
+		//}
+
+		if err5 != nil {
+			state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: offset}
+			result.IncrementFailure(initTime, docId, err5, false, nil, offset)
+			continue
+		}
+
+		subDocumentMap := genSubDoc.Template.GenerateSubPathAndValue(fakeSub, operationConfigSubDoc.DocSize)
+
+		if _, err6 := retracePreviousSubDocMutations(req, identifier, offset, genSubDoc, fake, result.ResultSeed,
+			subDocumentMap); err6 != nil {
+			state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: offset}
+			result.IncrementFailure(initTime, docId, err6, false, nil, offset)
+			continue
+		}
+
+		mutationCount, err7 := countMutation(req, identifier, offset, result.ResultSeed)
+		if err7 != nil {
+			result.IncrementFailure(initTime, docId, err7, false, nil, offset)
+			state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: offset}
+			continue
+		}
+
+		operationResult := database.Read(databaseInfo.ConnStr, databaseInfo.Username, databaseInfo.Password, docId, offset,
+			extra)
+
+		if operationResult.GetError() != nil {
+			if db.CheckAllowedDeletetError(operationResult.GetError()) {
+				if _, ok := deletedOffset[offset]; ok {
+					state.StateChannel <- task_state.StateHelper{Status: task_state.COMPLETED, Offset: offset}
+					continue
+				}
+				if _, ok := deletedOffsetSubDoc[offset]; ok {
+					state.StateChannel <- task_state.StateHelper{Status: task_state.COMPLETED, Offset: offset}
+					continue
+				}
+			}
+			result.IncrementFailure(initTime, docId, operationResult.GetError(), false, operationResult.GetExtra(), offset)
+			state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: offset}
+			continue
+		}
+
+		documentByte, _ := json.Marshal(originalDoc)
+		documentMap := make(map[string]any)
+		if err8 := json.Unmarshal(documentByte, &documentMap); err8 != nil {
+			result.IncrementFailure(initTime, docId, err8, false, operationResult.GetExtra(), offset)
+			state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: offset}
+			continue
+		}
+		documentMap[template.MutatedPath] = float64(mutationCount)
+
+		serverValue := operationResult.Value()
+		resultFromHost := serverValue.(map[string]any)
+		if !CompareDocumentsIsSame(resultFromHost, documentMap, subDocumentMap) {
+			result.IncrementFailure(initTime, docId, err_sirius.IntegrityLost, false, operationResult.GetExtra(), offset)
+			state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: offset}
+
+		} else {
+			state.StateChannel <- task_state.StateHelper{Status: task_state.COMPLETED, Offset: offset}
+		}
+	}
+}
 
 func insertDocuments(start, end, seed int64, operationConfig *OperationConfig,
 	rerun bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
@@ -50,20 +195,20 @@ func insertDocuments(start, end, seed int64, operationConfig *OperationConfig,
 		if _, ok := skip[offset]; ok {
 			continue
 		}
+
+		var err error
 		key := offset + seed
 		docId := gen.BuildKey(key)
 		fake := faker.NewFastFaker()
 		fake.Seed(key)
-
-		doc := gen.Template.GenerateDocument(fake, docId, operationConfig.DocSize)
-		doc, err := gen.Template.GetValues(doc)
 		initTime := time.Now().UTC().Format(time.RFC850)
+		doc := gen.Template.GenerateDocument(fake, docId, operationConfig.DocSize)
+		doc, err = gen.Template.GetValues(doc)
 		if err != nil {
-			result.IncrementFailure(initTime, docId, err, false, nil, offset)
+			result.IncrementFailure(initTime, docId, errors.New("unable to decode template"), false, nil, offset)
 			state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: offset}
 			continue
 		}
-
 		operationResult := database.Create(databaseInfo.ConnStr, databaseInfo.Username, databaseInfo.Password, db.KeyValue{
 			Key:    docId,
 			Doc:    doc,
@@ -73,7 +218,6 @@ func insertDocuments(start, end, seed int64, operationConfig *OperationConfig,
 		if operationResult.GetError() != nil {
 			if db.CheckAllowedInsertError(operationResult.GetError()) && rerun {
 				state.StateChannel <- task_state.StateHelper{Status: task_state.COMPLETED, Offset: offset}
-				continue
 			} else {
 				result.IncrementFailure(initTime, docId, operationResult.GetError(), false, operationResult.GetExtra(), offset)
 				state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: offset}
@@ -121,27 +265,36 @@ func upsertDocuments(start, end, seed int64, operationConfig *OperationConfig,
 		fake := faker.NewFastFaker()
 		fake.Seed(key)
 		initTime := time.Now().UTC().Format(time.RFC850)
+
+		var err error
 		originalDoc := gen.Template.GenerateDocument(fake, docId, operationConfig.DocSize)
-		originalDoc, err := retracePreviousMutations(req, identifier, offset, originalDoc, gen, fake,
+		originalDoc, err = retracePreviousMutations(req, identifier, offset, originalDoc, gen, fake,
 			result.ResultSeed)
 
-		docUpdated, err2 := gen.Template.UpdateDocument(operationConfig.FieldsToChange, originalDoc,
-			operationConfig.DocSize, fake)
-		if err2 != nil {
+		originalDoc, err = gen.Template.GetValues(originalDoc)
+		if err != nil {
+			result.IncrementFailure(initTime, docId, errors.New("unable to decode template"), false, nil, offset)
 			state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: offset}
-			result.IncrementFailure(initTime, docId, err2, false, nil, offset)
 			continue
 		}
-		docUpdated, err = gen.Template.GetValues(docUpdated)
+
 		if err != nil {
-			result.IncrementFailure(initTime, docId, err, false, nil, offset)
 			state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: offset}
+			result.IncrementFailure(initTime, docId, err, false, nil, offset)
+			continue
+		}
+
+		originalDoc, err = gen.Template.UpdateDocument(operationConfig.FieldsToChange, originalDoc,
+			operationConfig.DocSize, fake)
+		if err != nil {
+			state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: offset}
+			result.IncrementFailure(initTime, docId, err, false, nil, offset)
 			continue
 		}
 
 		operationResult := database.Update(databaseInfo.ConnStr, databaseInfo.Username, databaseInfo.Password, db.KeyValue{
 			Key:    docId,
-			Doc:    docUpdated,
+			Doc:    originalDoc,
 			Offset: offset,
 		}, extra)
 
@@ -153,7 +306,7 @@ func upsertDocuments(start, end, seed int64, operationConfig *OperationConfig,
 		}
 
 		operationResult = nil
-		docUpdated = nil
+		originalDoc = nil
 	}
 }
 
@@ -201,6 +354,9 @@ func deleteDocuments(start, end, seed int64, rerun bool, gen *docgenerator.Gener
 		} else {
 			state.StateChannel <- task_state.StateHelper{Status: task_state.COMPLETED, Offset: offset}
 		}
+
+		operationResult = nil
+
 	}
 }
 
@@ -243,6 +399,8 @@ func readDocuments(start, end, seed int64, _ bool, gen *docgenerator.Generator, 
 		} else {
 			state.StateChannel <- task_state.StateHelper{Status: task_state.COMPLETED, Offset: offset}
 		}
+
+		operationResult = nil
 	}
 }
 
@@ -283,6 +441,8 @@ func touchDocuments(start, end, seed int64, _ bool, gen *docgenerator.Generator,
 		} else {
 			state.StateChannel <- task_state.StateHelper{Status: task_state.COMPLETED, Offset: offset}
 		}
+
+		operationResult = nil
 	}
 }
 
@@ -340,6 +500,9 @@ func subDocInsertDocuments(start, end, seed int64, operationConfig *OperationCon
 		} else {
 			state.StateChannel <- task_state.StateHelper{Status: task_state.COMPLETED, Offset: offset}
 		}
+
+		operationResult = nil
+		keyValues = nil
 	}
 }
 
@@ -396,6 +559,8 @@ func subDocReadDocuments(start, end, seed int64, operationConfig *OperationConfi
 		} else {
 			state.StateChannel <- task_state.StateHelper{Status: task_state.COMPLETED, Offset: offset}
 		}
+		operationResult = nil
+		keyValues = nil
 	}
 }
 
@@ -432,7 +597,11 @@ func subDocUpsertDocuments(start, end, seed int64, operationConfig *OperationCon
 		fake.Seed(key)
 		initTime := time.Now().UTC().Format(time.RFC850)
 
+		var keyValues []db.KeyValue
+		subPathOffset := int64(0)
+
 		subDocumentMap := gen.Template.GenerateSubPathAndValue(fake, operationConfig.DocSize)
+
 		if _, err1 := retracePreviousSubDocMutations(req, identifier, offset, gen, fake, result.ResultSeed,
 			subDocumentMap); err1 != nil {
 			state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: offset}
@@ -440,8 +609,6 @@ func subDocUpsertDocuments(start, end, seed int64, operationConfig *OperationCon
 			continue
 		}
 
-		var keyValues []db.KeyValue
-		subPathOffset := int64(0)
 		for subPath, value := range gen.Template.GenerateSubPathAndValue(fake, operationConfig.DocSize) {
 			keyValues = append(keyValues, db.KeyValue{
 				Key:    subPath,
@@ -461,6 +628,8 @@ func subDocUpsertDocuments(start, end, seed int64, operationConfig *OperationCon
 		} else {
 			state.StateChannel <- task_state.StateHelper{Status: task_state.COMPLETED, Offset: offset}
 		}
+		operationResult = nil
+		keyValues = nil
 	}
 }
 
@@ -517,6 +686,8 @@ func subDocDeleteDocuments(start, end, seed int64, operationConfig *OperationCon
 		} else {
 			state.StateChannel <- task_state.StateHelper{Status: task_state.COMPLETED, Offset: offset}
 		}
+		operationResult = nil
+		keyValues = nil
 	}
 }
 
@@ -582,6 +753,9 @@ func subDocReplaceDocuments(start, end, seed int64, operationConfig *OperationCo
 		} else {
 			state.StateChannel <- task_state.StateHelper{Status: task_state.COMPLETED, Offset: offset}
 		}
+
+		operationResult = nil
+		keyValues = nil
 	}
 }
 
@@ -602,27 +776,29 @@ func bulkInsertDocuments(start, end, seed int64, operationConfig *OperationConfi
 	}
 
 	database, dbErr := db.ConfigDatabase(databaseInfo.DBType)
-	//_, dbErr := db.ConfigDatabase(databaseInfo.DBType)
-
 	if dbErr != nil {
 		result.FailWholeBulkOperation(start, end, dbErr, state, gen, seed)
 		return
 	}
+
 	var keyValues []db.KeyValue
+	initTime := time.Now().UTC().Format(time.RFC850)
 	for offset := start; offset < end; offset++ {
 		if _, ok := skip[offset]; ok {
 			continue
 		}
 
+		var err error
 		key := offset + seed
 		docId := gen.BuildKey(key)
 		fake := faker.NewFastFaker()
 		fake.Seed(key)
 		doc := gen.Template.GenerateDocument(fake, docId, operationConfig.DocSize)
-		doc, err := gen.Template.GetValues(doc)
+		doc, err = gen.Template.GetValues(doc)
 		if err != nil {
-			result.FailWholeBulkOperation(start, end, err, state, gen, seed)
-			return
+			result.IncrementFailure(initTime, docId, errors.New("unable to decode template"), false, nil, offset)
+			state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: offset}
+			continue
 		}
 		keyValues = append(keyValues, db.KeyValue{
 			Key:    docId,
@@ -631,7 +807,6 @@ func bulkInsertDocuments(start, end, seed int64, operationConfig *OperationConfi
 		})
 	}
 
-	initTime := time.Now().UTC().Format(time.RFC850)
 	bulkResult := database.CreateBulk(databaseInfo.ConnStr, databaseInfo.Username, databaseInfo.Password, keyValues,
 		extra)
 
@@ -647,15 +822,8 @@ func bulkInsertDocuments(start, end, seed int64, operationConfig *OperationConfi
 		} else {
 			state.StateChannel <- task_state.StateHelper{Status: task_state.COMPLETED, Offset: x.Offset}
 		}
-
 	}
-
-	//for _, x := range keyValues {
-	//
-	//	result.IncrementFailure(initTime, x.Key, errors.New("Test"), false, nil, x.Offset)
-	//	state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: x.Offset}
-	//
-	//}
+	bulkResult = nil
 	keyValues = nil
 }
 
@@ -681,35 +849,41 @@ func bulkUpsertDocuments(start int64, end int64, seed int64, operationConfig *Op
 		result.FailWholeBulkOperation(start, end, dbErr, state, gen, seed)
 		return
 	}
+
 	var keyValues []db.KeyValue
+	initTime := time.Now().UTC().Format(time.RFC850)
 	for offset := start; offset < end; offset++ {
 		if _, ok := skip[offset]; ok {
 			continue
 		}
 
+		var err error
 		key := offset + seed
 		docId := gen.BuildKey(key)
 		fake := faker.NewFastFaker()
 		fake.Seed(key)
 		originalDoc := gen.Template.GenerateDocument(fake, docId, operationConfig.DocSize)
+
 		originalDoc, _ = retracePreviousMutations(req, identifier, offset, originalDoc, gen, fake,
 			result.ResultSeed)
 
-		docUpdated, _ := gen.Template.UpdateDocument(operationConfig.FieldsToChange, originalDoc,
+		originalDoc, _ = gen.Template.UpdateDocument(operationConfig.FieldsToChange, originalDoc,
 			operationConfig.DocSize, fake)
-		docUpdated, err := gen.Template.GetValues(docUpdated)
+
+		originalDoc, err = gen.Template.GetValues(originalDoc)
 		if err != nil {
-			result.FailWholeBulkOperation(start, end, err, state, gen, seed)
-			return
+			result.IncrementFailure(initTime, docId, errors.New("unable to decode template"), false, nil, offset)
+			state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: offset}
+			continue
 		}
+
 		keyValues = append(keyValues, db.KeyValue{
 			Key:    docId,
-			Doc:    docUpdated,
+			Doc:    originalDoc,
 			Offset: offset,
 		})
 	}
 
-	initTime := time.Now().UTC().Format(time.RFC850)
 	bulkResult := database.UpdateBulk(databaseInfo.ConnStr, databaseInfo.Username, databaseInfo.Password, keyValues,
 		extra)
 
@@ -722,8 +896,9 @@ func bulkUpsertDocuments(start int64, end int64, seed int64, operationConfig *Op
 		} else {
 			state.StateChannel <- task_state.StateHelper{Status: task_state.COMPLETED, Offset: x.Offset}
 		}
-
 	}
+	bulkResult = nil
+	keyValues = nil
 }
 
 func bulkDeleteDocuments(start, end, seed int64, operationConfig *OperationConfig,
@@ -757,8 +932,7 @@ func bulkDeleteDocuments(start, end, seed int64, operationConfig *OperationConfi
 		key := offset + seed
 		docId := gen.BuildKey(key)
 		keyValues = append(keyValues, db.KeyValue{
-			Key:    docId,
-			Offset: offset,
+			Key: docId,
 		})
 	}
 
@@ -779,6 +953,8 @@ func bulkDeleteDocuments(start, end, seed int64, operationConfig *OperationConfi
 			state.StateChannel <- task_state.StateHelper{Status: task_state.COMPLETED, Offset: x.Offset}
 		}
 	}
+	bulkResult = nil
+	keyValues = nil
 }
 
 func bulkReadDocuments(start, end, seed int64, operationConfig *OperationConfig,
@@ -812,8 +988,7 @@ func bulkReadDocuments(start, end, seed int64, operationConfig *OperationConfig,
 		key := offset + seed
 		docId := gen.BuildKey(key)
 		keyValues = append(keyValues, db.KeyValue{
-			Key:    docId,
-			Offset: offset,
+			Key: docId,
 		})
 	}
 
@@ -828,10 +1003,11 @@ func bulkReadDocuments(start, end, seed int64, operationConfig *OperationConfig,
 			state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: x.Offset}
 
 		} else {
-			// log.Println(bulkResult.Value(x.Key))
 			state.StateChannel <- task_state.StateHelper{Status: task_state.COMPLETED, Offset: x.Offset}
 		}
 	}
+	bulkResult = nil
+	keyValues = nil
 }
 
 func bulkTouchDocuments(start, end, seed int64, operationConfig *OperationConfig,
@@ -883,9 +1059,11 @@ func bulkTouchDocuments(start, end, seed int64, operationConfig *OperationConfig
 			state.StateChannel <- task_state.StateHelper{Status: task_state.COMPLETED, Offset: x.Offset}
 		}
 	}
+	bulkResult = nil
+	keyValues = nil
 }
 
-func validateDocuments(start, end, seed int64, operationConfig *OperationConfig,
+func validateColumnar(start, end, seed int64, operationConfig *OperationConfig,
 	rerun bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
 	databaseInfo tasks.DatabaseInformation, extra db.Extras, wg *sync.WaitGroup) {
 
