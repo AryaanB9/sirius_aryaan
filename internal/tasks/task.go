@@ -6,7 +6,7 @@ import (
 	"runtime"
 )
 
-var MaxRetryingRoutines = 250
+var MaxRetryingRoutines = runtime.NumCPU()
 
 var MaxThreads = runtime.NumCPU()
 var MAXQueueSize int64 = 10000000

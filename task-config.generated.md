@@ -496,6 +496,7 @@ Possible values for durability :-
 
 | Name | Type | JSON Tag |
 | ---- | ---- | -------- |
+| `Count` | `int64` | `json:Count`  |
 | `ResultSeed` | `int64` | `json:resultSeed`  |
 | `Operation` | `string` | `json:operation`  |
 | `ErrorOther` | `string` | `json:otherErrors`  |
