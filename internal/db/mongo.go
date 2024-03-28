@@ -313,6 +313,9 @@ func (m Mongo) Read(connStr, username, password, key string, offset int64, extra
 			offset)
 	}
 	//log.Println(result)
+	val := result["_id"].(string)
+	result["id"] = val
+	delete(result, "_id")
 	return newMongoOperationResult(key, result, nil, true, offset)
 
 }
@@ -983,7 +986,10 @@ func (m Mongo) ReadBulk(connStr, username, password string, keyValues []KeyValue
 	}
 	for _, resultdoc := range results {
 		// log.Println(resultdoc, resultdoc["_id"].(string))
-		result.AddResult(resultdoc["_id"].(string), resultdoc, nil, true, keyToOffset[resultdoc["_id"].(string)])
+		val := resultdoc["_id"].(string)
+		resultdoc["id"] = val
+		delete(resultdoc, "_id")
+		result.AddResult(val, resultdoc, nil, true, keyToOffset[val])
 	}
 	return result
 }

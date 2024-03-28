@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/AryaanB9/sirius_aryaan/internal/external_storage"
 	"github.com/AryaanB9/sirius_aryaan/internal/template"
 	"log"
@@ -586,7 +587,7 @@ func subDocReplaceDocuments(start, end, seed int64, operationConfig *OperationCo
 func bulkInsertDocuments(start, end, seed int64, operationConfig *OperationConfig,
 	rerun bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
 	databaseInfo DatabaseInformation, extra db.Extras, wg *sync.WaitGroup) {
-
+	count := 0
 	if wg != nil {
 		defer wg.Done()
 	}
@@ -635,9 +636,11 @@ func bulkInsertDocuments(start, end, seed int64, operationConfig *OperationConfi
 
 	for _, x := range keyValues {
 		if bulkResult.GetError(x.Key) != nil {
+
 			if db.CheckAllowedInsertError(bulkResult.GetError(x.Key)) && rerun {
 				state.StateChannel <- task_state.StateHelper{Status: task_state.COMPLETED, Offset: x.Offset}
 			} else {
+				count += 1
 				result.IncrementFailure(initTime, x.Key, bulkResult.GetError(x.Key), false, bulkResult.GetExtra(x.Key),
 					x.Offset)
 				state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: x.Offset}
@@ -653,7 +656,9 @@ func bulkInsertDocuments(start, end, seed int64, operationConfig *OperationConfi
 	//	result.IncrementFailure(initTime, x.Key, errors.New("Test"), false, nil, x.Offset)
 	//	state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: x.Offset}
 	//
+	//
 	//}
+	log.Println(count)
 	keyValues = nil
 }
 
@@ -920,33 +925,38 @@ func validateColumnar(start, end, seed int64, operationConfig *OperationConfig,
 	}
 	initTime := time.Now().UTC().Format(time.RFC850)
 	columnarClient := db.NewColumnarConnectionManager()
-	dbErr = columnarClient.Connect(extra.ConnStr, extra.Username, extra.Password, extra)
+	dbErr = columnarClient.Connect(extra.ColumnarConnStr, extra.ColumnarUsername, extra.ColumnarPassword, extra)
 	if dbErr != nil {
 		result.FailWholeBulkOperation(start, end, dbErr, state, gen, seed)
 		return
 	}
-	_ = columnarClient.Warmup(extra.ConnStr, extra.Username, extra.Password, extra)
-	bulkResultColumnar := columnarClient.ReadBulk(extra.ConnStr, extra.Username, extra.Password, keyValues, extra)
+	_ = columnarClient.Warmup(extra.ColumnarConnStr, extra.ColumnarUsername, extra.ColumnarPassword, extra)
+	bulkResultColumnar := columnarClient.ReadBulk(extra.ColumnarConnStr, extra.ColumnarUsername, extra.ColumnarPassword, keyValues, extra)
 	bulkResultDB := database.ReadBulk(databaseInfo.ConnStr, databaseInfo.Username, databaseInfo.Password, keyValues, extra)
 	for _, x := range keyValues {
 		if bulkResultDB.GetError(x.Key) != nil && bulkResultColumnar.GetError(x.Key) != nil {
 			state.StateChannel <- task_state.StateHelper{Status: task_state.COMPLETED, Offset: x.Offset}
 		} else if bulkResultDB.GetError(x.Key) == nil && bulkResultColumnar.GetError(x.Key) == nil {
-			ok, _ := gen.Template.Compare(bulkResultDB.Value(x.Key), bulkResultColumnar.Value(x.Key))
-			if !ok {
-				result.IncrementFailure(initTime, x.Key, errors.New("Template Compare Failed "+databaseInfo.DBType), false, bulkResultDB.GetExtra(x.Key),
+			ok, err := compareDocuments(bulkResultDB.Value(x.Key), bulkResultColumnar.Value(x.Key))
+			if err != nil {
+				result.IncrementFailure(initTime, x.Key, err, false, bulkResultDB.GetExtra(x.Key),
 					x.Offset)
 				state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: x.Offset}
-			} else {
+			} else if ok {
 				state.StateChannel <- task_state.StateHelper{Status: task_state.COMPLETED, Offset: x.Offset}
+			} else {
+				result.IncrementFailure(initTime, x.Key, errors.New("Documents do not match"), false, bulkResultDB.GetExtra(x.Key),
+					x.Offset)
+				state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: x.Offset}
 			}
 		} else {
 			errStr := ""
 			if bulkResultDB.GetError(x.Key) != nil {
-				errStr = "  Document in Columnar but error in the Database"
+				errStr = "  Document in Columnar but error in the Database.Error:  " + bulkResultDB.GetError(x.Key).Error()
 			} else {
-				errStr = "  Document in Database but not in Columnar"
+				errStr = "  Document in Database but not in Columnar.Error:  " + bulkResultColumnar.GetError(x.Key).Error()
 			}
+			errStr += fmt.Sprintf("Columnar: %v DB: %v", bulkResultColumnar.Value(x.Key), bulkResultDB.Value(x.Key))
 			result.IncrementFailure(initTime, x.Key, errors.New("Mismatched data:  "+databaseInfo.DBType+": "+x.Key+errStr), false, bulkResultDB.GetExtra(x.Key),
 				x.Offset)
 			state.StateChannel <- task_state.StateHelper{Status: task_state.ERR, Offset: x.Offset}

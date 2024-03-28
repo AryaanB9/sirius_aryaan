@@ -402,6 +402,7 @@ func StringMapToHotel(data map[string]interface{}) *Hotel {
 
 	return hotel
 }
-func (h *Hotel) GetValues(document interface{}) (interface{}, error) {
-	return document, nil
-}
+
+//func (h *Hotel) GetValues(document interface{}) (interface{}, error) {
+//	return document, nil
+//}

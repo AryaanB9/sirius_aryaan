@@ -5,19 +5,26 @@ import (
 	"errors"
 	"github.com/couchbase/gocb/v2"
 	"log"
+	"time"
 
 	"github.com/AryaanB9/sirius_aryaan/internal/sdk_columnar"
 )
 
+type perColumnarDocResult struct {
+	value  interface{}
+	error  error
+	status bool
+	offset int64
+}
 type columnarOperationResult struct {
 	key    string
-	result perDocResult
+	result perColumnarDocResult
 }
 
 func newColumnarOperationResult(key string, value interface{}, err error, status bool, offset int64) *columnarOperationResult {
 	return &columnarOperationResult{
 		key: key,
-		result: perDocResult{
+		result: perColumnarDocResult{
 			value:  value,
 			error:  err,
 			status: status,
@@ -51,17 +58,17 @@ func (c *columnarOperationResult) GetOffset() int64 {
 }
 
 type columnarBulkOperationResult struct {
-	keyValues map[string]perDocResult
+	keyValues map[string]perColumnarDocResult
 }
 
 func newColumnarBulkOperation() *columnarBulkOperationResult {
 	return &columnarBulkOperationResult{
-		keyValues: make(map[string]perDocResult),
+		keyValues: make(map[string]perColumnarDocResult),
 	}
 }
 
 func (m *columnarBulkOperationResult) AddResult(key string, value interface{}, err error, status bool, offset int64) {
-	m.keyValues[key] = perDocResult{
+	m.keyValues[key] = perColumnarDocResult{
 		value:  value,
 		error:  err,
 		status: status,
@@ -106,9 +113,9 @@ func (m *columnarBulkOperationResult) GetOffset(key string) int64 {
 
 func (m *columnarBulkOperationResult) failBulk(keyValue []KeyValue, err error) {
 	for _, x := range keyValue {
-		m.keyValues[x.Key] = perDocResult{
+		m.keyValues[x.Key] = perColumnarDocResult{
 			value:  x.Doc,
-			error:  err,
+			error:  errors.New(err.Error()[:10]),
 			status: false,
 		}
 	}
@@ -139,6 +146,15 @@ func (c *Columnar) ValidateConfig(extras Extras) (string, string, string) {
 	}
 	if extras.Collection != "" {
 		collection = extras.Collection
+	}
+	if extras.ColumnarBucket != "" {
+		bucket = extras.ColumnarBucket
+	}
+	if extras.ColumnarScope != "" {
+		scope = extras.ColumnarScope
+	}
+	if extras.ColumnarCollection != "" {
+		collection = extras.ColumnarCollection
 	}
 	return bucket, scope, collection
 }
@@ -213,7 +229,7 @@ func (c *Columnar) Create(connStr, username, password string, keyValue KeyValue,
 	params := map[string]interface{}{
 		"doc": keyValue.Doc,
 	}
-	results, errAnalyticsQuery := cbCluster.AnalyticsQuery(query, &gocb.AnalyticsOptions{NamedParameters: params})
+	results, errAnalyticsQuery := cbCluster.AnalyticsQuery(query, &gocb.AnalyticsOptions{NamedParameters: params, Timeout: time.Minute * 15})
 	err := results.Close()
 	if err != nil {
 		return newColumnarOperationResult(keyValue.Key, nil, err, false, keyValue.Offset)
@@ -305,7 +321,6 @@ func (c *Columnar) CreateBulk(connStr, username, password string, keyValues []Ke
 	}
 	cbCluster := c.ConnectionManager.Clusters[connStr].Cluster
 	bucket, scope, collection := c.ValidateConfig(extra)
-	//dataValues := make([]interface{}, len(keyValues))
 	var dataValues []interface{}
 	keyToOffset := make(map[string]int64)
 	for _, x := range keyValues {
@@ -314,7 +329,7 @@ func (c *Columnar) CreateBulk(connStr, username, password string, keyValues []Ke
 	}
 	dv, _ := json.Marshal(dataValues)
 	query := "insert into " + bucket + "." + scope + "." + collection + string(dv)
-	results, errAnalyticsQuery := cbCluster.AnalyticsQuery(query, &gocb.AnalyticsOptions{})
+	results, errAnalyticsQuery := cbCluster.AnalyticsQuery(query, &gocb.AnalyticsOptions{Timeout: time.Minute * 5})
 	if errAnalyticsQuery != nil {
 		result.failBulk(keyValues, errAnalyticsQuery)
 		return result
@@ -377,7 +392,7 @@ func (c *Columnar) ReadBulk(connStr, username, password string, keyValues []KeyV
 		OffsetTokey[x.Offset] = x.Key
 		docIDs = append(docIDs, x.Key)
 	}
-	query := "Select * from " + bucket + "." + scope + "." + collection + "  where id in $ids order by id asc;"
+	query := "Select " + collection + ".* from " + bucket + "." + scope + "." + collection + "  where id in $ids order by id asc;"
 	params := map[string]interface{}{
 		"ids": docIDs,
 	}
@@ -386,17 +401,26 @@ func (c *Columnar) ReadBulk(connStr, username, password string, keyValues []KeyV
 		result.failBulk(keyValues, errAnalyticsQuery)
 		return result
 	}
-
-	offset := keyValues[0].Offset
-	for results.Next() {
-		var resultDisplay map[string]interface{}
-		err := results.Row(&resultDisplay)
-		if err != nil {
-			result.AddResult(OffsetTokey[offset], nil, err, false, offset)
-		} else {
-			result.AddResult(OffsetTokey[offset], resultDisplay, nil, true, offset)
+	errFlag := false
+	var previousResult *map[string]interface{}
+	for _, x := range keyValues {
+		if !errFlag && results.Next() {
+			var resultDisplay map[string]interface{}
+			err := results.Row(&resultDisplay)
+			previousResult = &resultDisplay
+			if err != nil {
+				result.AddResult(x.Key, nil, err, false, x.Offset)
+			}
 		}
-		offset += 1
+		if previousResult != nil && (*previousResult)["id"].(string) != x.Key {
+			errFlag = true
+			result.AddResult(x.Key, nil, errors.New("Document not found"), false, x.Offset)
+			continue
+		} else {
+			errFlag = false
+			result.AddResult(x.Key, *previousResult, nil, true, x.Offset)
+		}
+
 	}
 	err := results.Close()
 	if err != nil {

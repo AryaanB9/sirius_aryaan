@@ -33,7 +33,6 @@ Description : Do operation between range from [start,end)
 | Name | Type | JSON Tag |
 | ---- | ---- | -------- |
 | `IdentifierToken` | `string` | `json:identifierToken`  |
-| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
 | `OperationConfig` | `ptr` | `json:operationConfig`  |
 | `DBType` | `string` | `json:dbType`  |
 | `ConnStr` | `string` | `json:connectionString`  |
@@ -51,7 +50,6 @@ Description : Do operation between range from [start,end)
 | Name | Type | JSON Tag |
 | ---- | ---- | -------- |
 | `IdentifierToken` | `string` | `json:identifierToken`  |
-| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
 | `OperationConfig` | `ptr` | `json:operationConfig`  |
 | `DBType` | `string` | `json:dbType`  |
 | `ConnStr` | `string` | `json:connectionString`  |
@@ -69,7 +67,6 @@ Description : Do operation between range from [start,end)
 | Name | Type | JSON Tag |
 | ---- | ---- | -------- |
 | `IdentifierToken` | `string` | `json:identifierToken`  |
-| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
 | `OperationConfig` | `ptr` | `json:operationConfig`  |
 | `DBType` | `string` | `json:dbType`  |
 | `ConnStr` | `string` | `json:connectionString`  |
@@ -87,7 +84,6 @@ Description : Do operation between range from [start,end)
 | Name | Type | JSON Tag |
 | ---- | ---- | -------- |
 | `IdentifierToken` | `string` | `json:identifierToken`  |
-| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
 | `OperationConfig` | `ptr` | `json:operationConfig`  |
 | `DBType` | `string` | `json:dbType`  |
 | `ConnStr` | `string` | `json:connectionString`  |
@@ -105,7 +101,6 @@ Description : Do operation between range from [start,end)
 | Name | Type | JSON Tag |
 | ---- | ---- | -------- |
 | `IdentifierToken` | `string` | `json:identifierToken`  |
-| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
 | `OperationConfig` | `ptr` | `json:operationConfig`  |
 | `DBType` | `string` | `json:dbType`  |
 | `ConnStr` | `string` | `json:connectionString`  |
@@ -123,7 +118,6 @@ Description : Do operation between range from [start,end)
 | Name | Type | JSON Tag |
 | ---- | ---- | -------- |
 | `IdentifierToken` | `string` | `json:identifierToken`  |
-| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
 | `OperationConfig` | `ptr` | `json:operationConfig`  |
 | `DBType` | `string` | `json:dbType`  |
 | `ConnStr` | `string` | `json:connectionString`  |
@@ -141,7 +135,6 @@ Description : Do operation between range from [start,end)
 | Name | Type | JSON Tag |
 | ---- | ---- | -------- |
 | `IdentifierToken` | `string` | `json:identifierToken`  |
-| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
 | `OperationConfig` | `ptr` | `json:operationConfig`  |
 | `DBType` | `string` | `json:dbType`  |
 | `ConnStr` | `string` | `json:connectionString`  |
@@ -159,7 +152,6 @@ Description : Do operation between range from [start,end)
 | Name | Type | JSON Tag |
 | ---- | ---- | -------- |
 | `IdentifierToken` | `string` | `json:identifierToken`  |
-| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
 | `OperationConfig` | `ptr` | `json:operationConfig`  |
 | `DBType` | `string` | `json:dbType`  |
 | `ConnStr` | `string` | `json:connectionString`  |
@@ -177,7 +169,6 @@ Description : Do operation between range from [start,end)
 | Name | Type | JSON Tag |
 | ---- | ---- | -------- |
 | `IdentifierToken` | `string` | `json:identifierToken`  |
-| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
 | `OperationConfig` | `ptr` | `json:operationConfig`  |
 | `DBType` | `string` | `json:dbType`  |
 | `ConnStr` | `string` | `json:connectionString`  |
@@ -195,7 +186,6 @@ Description : Do operation between range from [start,end)
 | Name | Type | JSON Tag |
 | ---- | ---- | -------- |
 | `IdentifierToken` | `string` | `json:identifierToken`  |
-| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
 | `OperationConfig` | `ptr` | `json:operationConfig`  |
 | `DBType` | `string` | `json:dbType`  |
 | `ConnStr` | `string` | `json:connectionString`  |
@@ -213,7 +203,6 @@ Description : Do operation between range from [start,end)
 | Name | Type | JSON Tag |
 | ---- | ---- | -------- |
 | `IdentifierToken` | `string` | `json:identifierToken`  |
-| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
 | `OperationConfig` | `ptr` | `json:operationConfig`  |
 | `DBType` | `string` | `json:dbType`  |
 | `ConnStr` | `string` | `json:connectionString`  |
@@ -231,7 +220,6 @@ Description : Do operation between range from [start,end)
 | Name | Type | JSON Tag |
 | ---- | ---- | -------- |
 | `IdentifierToken` | `string` | `json:identifierToken`  |
-| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
 | `OperationConfig` | `ptr` | `json:operationConfig`  |
 | `DBType` | `string` | `json:dbType`  |
 | `ConnStr` | `string` | `json:connectionString`  |
@@ -249,7 +237,6 @@ Description : Do operation between range from [start,end)
 | Name | Type | JSON Tag |
 | ---- | ---- | -------- |
 | `IdentifierToken` | `string` | `json:identifierToken`  |
-| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
 | `OperationConfig` | `ptr` | `json:operationConfig`  |
 | `DBType` | `string` | `json:dbType`  |
 | `ConnStr` | `string` | `json:connectionString`  |
@@ -267,7 +254,6 @@ Description : Do operation between range from [start,end)
 | Name | Type | JSON Tag |
 | ---- | ---- | -------- |
 | `IdentifierToken` | `string` | `json:identifierToken`  |
-| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
 | `OperationConfig` | `ptr` | `json:operationConfig`  |
 | `DBType` | `string` | `json:dbType`  |
 | `ConnStr` | `string` | `json:connectionString`  |
@@ -285,7 +271,6 @@ Description : Do operation between range from [start,end)
 | Name | Type | JSON Tag |
 | ---- | ---- | -------- |
 | `IdentifierToken` | `string` | `json:identifierToken`  |
-| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
 | `OperationConfig` | `ptr` | `json:operationConfig`  |
 | `DBType` | `string` | `json:dbType`  |
 | `ConnStr` | `string` | `json:connectionString`  |
@@ -336,9 +321,9 @@ Description : Warming up a connection to database.
 | `SDKBatchSize` | `int` | `json:SDKBatchSize,omitempty`  |
 | `Database` | `string` | `json:database,omitempty`  |
 | `Query` | `string` | `json:query,omitempty`  |
-| `ConnStr` | `string` | `json:connstr,omitempty`  |
-| `Username` | `string` | `json:username,omitempty`  |
-| `Password` | `string` | `json:password,omitempty`  |
+| `ColumnarConnStr` | `string` | `json:columnarConnectionString,omitempty`  |
+| `ColumnarUsername` | `string` | `json:columnarUsername,omitempty`  |
+| `ColumnarPassword` | `string` | `json:columnarPassword,omitempty`  |
 | `ColumnarBucket` | `string` | `json:columnarBucket,omitempty`  |
 | `ColumnarScope` | `string` | `json:columnarScope,omitempty`  |
 | `ColumnarCollection` | `string` | `json:columnarCollection,omitempty`  |
@@ -408,7 +393,6 @@ Possible values for durability :-
 | `DocId` | `string` | `json:key`  |
 | `Status` | `bool` | `json:status`  |
 | `Extra` | `map` | `json:extra`  |
-| `ErrorString` | `string` | `json:errorString`  |
 #### exceptions
 
 | Name | Type | JSON Tag |
@@ -435,7 +419,6 @@ Possible values for durability :-
 | `DocId` | `string` | `json:key`  |
 | `Status` | `bool` | `json:status`  |
 | `Extra` | `map` | `json:extra`  |
-| `ErrorString` | `string` | `json:errorString`  |
 #### sdkTimings
 
 | Name | Type | JSON Tag |

@@ -16,10 +16,10 @@ type Small struct {
 
 func (s *Small) GenerateDocument(fake *faker.Faker, key string, documentSize int) interface{} {
 	return &Small{
-		ID:           key,
-		TemplateType: "small",
-		RandomData:   strings.Repeat(fake.Letter(), documentSize),
-		Mutated:      MutatedPathDefaultValue,
+		ID: key,
+		//TemplateType: "small",
+		RandomData: strings.Repeat(fake.Letter(), documentSize),
+		Mutated:    MutatedPathDefaultValue,
 	}
 }
 

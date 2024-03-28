@@ -39,9 +39,9 @@ type Extras struct {
 	SDKBatchSize        int     `json:"SDKBatchSize,omitempty" doc:"true"`
 	Database            string  `json:"database,omitempty" doc:"true"`
 	Query               string  `json:"query,omitempty" doc:"true"`
-	ConnStr             string  `json:"connstr,omitempty" doc:"true"`
-	Username            string  `json:"username,omitempty" doc:"true"`
-	Password            string  `json:"password,omitempty" doc:"true"`
+	ColumnarConnStr     string  `json:"columnarConnectionString,omitempty" doc:"true"`
+	ColumnarUsername    string  `json:"columnarUsername,omitempty" doc:"true"`
+	ColumnarPassword    string  `json:"columnarPassword,omitempty" doc:"true"`
 	ColumnarBucket      string  `json:"columnarBucket,omitempty" doc:"true"`
 	ColumnarScope       string  `json:"columnarScope,omitempty" doc:"true"`
 	ColumnarCollection  string  `json:"columnarCollection,omitempty" doc:"true"`

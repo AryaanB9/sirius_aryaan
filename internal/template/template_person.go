@@ -2,6 +2,7 @@ package template
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 	"strings"
 
@@ -99,13 +100,13 @@ type Person struct {
 
 func (p *Person) GenerateDocument(fake *faker.Faker, key string, documentSize int) interface{} {
 	person := &Person{
-		ID:            key,
-		TemplateName:  "Person",
-		FirstName:     fake.Name(),
-		Age:           fake.Float64Range(1, 100),
-		Email:         fake.Email(),
-		Gender:        fake.Gender(),
-		TemplateType:  "Person",
+		ID:           key,
+		TemplateName: "Person",
+		FirstName:    fake.Name(),
+		Age:          fake.Float64Range(1, 100),
+		Email:        fake.Email(),
+		Gender:       fake.Gender(),
+		//TemplateType:  "Person",
 		MaritalStatus: fake.RandString(maritalChoices),
 		Hobbies:       fake.RandString(hobbyChoices),
 		Address: Address{
@@ -215,7 +216,7 @@ func (p *Person) Compare(document1 interface{}, document2 interface{}) (bool, er
 	if !ok {
 		return false, fmt.Errorf("unable to decode second document to person template")
 	}
-
+	log.Println(p1, "\n", p2)
 	return reflect.DeepEqual(p1, p2), nil
 }
 

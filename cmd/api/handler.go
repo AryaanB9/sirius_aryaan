@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/AryaanB9/sirius_aryaan/internal/external_storage"
 	"log"
 	"net/http"
 
@@ -1967,23 +1966,23 @@ func (app *Config) getInfoTask(w http.ResponseWriter, r *http.Request) {
 	log.Print(task, tasks.GetInfoOperation)
 
 	// Directly using the methods of *AmazonS3
-	as3 := external_storage.NewAmazonS3ConnectionManager()
-	err := as3.Connect(task.ExternalStorageExtras)
-	if err != nil {
-		log.Println("In handler.go getInfoTask(), err connecting to aws:", err)
-		return
-	}
-	resultJson, errJson := as3.GetInfo(task.ExternalStorageExtras)
-	if errJson != nil {
-		log.Println("In handler.go getInfoTask(), error getting result json:", errJson)
-		return
-	}
-	err = as3.Close(task.ExternalStorageExtras.AwsAccessKey)
-	if err != nil {
-		log.Println("In handler.go getInfoTask(), err disconnecting :", err)
-		return
-	}
-
+	//as3 := external_storage.NewAmazonS3ConnectionManager()
+	//err := as3.Connect(task.ExternalStorageExtras)
+	//if err != nil {
+	//	log.Println("In handler.go getInfoTask(), err connecting to aws:", err)
+	//	return
+	//}
+	//resultJson, errJson := as3.GetInfo(task.ExternalStorageExtras)
+	//if errJson != nil {
+	//	log.Println("In handler.go getInfoTask(), error getting result json:", errJson)
+	//	return
+	//}
+	//err = as3.Close(task.ExternalStorageExtras.AwsAccessKey)
+	//if err != nil {
+	//	log.Println("In handler.go getInfoTask(), err disconnecting :", err)
+	//	return
+	//}
+	resultJson := ""
 	resPayload := jsonResponse{
 		Error:   false,
 		Message: "Successfully retrieved the directory structure of the bucket",
