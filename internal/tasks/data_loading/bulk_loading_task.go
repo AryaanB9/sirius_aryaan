@@ -1,7 +1,8 @@
-package tasks
+package data_loading
 
 import (
 	"github.com/AryaanB9/sirius_aryaan/internal/external_storage"
+	"github.com/AryaanB9/sirius_aryaan/internal/tasks"
 	"sync"
 
 	"github.com/AryaanB9/sirius_aryaan/internal/db"
@@ -11,7 +12,7 @@ import (
 )
 
 type BulkTask interface {
-	Task
+	tasks.Task
 	PostTaskExceptionHandling()
 	MatchResultSeed(resultSeed string) (bool, error)
 	SetException(exceptions Exceptions)
@@ -29,18 +30,18 @@ type loadingTask struct {
 	gen                   *docgenerator.Generator
 	state                 *task_state.TaskState
 	result                *task_result.TaskResult
-	databaseInfo          DatabaseInformation
+	databaseInfo          tasks.DatabaseInformation
 	extra                 db.Extras
 	externalStorageExtras external_storage.ExternalStorageExtras
-	req                   *Request
+	req                   *tasks.Request
 	identifier            string
 	wg                    *sync.WaitGroup
 }
 
 func newLoadingTask(start, end, seed int64, operationConfig *OperationConfig,
 	operation string, rerun bool, gen *docgenerator.Generator,
-	state *task_state.TaskState, result *task_result.TaskResult, databaseInfo DatabaseInformation,
-	extra db.Extras, externalStorageExtras external_storage.ExternalStorageExtras, req *Request, identifier string, wg *sync.WaitGroup) *loadingTask {
+	state *task_state.TaskState, result *task_result.TaskResult, databaseInfo tasks.DatabaseInformation,
+	extra db.Extras, externalStorageExtras external_storage.ExternalStorageExtras, req *tasks.Request, identifier string, wg *sync.WaitGroup) *loadingTask {
 	return &loadingTask{
 		start:                 start,
 		end:                   end,
@@ -62,135 +63,135 @@ func newLoadingTask(start, end, seed int64, operationConfig *OperationConfig,
 
 func (l *loadingTask) Run() {
 	switch l.operation {
-	case InsertOperation:
+	case tasks.InsertOperation:
 		{
 			insertDocuments(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.extra, l.wg)
 		}
-	case UpsertOperation:
+	case tasks.UpsertOperation:
 		{
 			upsertDocuments(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.extra, l.req, l.identifier, l.wg)
 		}
-	case DeleteOperation:
+	case tasks.DeleteOperation:
 		{
 			deleteDocuments(l.start, l.end, l.seed, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.extra, l.wg)
 		}
-	case ReadOperation:
+	case tasks.ReadOperation:
 		{
 			readDocuments(l.start, l.end, l.seed, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.extra, l.wg)
 		}
-	case TouchOperation:
+	case tasks.TouchOperation:
 		{
 			touchDocuments(l.start, l.end, l.seed, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.extra, l.wg)
 		}
-	case SubDocInsertOperation:
+	case tasks.SubDocInsertOperation:
 		{
 			subDocInsertDocuments(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.extra, l.wg)
 		}
-	case SubDocDeleteOperation:
+	case tasks.SubDocDeleteOperation:
 		{
 			subDocDeleteDocuments(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.extra, l.wg)
 		}
-	case SubDocReadOperation:
+	case tasks.SubDocReadOperation:
 		{
 			subDocReadDocuments(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.extra, l.wg)
 		}
-	case SubDocReplaceOperation:
+	case tasks.SubDocReplaceOperation:
 		{
 			subDocReplaceDocuments(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.extra, l.req, l.identifier, l.wg)
 		}
-	case SubDocUpsertOperation:
+	case tasks.SubDocUpsertOperation:
 		{
 			subDocUpsertDocuments(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.extra, l.req, l.identifier, l.wg)
 		}
 
-	case BulkInsertOperation:
+	case tasks.BulkInsertOperation:
 		{
 			bulkInsertDocuments(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.extra, l.wg)
 		}
-	case BulkUpsertOperation:
+	case tasks.BulkUpsertOperation:
 		{
 			bulkUpsertDocuments(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.extra, l.req, l.identifier, l.wg)
 		}
-	case BulkDeleteOperation:
+	case tasks.BulkDeleteOperation:
 		{
 			bulkDeleteDocuments(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.extra, l.wg)
 		}
-	case BulkReadOperation:
+	case tasks.BulkReadOperation:
 		{
 			bulkReadDocuments(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.extra, l.wg)
 		}
-	case BulkTouchOperation:
+	case tasks.BulkTouchOperation:
 		{
 			bulkTouchDocuments(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.extra, l.wg)
 		}
-	case ValidateDocOperation:
+	case tasks.ValidateDocOperation:
 		{
 			validateColumnar(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.extra, l.wg)
 		}
 
-	case S3BucketCreateOperation:
+	case tasks.S3BucketCreateOperation:
 		{
 			createS3Bucket(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.externalStorageExtras, l.wg)
 		}
-	case S3BucketDeleteOperation:
+	case tasks.S3BucketDeleteOperation:
 		{
 			deleteS3Bucket(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.externalStorageExtras, l.wg)
 		}
-	case FolderInsertOperation:
+	case tasks.FolderInsertOperation:
 		{
 			insertFolder(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.externalStorageExtras, l.wg)
 		}
-	case FolderDeleteOperation:
+	case tasks.FolderDeleteOperation:
 		{
 			deleteFolder(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.externalStorageExtras, l.wg)
 		}
-	case FileInsertOperation:
+	case tasks.FileInsertOperation:
 		{
 			insertFiles(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.externalStorageExtras, l.wg)
 		}
 
-	case FileUpdateOperation:
+	case tasks.FileUpdateOperation:
 		{
 			insertFiles(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.externalStorageExtras, l.wg)
 		}
-	case FileDeleteOperation:
+	case tasks.FileDeleteOperation:
 		{
 			deleteFiles(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.externalStorageExtras, l.wg)
 		}
-	case InsertFilesInFoldersOperation:
+	case tasks.InsertFilesInFoldersOperation:
 		{
 			insertFilesInFolders(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.externalStorageExtras, l.wg)
 		}
-	case UpdateFilesInFolderOperation:
+	case tasks.UpdateFilesInFolderOperation:
 		{
 			updateFilesInFolder(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.externalStorageExtras, l.wg)
 		}
-	case DeleteFilesInFolderOperation:
+	case tasks.DeleteFilesInFolderOperation:
 		{
 			deleteFilesInFolder(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.externalStorageExtras, l.wg)

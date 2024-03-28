@@ -1,4 +1,4 @@
-package tasks
+package data_loading
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/AryaanB9/sirius_aryaan/internal/external_storage"
+	"github.com/AryaanB9/sirius_aryaan/internal/tasks"
 	"github.com/AryaanB9/sirius_aryaan/internal/template"
 	"log"
 	"strings"
@@ -25,7 +26,7 @@ import (
 
 func insertDocuments(start, end, seed int64, operationConfig *OperationConfig,
 	rerun bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
-	databaseInfo DatabaseInformation, extra db.Extras, wg *sync.WaitGroup) {
+	databaseInfo tasks.DatabaseInformation, extra db.Extras, wg *sync.WaitGroup) {
 
 	if wg != nil {
 		defer wg.Done()
@@ -90,7 +91,7 @@ func insertDocuments(start, end, seed int64, operationConfig *OperationConfig,
 
 func upsertDocuments(start, end, seed int64, operationConfig *OperationConfig,
 	_ bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
-	databaseInfo DatabaseInformation, extra db.Extras, req *Request, identifier string, wg *sync.WaitGroup) {
+	databaseInfo tasks.DatabaseInformation, extra db.Extras, req *tasks.Request, identifier string, wg *sync.WaitGroup) {
 
 	if wg != nil {
 		defer wg.Done()
@@ -157,7 +158,7 @@ func upsertDocuments(start, end, seed int64, operationConfig *OperationConfig,
 }
 
 func deleteDocuments(start, end, seed int64, rerun bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
-	databaseInfo DatabaseInformation, extra db.Extras, wg *sync.WaitGroup) {
+	databaseInfo tasks.DatabaseInformation, extra db.Extras, wg *sync.WaitGroup) {
 
 	if wg != nil {
 		defer wg.Done()
@@ -205,7 +206,7 @@ func deleteDocuments(start, end, seed int64, rerun bool, gen *docgenerator.Gener
 
 func readDocuments(start, end, seed int64, _ bool, gen *docgenerator.Generator, state *task_state.TaskState,
 	result *task_result.TaskResult,
-	databaseInfo DatabaseInformation, extra db.Extras, wg *sync.WaitGroup) {
+	databaseInfo tasks.DatabaseInformation, extra db.Extras, wg *sync.WaitGroup) {
 
 	if wg != nil {
 		defer wg.Done()
@@ -246,7 +247,7 @@ func readDocuments(start, end, seed int64, _ bool, gen *docgenerator.Generator, 
 }
 
 func touchDocuments(start, end, seed int64, _ bool, gen *docgenerator.Generator, state *task_state.TaskState,
-	result *task_result.TaskResult, databaseInfo DatabaseInformation, extra db.Extras, wg *sync.WaitGroup) {
+	result *task_result.TaskResult, databaseInfo tasks.DatabaseInformation, extra db.Extras, wg *sync.WaitGroup) {
 
 	if wg != nil {
 		defer wg.Done()
@@ -287,7 +288,7 @@ func touchDocuments(start, end, seed int64, _ bool, gen *docgenerator.Generator,
 
 func subDocInsertDocuments(start, end, seed int64, operationConfig *OperationConfig,
 	rerun bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
-	databaseInfo DatabaseInformation, extra db.Extras, wg *sync.WaitGroup) {
+	databaseInfo tasks.DatabaseInformation, extra db.Extras, wg *sync.WaitGroup) {
 
 	if wg != nil {
 		defer wg.Done()
@@ -344,7 +345,7 @@ func subDocInsertDocuments(start, end, seed int64, operationConfig *OperationCon
 
 func subDocReadDocuments(start, end, seed int64, operationConfig *OperationConfig,
 	rerun bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
-	databaseInfo DatabaseInformation, extra db.Extras, wg *sync.WaitGroup) {
+	databaseInfo tasks.DatabaseInformation, extra db.Extras, wg *sync.WaitGroup) {
 
 	if wg != nil {
 		defer wg.Done()
@@ -400,7 +401,7 @@ func subDocReadDocuments(start, end, seed int64, operationConfig *OperationConfi
 
 func subDocUpsertDocuments(start, end, seed int64, operationConfig *OperationConfig,
 	_ bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
-	databaseInfo DatabaseInformation, extra db.Extras, req *Request, identifier string, wg *sync.WaitGroup) {
+	databaseInfo tasks.DatabaseInformation, extra db.Extras, req *tasks.Request, identifier string, wg *sync.WaitGroup) {
 
 	if wg != nil {
 		defer wg.Done()
@@ -465,7 +466,7 @@ func subDocUpsertDocuments(start, end, seed int64, operationConfig *OperationCon
 
 func subDocDeleteDocuments(start, end, seed int64, operationConfig *OperationConfig,
 	rerun bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
-	databaseInfo DatabaseInformation, extra db.Extras, wg *sync.WaitGroup) {
+	databaseInfo tasks.DatabaseInformation, extra db.Extras, wg *sync.WaitGroup) {
 
 	if wg != nil {
 		defer wg.Done()
@@ -521,7 +522,7 @@ func subDocDeleteDocuments(start, end, seed int64, operationConfig *OperationCon
 
 func subDocReplaceDocuments(start, end, seed int64, operationConfig *OperationConfig,
 	_ bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
-	databaseInfo DatabaseInformation, extra db.Extras, req *Request, identifier string, wg *sync.WaitGroup) {
+	databaseInfo tasks.DatabaseInformation, extra db.Extras, req *tasks.Request, identifier string, wg *sync.WaitGroup) {
 
 	if wg != nil {
 		defer wg.Done()
@@ -586,7 +587,7 @@ func subDocReplaceDocuments(start, end, seed int64, operationConfig *OperationCo
 
 func bulkInsertDocuments(start, end, seed int64, operationConfig *OperationConfig,
 	rerun bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
-	databaseInfo DatabaseInformation, extra db.Extras, wg *sync.WaitGroup) {
+	databaseInfo tasks.DatabaseInformation, extra db.Extras, wg *sync.WaitGroup) {
 	count := 0
 	if wg != nil {
 		defer wg.Done()
@@ -664,7 +665,7 @@ func bulkInsertDocuments(start, end, seed int64, operationConfig *OperationConfi
 
 func bulkUpsertDocuments(start int64, end int64, seed int64, operationConfig *OperationConfig, rerun bool,
 	gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
-	databaseInfo DatabaseInformation, extra db.Extras, req *Request, identifier string,
+	databaseInfo tasks.DatabaseInformation, extra db.Extras, req *tasks.Request, identifier string,
 	wg *sync.WaitGroup) {
 
 	if wg != nil {
@@ -731,7 +732,7 @@ func bulkUpsertDocuments(start int64, end int64, seed int64, operationConfig *Op
 
 func bulkDeleteDocuments(start, end, seed int64, operationConfig *OperationConfig,
 	rerun bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
-	databaseInfo DatabaseInformation, extra db.Extras, wg *sync.WaitGroup) {
+	databaseInfo tasks.DatabaseInformation, extra db.Extras, wg *sync.WaitGroup) {
 
 	if wg != nil {
 		defer wg.Done()
@@ -786,7 +787,7 @@ func bulkDeleteDocuments(start, end, seed int64, operationConfig *OperationConfi
 
 func bulkReadDocuments(start, end, seed int64, operationConfig *OperationConfig,
 	rerun bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
-	databaseInfo DatabaseInformation, extra db.Extras, wg *sync.WaitGroup) {
+	databaseInfo tasks.DatabaseInformation, extra db.Extras, wg *sync.WaitGroup) {
 
 	if wg != nil {
 		defer wg.Done()
@@ -839,7 +840,7 @@ func bulkReadDocuments(start, end, seed int64, operationConfig *OperationConfig,
 
 func bulkTouchDocuments(start, end, seed int64, operationConfig *OperationConfig,
 	rerun bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
-	databaseInfo DatabaseInformation, extra db.Extras, wg *sync.WaitGroup) {
+	databaseInfo tasks.DatabaseInformation, extra db.Extras, wg *sync.WaitGroup) {
 
 	if wg != nil {
 		defer wg.Done()
@@ -890,7 +891,7 @@ func bulkTouchDocuments(start, end, seed int64, operationConfig *OperationConfig
 
 func validateColumnar(start, end, seed int64, operationConfig *OperationConfig,
 	rerun bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
-	databaseInfo DatabaseInformation, extra db.Extras, wg *sync.WaitGroup) {
+	databaseInfo tasks.DatabaseInformation, extra db.Extras, wg *sync.WaitGroup) {
 
 	defer wg.Done()
 
@@ -966,7 +967,7 @@ func validateColumnar(start, end, seed int64, operationConfig *OperationConfig,
 
 func createS3Bucket(start, end, seed int64, operationConfig *OperationConfig,
 	rerun bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
-	databaseInfo DatabaseInformation, extra external_storage.ExternalStorageExtras, wg *sync.WaitGroup) {
+	databaseInfo tasks.DatabaseInformation, extra external_storage.ExternalStorageExtras, wg *sync.WaitGroup) {
 
 	if wg != nil {
 		defer wg.Done()
@@ -1013,7 +1014,7 @@ func createS3Bucket(start, end, seed int64, operationConfig *OperationConfig,
 
 func deleteS3Bucket(start, end, seed int64, operationConfig *OperationConfig,
 	rerun bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
-	databaseInfo DatabaseInformation, extra external_storage.ExternalStorageExtras, wg *sync.WaitGroup) {
+	databaseInfo tasks.DatabaseInformation, extra external_storage.ExternalStorageExtras, wg *sync.WaitGroup) {
 
 	if wg != nil {
 		defer wg.Done()
@@ -1060,7 +1061,7 @@ func deleteS3Bucket(start, end, seed int64, operationConfig *OperationConfig,
 
 func insertFolder(start, end, seed int64, operationConfig *OperationConfig,
 	rerun bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
-	databaseInfo DatabaseInformation, extra external_storage.ExternalStorageExtras, wg *sync.WaitGroup) {
+	databaseInfo tasks.DatabaseInformation, extra external_storage.ExternalStorageExtras, wg *sync.WaitGroup) {
 
 	if wg != nil {
 		defer wg.Done()
@@ -1107,7 +1108,7 @@ func insertFolder(start, end, seed int64, operationConfig *OperationConfig,
 
 func deleteFolder(start, end, seed int64, operationConfig *OperationConfig,
 	rerun bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
-	databaseInfo DatabaseInformation, extra external_storage.ExternalStorageExtras, wg *sync.WaitGroup) {
+	databaseInfo tasks.DatabaseInformation, extra external_storage.ExternalStorageExtras, wg *sync.WaitGroup) {
 
 	if wg != nil {
 		defer wg.Done()
@@ -1154,7 +1155,7 @@ func deleteFolder(start, end, seed int64, operationConfig *OperationConfig,
 
 func insertFiles(start, end, seed int64, operationConfig *OperationConfig,
 	rerun bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
-	databaseInfo DatabaseInformation, extra external_storage.ExternalStorageExtras, wg *sync.WaitGroup) {
+	databaseInfo tasks.DatabaseInformation, extra external_storage.ExternalStorageExtras, wg *sync.WaitGroup) {
 
 	if wg != nil {
 		defer wg.Done()
@@ -1399,7 +1400,7 @@ func insertFiles(start, end, seed int64, operationConfig *OperationConfig,
 
 func deleteFiles(start, end, seed int64, operationConfig *OperationConfig,
 	rerun bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
-	databaseInfo DatabaseInformation, extra external_storage.ExternalStorageExtras, wg *sync.WaitGroup) {
+	databaseInfo tasks.DatabaseInformation, extra external_storage.ExternalStorageExtras, wg *sync.WaitGroup) {
 
 	if wg != nil {
 		defer wg.Done()
@@ -1452,21 +1453,21 @@ func deleteFiles(start, end, seed int64, operationConfig *OperationConfig,
 
 func insertFilesInFolders(start, end, seed int64, operationConfig *OperationConfig,
 	rerun bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
-	databaseInfo DatabaseInformation, extra external_storage.ExternalStorageExtras, wg *sync.WaitGroup) {
+	databaseInfo tasks.DatabaseInformation, extra external_storage.ExternalStorageExtras, wg *sync.WaitGroup) {
 
 	insertFiles(start, end, seed, operationConfig, rerun, gen, state, result, databaseInfo, extra, wg)
 }
 
 func updateFilesInFolder(start, end, seed int64, operationConfig *OperationConfig,
 	rerun bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
-	databaseInfo DatabaseInformation, extra external_storage.ExternalStorageExtras, wg *sync.WaitGroup) {
+	databaseInfo tasks.DatabaseInformation, extra external_storage.ExternalStorageExtras, wg *sync.WaitGroup) {
 
 	insertFiles(start, end, seed, operationConfig, rerun, gen, state, result, databaseInfo, extra, wg)
 }
 
 func deleteFilesInFolder(start, end, seed int64, operationConfig *OperationConfig,
 	rerun bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
-	databaseInfo DatabaseInformation, extra external_storage.ExternalStorageExtras, wg *sync.WaitGroup) {
+	databaseInfo tasks.DatabaseInformation, extra external_storage.ExternalStorageExtras, wg *sync.WaitGroup) {
 
 	if wg != nil {
 		defer wg.Done()

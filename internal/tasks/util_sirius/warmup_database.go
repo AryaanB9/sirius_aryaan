@@ -1,6 +1,7 @@
-package tasks
+package util_sirius
 
 import (
+	"github.com/AryaanB9/sirius_aryaan/internal/tasks"
 	"log"
 	"time"
 
@@ -11,11 +12,11 @@ import (
 
 type BucketWarmUpTask struct {
 	IdentifierToken string `json:"identifierToken" doc:"true"`
-	DatabaseInformation
+	tasks.DatabaseInformation
 	Result      *task_result.TaskResult `json:"-" doc:"false"`
 	Operation   string                  `json:"operation" doc:"false"`
 	ResultSeed  int64                   `json:"resultSeed" doc:"false"`
-	req         *Request                `json:"-" doc:"false"`
+	req         *tasks.Request          `json:"-" doc:"false"`
 	TaskPending bool                    `json:"taskPending" doc:"false"`
 }
 
@@ -45,7 +46,7 @@ func (t *BucketWarmUpTask) Do() {
 	_ = t.TearUp()
 }
 
-func (t *BucketWarmUpTask) Config(req *Request, reRun bool) (int64, error) {
+func (t *BucketWarmUpTask) Config(req *tasks.Request, reRun bool) (int64, error) {
 	t.TaskPending = false
 	t.req = req
 
@@ -54,7 +55,7 @@ func (t *BucketWarmUpTask) Config(req *Request, reRun bool) (int64, error) {
 	}
 
 	t.ResultSeed = int64(time.Now().UnixNano())
-	t.Operation = BucketWarmUpOperation
+	t.Operation = tasks.BucketWarmUpOperation
 
 	return t.ResultSeed, nil
 }

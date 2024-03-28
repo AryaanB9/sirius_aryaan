@@ -1,8 +1,9 @@
-package tasks
+package data_loading
 
 import (
 	"fmt"
 	"github.com/AryaanB9/sirius_aryaan/internal/external_storage"
+	"github.com/AryaanB9/sirius_aryaan/internal/tasks"
 	"log"
 	//"math/rand"
 	"os"
@@ -25,7 +26,7 @@ import (
 
 type GenericLoadingTask struct {
 	IdentifierToken string `json:"identifierToken" doc:"true"`
-	DatabaseInformation
+	tasks.DatabaseInformation
 	//ExternalStorageExtras external_storage.ExternalStorageExtras `json:"externalStorageExtras" doc:"true"`
 	ResultSeed      int64                         `json:"resultSeed" doc:"false"`
 	TaskPending     bool                          `json:"taskPending" doc:"false"`
@@ -35,7 +36,7 @@ type GenericLoadingTask struct {
 	Operation       string                        `json:"operation" doc:"false"`
 	Result          *task_result.TaskResult       `json:"-" doc:"false"`
 	gen             *docgenerator.Generator       `json:"-" doc:"false"`
-	req             *Request                      `json:"-" doc:"false"`
+	req             *tasks.Request                `json:"-" doc:"false"`
 	rerun           bool                          `json:"-" doc:"false"`
 	lock            sync.Mutex                    `json:"-" doc:"false"`
 }
@@ -69,7 +70,7 @@ func (t *GenericLoadingTask) CheckIfPending() bool {
 }
 
 // Config configures the insert task
-func (t *GenericLoadingTask) Config(req *Request, reRun bool) (int64, error) {
+func (t *GenericLoadingTask) Config(req *tasks.Request, reRun bool) (int64, error) {
 	t.TaskPending = true
 	t.req = req
 
@@ -471,7 +472,7 @@ func loadDocumentsInBatches(task *GenericLoadingTask) {
 			task.req,
 			task.MetaDataIdentifier(),
 			wg)
-		loadBatch(task, t, batchStart, batchEnd)
+		loadBatch(task, t, batchStart, batchEnd, nil)
 		wg.Add(1)
 	}
 
@@ -492,7 +493,7 @@ func loadDocumentsInBatches(task *GenericLoadingTask) {
 			task.req,
 			task.MetaDataIdentifier(),
 			wg)
-		loadBatch(task, t, numOfBatches*batchSize, task.OperationConfig.End)
+		loadBatch(task, t, numOfBatches*batchSize, task.OperationConfig.End, nil)
 		wg.Add(1)
 	}
 
@@ -517,8 +518,8 @@ func (t *GenericLoadingTask) PostTaskExceptionHandling() {
 
 	for _, exception := range exceptionList {
 
-		routineLimiter := make(chan struct{}, MaxRetryingRoutines)
-		dataChannel := make(chan int64, MaxRetryingRoutines)
+		routineLimiter := make(chan struct{}, tasks.MaxRetryingRoutines)
+		dataChannel := make(chan int64, tasks.MaxRetryingRoutines)
 
 		failedDocuments := t.Result.BulkError[exception]
 		delete(t.Result.BulkError, exception)

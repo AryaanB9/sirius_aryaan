@@ -76,17 +76,17 @@ func (app *Config) routes() http.Handler {
 	//mux.Post("/single-doc-validate", app.SingleDocValidate)
 
 	// Endpoints for External/Blob Storage use case
-	mux.Post("/create-s3-bucket", app.createS3BucketTask)
-	mux.Post("/delete-s3-bucket", app.deleteS3BucketTask)
-	mux.Post("/create-folder", app.folderInsertTask)
-	mux.Post("/delete-folder", app.folderDeleteTask)
-	mux.Post("/create-file", app.fileInsertTask)
-	mux.Post("/update-file", app.fileUpdateTask)
-	mux.Post("/delete-file", app.fileDeleteTask)
-	mux.Post("/create-files-in-folders", app.insertFilesInFoldersTask)
-	mux.Post("/update-files-in-folder", app.updateFilesInFolderTask)
-	mux.Post("/delete-files-in-folder", app.deleteFilesInFolderTask)
-	mux.Post("/get-info", app.getInfoTask)
+	//mux.Post("/create-s3-bucket", app.createS3BucketTask)
+	//mux.Post("/delete-s3-bucket", app.deleteS3BucketTask)
+	//mux.Post("/create-folder", app.folderInsertTask)
+	//mux.Post("/delete-folder", app.folderDeleteTask)
+	//mux.Post("/create-file", app.fileInsertTask)
+	//mux.Post("/update-file", app.fileUpdateTask)
+	//mux.Post("/delete-file", app.fileDeleteTask)
+	//mux.Post("/create-files-in-folders", app.insertFilesInFoldersTask)
+	//mux.Post("/update-files-in-folder", app.updateFilesInFolderTask)
+	//mux.Post("/delete-files-in-folder", app.deleteFilesInFolderTask)
+	//mux.Post("/get-info", app.getInfoTask)
 
 	return mux
 }

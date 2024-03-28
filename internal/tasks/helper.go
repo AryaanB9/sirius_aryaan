@@ -1,8 +1,6 @@
 package tasks
 
 import (
-	"bytes"
-	"encoding/json"
 	"log"
 	"math"
 	"math/rand"
@@ -254,17 +252,4 @@ func generateFilePaths(folderPaths []string, filesPerFolder int64, fileFormats s
 	}
 	log.Println("Total Files =", len(filePaths))
 	return filePaths
-}
-func compareDocuments(doc1 any, doc2 any) (bool, error) {
-	marshalDoc1, err1 := json.Marshal(doc1)
-	if err1 != nil {
-		return false, err1
-	}
-	marshalDoc2, err2 := json.Marshal(doc2)
-	if err2 != nil {
-		return false, err2
-	}
-	ok := bytes.Equal(marshalDoc1, marshalDoc2)
-	return ok, nil
-
 }
