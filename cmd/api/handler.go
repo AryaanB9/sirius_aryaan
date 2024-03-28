@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/AryaanB9/sirius_aryaan/internal/tasks/blob_loading"
 	"log"
 	"net/http"
 
@@ -995,7 +996,7 @@ func (app *Config) WarmUpBucket(w http.ResponseWriter, r *http.Request) {
 
 // createS3BucketTask is used to create a bucket in S3.
 func (app *Config) createS3BucketTask(w http.ResponseWriter, r *http.Request) {
-	task := &data_loading.GenericLoadingTask{}
+	task := &blob_loading.BlobLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -1037,7 +1038,7 @@ func (app *Config) createS3BucketTask(w http.ResponseWriter, r *http.Request) {
 
 // deleteS3BucketTask is used to delete a bucket in S3.
 func (app *Config) deleteS3BucketTask(w http.ResponseWriter, r *http.Request) {
-	task := &data_loading.GenericLoadingTask{}
+	task := &blob_loading.BlobLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -1079,7 +1080,7 @@ func (app *Config) deleteS3BucketTask(w http.ResponseWriter, r *http.Request) {
 
 // folderInsertTask is used to create a folder.
 func (app *Config) folderInsertTask(w http.ResponseWriter, r *http.Request) {
-	task := &data_loading.GenericLoadingTask{}
+	task := &blob_loading.BlobLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -1121,7 +1122,7 @@ func (app *Config) folderInsertTask(w http.ResponseWriter, r *http.Request) {
 
 // folderDeleteTask is used to delete a folder along with all the Objects that it contains.
 func (app *Config) folderDeleteTask(w http.ResponseWriter, r *http.Request) {
-	task := &data_loading.GenericLoadingTask{}
+	task := &blob_loading.BlobLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -1163,7 +1164,7 @@ func (app *Config) folderDeleteTask(w http.ResponseWriter, r *http.Request) {
 
 // fileInsertTask is used to insert a File.
 func (app *Config) fileInsertTask(w http.ResponseWriter, r *http.Request) {
-	task := &data_loading.GenericLoadingTask{}
+	task := &blob_loading.BlobLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -1205,7 +1206,7 @@ func (app *Config) fileInsertTask(w http.ResponseWriter, r *http.Request) {
 
 // fileUpdateTask is used to update a file.
 func (app *Config) fileUpdateTask(w http.ResponseWriter, r *http.Request) {
-	task := &data_loading.GenericLoadingTask{}
+	task := &blob_loading.BlobLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -1247,7 +1248,7 @@ func (app *Config) fileUpdateTask(w http.ResponseWriter, r *http.Request) {
 
 // fileDeleteTask is used to delete a file.
 func (app *Config) fileDeleteTask(w http.ResponseWriter, r *http.Request) {
-	task := &data_loading.GenericLoadingTask{}
+	task := &blob_loading.BlobLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -1289,7 +1290,7 @@ func (app *Config) fileDeleteTask(w http.ResponseWriter, r *http.Request) {
 
 // insertFilesInFoldersTask is used to insert multiples files into multiple folders.
 func (app *Config) insertFilesInFoldersTask(w http.ResponseWriter, r *http.Request) {
-	task := &data_loading.GenericLoadingTask{}
+	task := &blob_loading.BlobLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -1331,7 +1332,7 @@ func (app *Config) insertFilesInFoldersTask(w http.ResponseWriter, r *http.Reque
 
 // updateFilesInFoldersTask is used to update multiples files into multiple folders.
 func (app *Config) updateFilesInFolderTask(w http.ResponseWriter, r *http.Request) {
-	task := &data_loading.GenericLoadingTask{}
+	task := &blob_loading.BlobLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -1373,7 +1374,7 @@ func (app *Config) updateFilesInFolderTask(w http.ResponseWriter, r *http.Reques
 
 // deleteFilesInFolderTask is used to delete files in a folder.
 func (app *Config) deleteFilesInFolderTask(w http.ResponseWriter, r *http.Request) {
-	task := &data_loading.GenericLoadingTask{}
+	task := &blob_loading.BlobLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -1415,7 +1416,7 @@ func (app *Config) deleteFilesInFolderTask(w http.ResponseWriter, r *http.Reques
 
 // getInfoTask is used to get the directory structure of an S3 bucket.
 func (app *Config) getInfoTask(w http.ResponseWriter, r *http.Request) {
-	task := &data_loading.GenericLoadingTask{}
+	task := &blob_loading.BlobLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return

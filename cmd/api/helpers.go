@@ -4,6 +4,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"errors"
+	"github.com/AryaanB9/sirius_aryaan/internal/tasks/blob_loading"
 	"net/http"
 
 	"github.com/AryaanB9/sirius_aryaan/internal/meta_data"
@@ -95,6 +96,7 @@ func registerInterfaces() {
 	gob.Register(&meta_data.CollectionMetaData{})
 	gob.Register(&data_loading.RetryExceptions{})
 	gob.Register(&util_sirius.BucketWarmUpTask{})
+	gob.Register(&blob_loading.BlobLoadingTask{})
 
 	r := sirius_documentation.Register{}
 	for _, taskReg := range r.RegisteredTasks() {

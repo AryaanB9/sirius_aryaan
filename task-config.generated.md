@@ -10,17 +10,35 @@ configuration that is also available on a per-task basis:
  * [/bulk-touch](#bulk-touch)
  * [/bulk-upsert](#bulk-upsert)
  * [/clear_data](#clear_data)
+ * [/count](#count)
  * [/create](#create)
+ * [/create-database](#create-database)
+ * [/create-file](#create-file)
+ * [/create-files-in-folders](#create-files-in-folders)
+ * [/create-folder](#create-folder)
+ * [/create-s3-bucket](#create-s3-bucket)
  * [/delete](#delete)
+ * [/delete-database](#delete-database)
+ * [/delete-file](#delete-file)
+ * [/delete-files-in-folder](#delete-files-in-folder)
+ * [/delete-folder](#delete-folder)
+ * [/delete-s3-bucket](#delete-s3-bucket)
+ * [/get-info](#get-info)
+ * [/list-database](#list-database)
  * [/read](#read)
  * [/result](#result)
+ * [/retry-exceptions](#retry-exceptions)
  * [/sub-doc-delete](#sub-doc-delete)
  * [/sub-doc-insert](#sub-doc-insert)
  * [/sub-doc-read](#sub-doc-read)
  * [/sub-doc-replace](#sub-doc-replace)
  * [/sub-doc-upsert](#sub-doc-upsert)
  * [/touch](#touch)
+ * [/update-file](#update-file)
+ * [/update-files-in-folder](#update-files-in-folder)
  * [/upsert](#upsert)
+ * [/validate](#validate)
+ * [/validate-columnar](#validate-columnar)
  * [/warmup-bucket](#warmup-bucket)
 
 ---
@@ -33,7 +51,6 @@ Description : Do operation between range from [start,end)
 | Name | Type | JSON Tag |
 | ---- | ---- | -------- |
 | `IdentifierToken` | `string` | `json:identifierToken`  |
-| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
 | `OperationConfig` | `ptr` | `json:operationConfig`  |
 | `DBType` | `string` | `json:dbType`  |
 | `ConnStr` | `string` | `json:connectionString`  |
@@ -51,7 +68,6 @@ Description : Do operation between range from [start,end)
 | Name | Type | JSON Tag |
 | ---- | ---- | -------- |
 | `IdentifierToken` | `string` | `json:identifierToken`  |
-| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
 | `OperationConfig` | `ptr` | `json:operationConfig`  |
 | `DBType` | `string` | `json:dbType`  |
 | `ConnStr` | `string` | `json:connectionString`  |
@@ -69,7 +85,6 @@ Description : Do operation between range from [start,end)
 | Name | Type | JSON Tag |
 | ---- | ---- | -------- |
 | `IdentifierToken` | `string` | `json:identifierToken`  |
-| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
 | `OperationConfig` | `ptr` | `json:operationConfig`  |
 | `DBType` | `string` | `json:dbType`  |
 | `ConnStr` | `string` | `json:connectionString`  |
@@ -87,7 +102,6 @@ Description : Do operation between range from [start,end)
 | Name | Type | JSON Tag |
 | ---- | ---- | -------- |
 | `IdentifierToken` | `string` | `json:identifierToken`  |
-| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
 | `OperationConfig` | `ptr` | `json:operationConfig`  |
 | `DBType` | `string` | `json:dbType`  |
 | `ConnStr` | `string` | `json:connectionString`  |
@@ -105,7 +119,23 @@ Description : Do operation between range from [start,end)
 | Name | Type | JSON Tag |
 | ---- | ---- | -------- |
 | `IdentifierToken` | `string` | `json:identifierToken`  |
-| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
+| `OperationConfig` | `ptr` | `json:operationConfig`  |
+| `DBType` | `string` | `json:dbType`  |
+| `ConnStr` | `string` | `json:connectionString`  |
+| `Username` | `string` | `json:username`  |
+| `Password` | `string` | `json:password`  |
+| `Extra` | `struct` | `json:extra`  |
+
+---
+#### /count
+
+ REST : POST
+
+Description : Do operation between range from [start,end)
+
+| Name | Type | JSON Tag |
+| ---- | ---- | -------- |
+| `IdentifierToken` | `string` | `json:identifierToken`  |
 | `OperationConfig` | `ptr` | `json:operationConfig`  |
 | `DBType` | `string` | `json:dbType`  |
 | `ConnStr` | `string` | `json:connectionString`  |
@@ -115,6 +145,94 @@ Description : Do operation between range from [start,end)
 
 ---
 #### /create
+
+ REST : POST
+
+Description : Do operation between range from [start,end)
+
+| Name | Type | JSON Tag |
+| ---- | ---- | -------- |
+| `IdentifierToken` | `string` | `json:identifierToken`  |
+| `OperationConfig` | `ptr` | `json:operationConfig`  |
+| `DBType` | `string` | `json:dbType`  |
+| `ConnStr` | `string` | `json:connectionString`  |
+| `Username` | `string` | `json:username`  |
+| `Password` | `string` | `json:password`  |
+| `Extra` | `struct` | `json:extra`  |
+
+---
+#### /create-database
+
+ REST : POST
+
+Description : Do operation between range from [start,end)
+
+| Name | Type | JSON Tag |
+| ---- | ---- | -------- |
+| `IdentifierToken` | `string` | `json:identifierToken`  |
+| `OperationConfig` | `ptr` | `json:operationConfig`  |
+| `DBType` | `string` | `json:dbType`  |
+| `ConnStr` | `string` | `json:connectionString`  |
+| `Username` | `string` | `json:username`  |
+| `Password` | `string` | `json:password`  |
+| `Extra` | `struct` | `json:extra`  |
+
+---
+#### /create-file
+
+ REST : POST
+
+Description : Do operation between range from [start,end)
+
+| Name | Type | JSON Tag |
+| ---- | ---- | -------- |
+| `IdentifierToken` | `string` | `json:identifierToken`  |
+| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
+| `OperationConfig` | `ptr` | `json:operationConfig`  |
+| `DBType` | `string` | `json:dbType`  |
+| `ConnStr` | `string` | `json:connectionString`  |
+| `Username` | `string` | `json:username`  |
+| `Password` | `string` | `json:password`  |
+| `Extra` | `struct` | `json:extra`  |
+
+---
+#### /create-files-in-folders
+
+ REST : POST
+
+Description : Do operation between range from [start,end)
+
+| Name | Type | JSON Tag |
+| ---- | ---- | -------- |
+| `IdentifierToken` | `string` | `json:identifierToken`  |
+| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
+| `OperationConfig` | `ptr` | `json:operationConfig`  |
+| `DBType` | `string` | `json:dbType`  |
+| `ConnStr` | `string` | `json:connectionString`  |
+| `Username` | `string` | `json:username`  |
+| `Password` | `string` | `json:password`  |
+| `Extra` | `struct` | `json:extra`  |
+
+---
+#### /create-folder
+
+ REST : POST
+
+Description : Do operation between range from [start,end)
+
+| Name | Type | JSON Tag |
+| ---- | ---- | -------- |
+| `IdentifierToken` | `string` | `json:identifierToken`  |
+| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
+| `OperationConfig` | `ptr` | `json:operationConfig`  |
+| `DBType` | `string` | `json:dbType`  |
+| `ConnStr` | `string` | `json:connectionString`  |
+| `Username` | `string` | `json:username`  |
+| `Password` | `string` | `json:password`  |
+| `Extra` | `struct` | `json:extra`  |
+
+---
+#### /create-s3-bucket
 
  REST : POST
 
@@ -141,7 +259,130 @@ Description : Do operation between range from [start,end)
 | Name | Type | JSON Tag |
 | ---- | ---- | -------- |
 | `IdentifierToken` | `string` | `json:identifierToken`  |
+| `OperationConfig` | `ptr` | `json:operationConfig`  |
+| `DBType` | `string` | `json:dbType`  |
+| `ConnStr` | `string` | `json:connectionString`  |
+| `Username` | `string` | `json:username`  |
+| `Password` | `string` | `json:password`  |
+| `Extra` | `struct` | `json:extra`  |
+
+---
+#### /delete-database
+
+ REST : POST
+
+Description : Do operation between range from [start,end)
+
+| Name | Type | JSON Tag |
+| ---- | ---- | -------- |
+| `IdentifierToken` | `string` | `json:identifierToken`  |
+| `OperationConfig` | `ptr` | `json:operationConfig`  |
+| `DBType` | `string` | `json:dbType`  |
+| `ConnStr` | `string` | `json:connectionString`  |
+| `Username` | `string` | `json:username`  |
+| `Password` | `string` | `json:password`  |
+| `Extra` | `struct` | `json:extra`  |
+
+---
+#### /delete-file
+
+ REST : POST
+
+Description : Do operation between range from [start,end)
+
+| Name | Type | JSON Tag |
+| ---- | ---- | -------- |
+| `IdentifierToken` | `string` | `json:identifierToken`  |
 | `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
+| `OperationConfig` | `ptr` | `json:operationConfig`  |
+| `DBType` | `string` | `json:dbType`  |
+| `ConnStr` | `string` | `json:connectionString`  |
+| `Username` | `string` | `json:username`  |
+| `Password` | `string` | `json:password`  |
+| `Extra` | `struct` | `json:extra`  |
+
+---
+#### /delete-files-in-folder
+
+ REST : POST
+
+Description : Do operation between range from [start,end)
+
+| Name | Type | JSON Tag |
+| ---- | ---- | -------- |
+| `IdentifierToken` | `string` | `json:identifierToken`  |
+| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
+| `OperationConfig` | `ptr` | `json:operationConfig`  |
+| `DBType` | `string` | `json:dbType`  |
+| `ConnStr` | `string` | `json:connectionString`  |
+| `Username` | `string` | `json:username`  |
+| `Password` | `string` | `json:password`  |
+| `Extra` | `struct` | `json:extra`  |
+
+---
+#### /delete-folder
+
+ REST : POST
+
+Description : Do operation between range from [start,end)
+
+| Name | Type | JSON Tag |
+| ---- | ---- | -------- |
+| `IdentifierToken` | `string` | `json:identifierToken`  |
+| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
+| `OperationConfig` | `ptr` | `json:operationConfig`  |
+| `DBType` | `string` | `json:dbType`  |
+| `ConnStr` | `string` | `json:connectionString`  |
+| `Username` | `string` | `json:username`  |
+| `Password` | `string` | `json:password`  |
+| `Extra` | `struct` | `json:extra`  |
+
+---
+#### /delete-s3-bucket
+
+ REST : POST
+
+Description : Do operation between range from [start,end)
+
+| Name | Type | JSON Tag |
+| ---- | ---- | -------- |
+| `IdentifierToken` | `string` | `json:identifierToken`  |
+| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
+| `OperationConfig` | `ptr` | `json:operationConfig`  |
+| `DBType` | `string` | `json:dbType`  |
+| `ConnStr` | `string` | `json:connectionString`  |
+| `Username` | `string` | `json:username`  |
+| `Password` | `string` | `json:password`  |
+| `Extra` | `struct` | `json:extra`  |
+
+---
+#### /get-info
+
+ REST : POST
+
+Description : Do operation between range from [start,end)
+
+| Name | Type | JSON Tag |
+| ---- | ---- | -------- |
+| `IdentifierToken` | `string` | `json:identifierToken`  |
+| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
+| `OperationConfig` | `ptr` | `json:operationConfig`  |
+| `DBType` | `string` | `json:dbType`  |
+| `ConnStr` | `string` | `json:connectionString`  |
+| `Username` | `string` | `json:username`  |
+| `Password` | `string` | `json:password`  |
+| `Extra` | `struct` | `json:extra`  |
+
+---
+#### /list-database
+
+ REST : POST
+
+Description : Do operation between range from [start,end)
+
+| Name | Type | JSON Tag |
+| ---- | ---- | -------- |
+| `IdentifierToken` | `string` | `json:identifierToken`  |
 | `OperationConfig` | `ptr` | `json:operationConfig`  |
 | `DBType` | `string` | `json:dbType`  |
 | `ConnStr` | `string` | `json:connectionString`  |
@@ -159,8 +400,29 @@ Description : Do operation between range from [start,end)
 | Name | Type | JSON Tag |
 | ---- | ---- | -------- |
 | `IdentifierToken` | `string` | `json:identifierToken`  |
-| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
 | `OperationConfig` | `ptr` | `json:operationConfig`  |
+| `DBType` | `string` | `json:dbType`  |
+| `ConnStr` | `string` | `json:connectionString`  |
+| `Username` | `string` | `json:username`  |
+| `Password` | `string` | `json:password`  |
+| `Extra` | `struct` | `json:extra`  |
+
+---
+#### /retry-exceptions
+
+ REST : POST
+
+Description : Retry Exception reties failed operations.
+IgnoreExceptions will ignore failed operation occurred in this category. 
+RetryExceptions will retry failed operation occurred in this category. 
+RetryAttempts is the number of retry attempts.
+
+
+| Name | Type | JSON Tag |
+| ---- | ---- | -------- |
+| `IdentifierToken` | `string` | `json:identifierToken`  |
+| `ResultSeed` | `string` | `json:resultSeed`  |
+| `Exceptions` | `struct` | `json:exceptions`  |
 | `DBType` | `string` | `json:dbType`  |
 | `ConnStr` | `string` | `json:connectionString`  |
 | `Username` | `string` | `json:username`  |
@@ -177,7 +439,6 @@ Description : Do operation between range from [start,end)
 | Name | Type | JSON Tag |
 | ---- | ---- | -------- |
 | `IdentifierToken` | `string` | `json:identifierToken`  |
-| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
 | `OperationConfig` | `ptr` | `json:operationConfig`  |
 | `DBType` | `string` | `json:dbType`  |
 | `ConnStr` | `string` | `json:connectionString`  |
@@ -195,7 +456,6 @@ Description : Do operation between range from [start,end)
 | Name | Type | JSON Tag |
 | ---- | ---- | -------- |
 | `IdentifierToken` | `string` | `json:identifierToken`  |
-| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
 | `OperationConfig` | `ptr` | `json:operationConfig`  |
 | `DBType` | `string` | `json:dbType`  |
 | `ConnStr` | `string` | `json:connectionString`  |
@@ -213,7 +473,6 @@ Description : Do operation between range from [start,end)
 | Name | Type | JSON Tag |
 | ---- | ---- | -------- |
 | `IdentifierToken` | `string` | `json:identifierToken`  |
-| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
 | `OperationConfig` | `ptr` | `json:operationConfig`  |
 | `DBType` | `string` | `json:dbType`  |
 | `ConnStr` | `string` | `json:connectionString`  |
@@ -231,7 +490,6 @@ Description : Do operation between range from [start,end)
 | Name | Type | JSON Tag |
 | ---- | ---- | -------- |
 | `IdentifierToken` | `string` | `json:identifierToken`  |
-| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
 | `OperationConfig` | `ptr` | `json:operationConfig`  |
 | `DBType` | `string` | `json:dbType`  |
 | `ConnStr` | `string` | `json:connectionString`  |
@@ -249,7 +507,6 @@ Description : Do operation between range from [start,end)
 | Name | Type | JSON Tag |
 | ---- | ---- | -------- |
 | `IdentifierToken` | `string` | `json:identifierToken`  |
-| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
 | `OperationConfig` | `ptr` | `json:operationConfig`  |
 | `DBType` | `string` | `json:dbType`  |
 | `ConnStr` | `string` | `json:connectionString`  |
@@ -259,6 +516,41 @@ Description : Do operation between range from [start,end)
 
 ---
 #### /touch
+
+ REST : POST
+
+Description : Do operation between range from [start,end)
+
+| Name | Type | JSON Tag |
+| ---- | ---- | -------- |
+| `IdentifierToken` | `string` | `json:identifierToken`  |
+| `OperationConfig` | `ptr` | `json:operationConfig`  |
+| `DBType` | `string` | `json:dbType`  |
+| `ConnStr` | `string` | `json:connectionString`  |
+| `Username` | `string` | `json:username`  |
+| `Password` | `string` | `json:password`  |
+| `Extra` | `struct` | `json:extra`  |
+
+---
+#### /update-file
+
+ REST : POST
+
+Description : Do operation between range from [start,end)
+
+| Name | Type | JSON Tag |
+| ---- | ---- | -------- |
+| `IdentifierToken` | `string` | `json:identifierToken`  |
+| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
+| `OperationConfig` | `ptr` | `json:operationConfig`  |
+| `DBType` | `string` | `json:dbType`  |
+| `ConnStr` | `string` | `json:connectionString`  |
+| `Username` | `string` | `json:username`  |
+| `Password` | `string` | `json:password`  |
+| `Extra` | `struct` | `json:extra`  |
+
+---
+#### /update-files-in-folder
 
  REST : POST
 
@@ -285,7 +577,40 @@ Description : Do operation between range from [start,end)
 | Name | Type | JSON Tag |
 | ---- | ---- | -------- |
 | `IdentifierToken` | `string` | `json:identifierToken`  |
-| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
+| `OperationConfig` | `ptr` | `json:operationConfig`  |
+| `DBType` | `string` | `json:dbType`  |
+| `ConnStr` | `string` | `json:connectionString`  |
+| `Username` | `string` | `json:username`  |
+| `Password` | `string` | `json:password`  |
+| `Extra` | `struct` | `json:extra`  |
+
+---
+#### /validate
+
+ REST : POST
+
+Description : Do operation between range from [start,end)
+
+| Name | Type | JSON Tag |
+| ---- | ---- | -------- |
+| `IdentifierToken` | `string` | `json:identifierToken`  |
+| `OperationConfig` | `ptr` | `json:operationConfig`  |
+| `DBType` | `string` | `json:dbType`  |
+| `ConnStr` | `string` | `json:connectionString`  |
+| `Username` | `string` | `json:username`  |
+| `Password` | `string` | `json:password`  |
+| `Extra` | `struct` | `json:extra`  |
+
+---
+#### /validate-columnar
+
+ REST : POST
+
+Description : Do operation between range from [start,end)
+
+| Name | Type | JSON Tag |
+| ---- | ---- | -------- |
+| `IdentifierToken` | `string` | `json:identifierToken`  |
 | `OperationConfig` | `ptr` | `json:operationConfig`  |
 | `DBType` | `string` | `json:dbType`  |
 | `ConnStr` | `string` | `json:connectionString`  |
@@ -409,7 +734,6 @@ Possible values for durability :-
 | `DocId` | `string` | `json:key`  |
 | `Status` | `bool` | `json:status`  |
 | `Extra` | `map` | `json:extra`  |
-| `ErrorString` | `string` | `json:errorString`  |
 #### exceptions
 
 | Name | Type | JSON Tag |
@@ -436,7 +760,6 @@ Possible values for durability :-
 | `DocId` | `string` | `json:key`  |
 | `Status` | `bool` | `json:status`  |
 | `Extra` | `map` | `json:extra`  |
-| `ErrorString` | `string` | `json:errorString`  |
 #### sdkTimings
 
 | Name | Type | JSON Tag |

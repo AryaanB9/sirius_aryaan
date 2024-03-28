@@ -62,22 +62,6 @@ func (app *Config) routes() http.Handler {
 
 	mux.Post("/validate-columnar", app.validateColumnarTask)
 
-	//mux.Post("/validate", app.validateTask)
-	//mux.Post("/retry-exceptions", app.RetryExceptionTask)
-	//mux.Post("/single-create", app.singleInsertTask)
-	//mux.Post("/single-delete", app.singleDeleteTask)
-	//mux.Post("/single-upsert", app.singleUpsertTask)
-	//mux.Post("/single-read", app.singleReadTask)
-	//mux.Post("/single-touch", app.singleTouchTask)
-	//mux.Post("/single-replace", app.singleReplaceTask)
-	//mux.Post("/run-template-query", app.runQueryTask)
-	//mux.Post("/single-sub-doc-insert", app.SingleSubDocInsert)
-	//mux.Post("/single-sub-doc-upsert", app.SingleSubDocUpsert)
-	//mux.Post("/single-sub-doc-replace", app.SingleSubDocReplace)
-	//mux.Post("/single-sub-doc-delete", app.SingleSubDocDelete)
-	//mux.Post("/single-sub-doc-read", app.SingleSubDocRead)
-	//mux.Post("/single-doc-validate", app.SingleDocValidate)
-
 	// Endpoints for External/Blob Storage use case
 	mux.Post("/create-s3-bucket", app.createS3BucketTask)
 	mux.Post("/delete-s3-bucket", app.deleteS3BucketTask)
