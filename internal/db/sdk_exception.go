@@ -51,7 +51,7 @@ func CheckSDKException(err error) (string, string) {
 			return e.Error(), err.Error()
 		}
 	}
-	return "unknown exception", err.Error()
+	return err.Error(), err.Error()
 }
 
 func CheckAllowedInsertError(err error) bool {

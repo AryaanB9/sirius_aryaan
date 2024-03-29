@@ -115,7 +115,7 @@ func (m *columnarBulkOperationResult) failBulk(keyValue []KeyValue, err error) {
 	for _, x := range keyValue {
 		m.keyValues[x.Key] = perColumnarDocResult{
 			value:  x.Doc,
-			error:  errors.New(err.Error()[:10]),
+			error:  err,
 			status: false,
 		}
 	}
@@ -230,16 +230,15 @@ func (c *Columnar) Create(connStr, username, password string, keyValue KeyValue,
 		"doc": keyValue.Doc,
 	}
 	results, errAnalyticsQuery := cbCluster.AnalyticsQuery(query, &gocb.AnalyticsOptions{NamedParameters: params, Timeout: time.Minute * 15})
-	err := results.Close()
-	if err != nil {
-		return newColumnarOperationResult(keyValue.Key, nil, err, false, keyValue.Offset)
-	}
+	var errAnalytics *gocb.AnalyticsError
 	if errAnalyticsQuery != nil {
-		return newColumnarOperationResult(keyValue.Key, nil, errAnalyticsQuery, false, keyValue.Offset)
+		if errors.As(errAnalyticsQuery, &errAnalytics) {
+			return newColumnarOperationResult(keyValue.Key, nil, errors.New(errAnalytics.ErrorText), false, keyValue.Offset)
+		} else {
+			return newColumnarOperationResult(keyValue.Key, nil, errors.New("Some analytics Error"), false, keyValue.Offset)
+		}
 	}
-	//if results.Err() != nil {
-	//	return newColumnarOperationResult(keyValue.Key, nil, results.Err(), false, keyValue.Offset)
-	//}
+	_ = results.Close()
 	return newColumnarOperationResult(keyValue.Key, keyValue.Doc, nil, true, keyValue.Offset)
 }
 
@@ -254,13 +253,15 @@ func (c *Columnar) Update(connStr, username, password string, keyValue KeyValue,
 		"doc": keyValue.Doc,
 	}
 	results, errAnalyticsQuery := cbCluster.AnalyticsQuery(query, &gocb.AnalyticsOptions{NamedParameters: params})
-	err := results.Close()
-	if err != nil {
-		return newColumnarOperationResult(keyValue.Key, nil, err, false, keyValue.Offset)
-	}
+	var errAnalytics *gocb.AnalyticsError
 	if errAnalyticsQuery != nil {
-		return newColumnarOperationResult(keyValue.Key, nil, errAnalyticsQuery, false, keyValue.Offset)
+		if errors.As(errAnalyticsQuery, &errAnalytics) {
+			return newColumnarOperationResult(keyValue.Key, nil, errors.New(errAnalytics.ErrorText), false, keyValue.Offset)
+		} else {
+			return newColumnarOperationResult(keyValue.Key, nil, errors.New("Some analytics Error"), false, keyValue.Offset)
+		}
 	}
+	_ = results.Close()
 	return newColumnarOperationResult(keyValue.Key, keyValue.Doc, nil, true, keyValue.Offset)
 }
 
@@ -278,8 +279,13 @@ func (c *Columnar) Read(connStr, username, password, key string, offset int64, e
 		query = "Select * from " + bucket + "." + scope + "." + collection + " where id  ='" + key + "'"
 	}
 	results, errAnalyticsQuery := cbCluster.AnalyticsQuery(query, &gocb.AnalyticsOptions{})
+	var errAnalytics *gocb.AnalyticsError
 	if errAnalyticsQuery != nil {
-		return newColumnarOperationResult(key, nil, errAnalyticsQuery, false, offset)
+		if errors.As(errAnalyticsQuery, &errAnalytics) {
+			return newColumnarOperationResult(key, nil, errors.New(errAnalytics.ErrorText), false, offset)
+		} else {
+			return newColumnarOperationResult(key, nil, errors.New("Some analytics Error"), false, offset)
+		}
 	}
 	var resultDisplay map[string]interface{}
 	if results.Next() {
@@ -288,10 +294,10 @@ func (c *Columnar) Read(connStr, username, password, key string, offset int64, e
 			return newColumnarOperationResult(key, nil, err, false, offset)
 		}
 	}
-	err := results.Close()
-	if err != nil {
-		return newColumnarOperationResult(key, nil, err, false, offset)
-	}
+	_ = results.Close()
+	//if err != nil {
+	//	return newColumnarOperationResult(key, nil, err, false, offset)
+	//}
 	return newColumnarOperationResult(key, resultDisplay, nil, true, offset)
 }
 
@@ -303,13 +309,15 @@ func (c *Columnar) Delete(connStr, username, password, key string, offset int64,
 		"id": key,
 	}
 	results, errAnalyticsQuery := cbCluster.AnalyticsQuery(query, &gocb.AnalyticsOptions{NamedParameters: params})
+	var errAnalytics *gocb.AnalyticsError
 	if errAnalyticsQuery != nil {
-		return newColumnarOperationResult(key, nil, errAnalyticsQuery, false, offset)
+		if errors.As(errAnalyticsQuery, &errAnalytics) {
+			return newColumnarOperationResult(key, nil, errors.New(errAnalytics.ErrorText), false, offset)
+		} else {
+			return newColumnarOperationResult(key, nil, errors.New("Some analytics Error"), false, offset)
+		}
 	}
-	err := results.Close()
-	if err != nil {
-		return newColumnarOperationResult(key, nil, err, false, offset)
-	}
+	_ = results.Close()
 	return newColumnarOperationResult(key, nil, nil, true, offset)
 }
 
@@ -330,15 +338,25 @@ func (c *Columnar) CreateBulk(connStr, username, password string, keyValues []Ke
 	dv, _ := json.Marshal(dataValues)
 	query := "insert into " + bucket + "." + scope + "." + collection + string(dv)
 	results, errAnalyticsQuery := cbCluster.AnalyticsQuery(query, &gocb.AnalyticsOptions{Timeout: time.Minute * 5})
+
+	var errAnalytics *gocb.AnalyticsError
 	if errAnalyticsQuery != nil {
-		result.failBulk(keyValues, errAnalyticsQuery)
-		return result
+		if errors.As(errAnalyticsQuery, &errAnalytics) {
+			result.failBulk(keyValues, errors.New(errAnalytics.ErrorText))
+			return result
+		} else {
+			result.failBulk(keyValues, errors.New("some analytics error"))
+			return result
+		}
 	}
-	err := results.Close()
-	if err != nil {
-		result.failBulk(keyValues, err)
-		return result
-	}
+	_ = results.Close()
+
+	//if err != nil {
+	//	_ = json.Unmarshal([]byte(errAnalyticsQuery.Error()), &errAnalytics)
+	//	result.failBulk(keyValues, errors.New(errStr))
+	//	return result
+	//}
+
 	for _, x := range keyValues {
 		result.AddResult(x.Key, x.Doc, nil, true, keyToOffset[x.Key])
 	}
@@ -363,15 +381,17 @@ func (c *Columnar) UpdateBulk(connStr, username, password string, keyValues []Ke
 	dv, _ := json.Marshal(dataValues)
 	query := "upsert into " + bucket + "." + scope + "." + collection + string(dv)
 	results, errAnalyticsQuery := cbCluster.AnalyticsQuery(query, &gocb.AnalyticsOptions{})
+	var errAnalytics *gocb.AnalyticsError
 	if errAnalyticsQuery != nil {
-		result.failBulk(keyValues, errAnalyticsQuery)
-		return result
+		if errors.As(errAnalyticsQuery, &errAnalytics) {
+			result.failBulk(keyValues, errors.New(errAnalytics.ErrorText))
+			return result
+		} else {
+			result.failBulk(keyValues, errors.New("some analytics error"))
+			return result
+		}
 	}
-	err := results.Close()
-	if err != nil {
-		result.failBulk(keyValues, err)
-		return result
-	}
+	_ = results.Close()
 	for _, x := range keyValues {
 		result.AddResult(x.Key, x.Doc, nil, true, keyToOffset[x.Key])
 	}
@@ -397,10 +417,17 @@ func (c *Columnar) ReadBulk(connStr, username, password string, keyValues []KeyV
 		"ids": docIDs,
 	}
 	results, errAnalyticsQuery := cbCluster.AnalyticsQuery(query, &gocb.AnalyticsOptions{NamedParameters: params})
+	var errAnalytics *gocb.AnalyticsError
 	if errAnalyticsQuery != nil {
-		result.failBulk(keyValues, errAnalyticsQuery)
-		return result
+		if errors.As(errAnalyticsQuery, &errAnalytics) {
+			result.failBulk(keyValues, errors.New(errAnalytics.ErrorText))
+			return result
+		} else {
+			result.failBulk(keyValues, errors.New("some analytics error"))
+			return result
+		}
 	}
+	_ = results.Close()
 	errFlag := false
 	var previousResult *map[string]interface{}
 	for _, x := range keyValues {
@@ -449,15 +476,17 @@ func (c *Columnar) DeleteBulk(connStr, username, password string, keyValues []Ke
 		"ids": docIDs,
 	}
 	results, errAnalyticsQuery := cbCluster.AnalyticsQuery(query, &gocb.AnalyticsOptions{NamedParameters: params})
+	var errAnalytics *gocb.AnalyticsError
 	if errAnalyticsQuery != nil {
-		result.failBulk(keyValues, errAnalyticsQuery)
-		return result
+		if errors.As(errAnalyticsQuery, &errAnalytics) {
+			result.failBulk(keyValues, errors.New(errAnalytics.ErrorText))
+			return result
+		} else {
+			result.failBulk(keyValues, errors.New("some analytics error"))
+			return result
+		}
 	}
-	err := results.Close()
-	if err != nil {
-		result.failBulk(keyValues, err)
-		return result
-	}
+	_ = results.Close()
 	for _, x := range keyValues {
 		result.AddResult(x.Key, x.Doc, nil, true, keyToOffset[x.Key])
 	}
