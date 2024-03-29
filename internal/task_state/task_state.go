@@ -63,13 +63,6 @@ func ConfigTaskState(resultSeed int64) *TaskState {
 		ts.StoreState()
 	}()
 
-	defer func() {
-		go func() {
-			time.Sleep(24 * time.Hour)
-			ts = nil
-		}()
-	}()
-
 	return ts
 }
 
@@ -176,11 +169,22 @@ func (t *TaskState) StoreState() {
 			select {
 			case <-t.ctx.Done():
 				{
+					go func() {
+						time.Sleep(5 * time.Second)
+						close(t.StateChannel)
+					}()
+					for s := range t.StateChannel {
+						if s.Status == COMPLETED {
+							completed = append(completed, s.Offset)
+						}
+						if s.Status == ERR {
+							err = append(err, s.Offset)
+						}
+					}
 					t.StoreCompleted(completed)
 					t.StoreError(err)
 					err = err[:0]
 					completed = completed[:0]
-					close(t.StateChannel)
 					t.SaveTaskSateOnDisk()
 					return
 				}

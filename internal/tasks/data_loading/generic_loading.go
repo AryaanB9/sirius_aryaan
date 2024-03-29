@@ -121,25 +121,32 @@ func (t *GenericLoadingTask) Config(req *tasks.Request, reRun bool) (int64, erro
 
 func (t *GenericLoadingTask) TearUp() error {
 
+	defer func() {
+		go func() {
+			time.Sleep(time.Duration(30 * time.Minute))
+			t.Result = nil
+		}()
+	}()
+
+	defer func() {
+		go func() {
+			time.Sleep(time.Duration(10 * time.Hour))
+			t.State = nil
+		}()
+	}()
+
 	t.Result.StopStoringResult()
-	t.Result.Success = t.OperationConfig.End - t.OperationConfig.Start - t.Result.Failure
-	if err := t.Result.SaveResultIntoFile(); err != nil {
-		log.Println("not able to save Result into ", t.MetaDataIdentifier(), " ", t.ResultSeed, " ", t.Operation)
-	}
-	t.Result = nil
 
 	t.State.StopStoringState()
-	if err := t.State.SaveTaskSateOnDisk(); err != nil {
-		log.Println("not able to save state into ", t.MetaDataIdentifier(), " ", t.ResultSeed, " ", t.Operation)
-	}
 
 	t.TaskPending = false
+
 	return t.req.SaveRequestIntoFile()
 }
 
 func (t *GenericLoadingTask) Do() {
 
-	t.Result = task_result.ConfigTaskResult(t.Operation, t.ResultSeed)
+	t.Result = task_result.ConfigTaskResult(t.Operation, t.ResultSeed, t.OperationConfig.End-t.OperationConfig.Start)
 
 	database, err := db.ConfigDatabase(t.DBType)
 	if err != nil {
@@ -196,6 +203,10 @@ func loadDocumentsInBatches(task *GenericLoadingTask) {
 		if batchSize > (task.OperationConfig.End-task.OperationConfig.Start)/int64(tasks.MaxThreads) {
 			batchSize = (task.OperationConfig.End - task.OperationConfig.Start) / int64(tasks.MaxThreads)
 		}
+	}
+
+	if task.DBType == "dynamodb" {
+		batchSize = 25
 	}
 
 	if batchSize > 0 {
@@ -322,7 +333,7 @@ func (t *GenericLoadingTask) MatchResultSeed(resultSeed string) (bool, error) {
 			return true, err_sirius.TaskInPendingState
 		}
 		if t.Result == nil {
-			t.Result = task_result.ConfigTaskResult(t.Operation, t.ResultSeed)
+			t.Result = task_result.ConfigTaskResult(t.Operation, t.ResultSeed, 0)
 		}
 		return true, nil
 	}

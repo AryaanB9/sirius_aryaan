@@ -24,7 +24,7 @@ func (t *BucketWarmUpTask) Describe() string {
 }
 
 func (t *BucketWarmUpTask) Do() {
-	t.Result = task_result.ConfigTaskResult(t.Operation, t.ResultSeed)
+	t.Result = task_result.ConfigTaskResult(t.Operation, t.ResultSeed, 0)
 
 	database, err := db.ConfigDatabase(t.DBType)
 
