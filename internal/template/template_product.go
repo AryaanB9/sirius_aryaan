@@ -244,5 +244,5 @@ func (p *Product) GenerateSubPathAndValue(fake *faker.Faker, subDocSize int) map
 }
 
 func (p *Product) GetValues(document interface{}) (interface{}, error) {
-	return document, nil
+	return *document.(*Product), nil
 }

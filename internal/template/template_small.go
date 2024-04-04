@@ -65,6 +65,7 @@ func (s *Small) GenerateSubPathAndValue(fake *faker.Faker, subDocSize int) map[s
 		"subDocData": fake.Sentence(subDocSize),
 	}
 }
+
 func (s *Small) GetValues(document interface{}) (interface{}, error) {
-	return document, nil
+	return *document.(*Small), nil
 }

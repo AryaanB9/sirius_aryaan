@@ -203,7 +203,7 @@ func (h *Hotel) GenerateSubPathAndValue(fake *faker.Faker, subDocSize int) map[s
 }
 
 func (h *Hotel) GetValues(document interface{}) (interface{}, error) {
-	return document, nil
+	return *document.(*Hotel), nil
 }
 
 // ToStringMap is used to convert the Hotel Struct into a map[string]interface{} form

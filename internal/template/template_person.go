@@ -225,5 +225,5 @@ func (p *Person) GenerateSubPathAndValue(fake *faker.Faker, subDocSize int) map[
 }
 
 func (p *Person) GetValues(document interface{}) (interface{}, error) {
-	return document, nil
+	return *document.(*Person), nil
 }

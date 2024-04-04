@@ -177,11 +177,6 @@ func loadDocumentsInBatches(task *BlobLoadingTask) {
 	}
 
 	wg := &sync.WaitGroup{}
-	numOfBatches := int64(0)
-
-	// default batch size is calculated by dividing the total operations in equal quantity to each thread.
-	// For File Operations the Default Batch Size will be 1
-	batchSize := int64(1)
 
 	/*
 		 * 	For External Storage operations, we need to handle the batchSize and numOfBatches differently.
@@ -189,17 +184,10 @@ func loadDocumentsInBatches(task *BlobLoadingTask) {
 			and appended to create the file.
 		 * 	Therefore, numOfBatches shall be = 1 for most File operations, except for InsertFilesInFoldersOperation and
 			UpdateFilesInFolderOperation for which we have handled the bulk loading explicitly.
+		 *	Batch size becomes the number of documents to be inserted to create a single file hence: Batch Size = End - Start
 	*/
-
-	if task.Extra.SDKBatchSize > 0 {
-		batchSize = int64(task.Extra.SDKBatchSize)
-	} else {
-		batchSize = task.OperationConfig.End - task.OperationConfig.Start
-	}
-
-	if batchSize > 0 {
-		numOfBatches = (task.OperationConfig.End - task.OperationConfig.Start) / (batchSize)
-	}
+	numOfBatches := int64(1)
+	batchSize := task.OperationConfig.End - task.OperationConfig.Start
 	remainingItems := (task.OperationConfig.End - task.OperationConfig.Start) - (numOfBatches * batchSize)
 
 	// ==========================================================================================
@@ -216,9 +204,9 @@ func loadDocumentsInBatches(task *BlobLoadingTask) {
 	if task.Operation == tasks.InsertFilesInFoldersOperation {
 
 		// Num of Batches = Num Folders * Max Depth * Folders per Depth * Num Files per Folder = len(filePaths)
-		folderPaths := tasks.GenerateFolderPaths(task.ExternalStorageExtras.NumFolders, task.ExternalStorageExtras.MaxFolderDepth,
+		folderPaths := GenerateFolderPaths(task.ExternalStorageExtras.NumFolders, task.ExternalStorageExtras.MaxFolderDepth,
 			task.ExternalStorageExtras.FoldersPerDepth, task.ExternalStorageExtras.FolderLevelNames)
-		filePaths := tasks.GenerateFilePaths(folderPaths, task.ExternalStorageExtras.FilesPerFolder, task.ExternalStorageExtras.FileFormat)
+		filePaths := GenerateFilePaths(folderPaths, task.ExternalStorageExtras.FilesPerFolder, task.ExternalStorageExtras.FileFormat)
 		numOfBatches = int64(len(filePaths))
 
 		log.Println("folder paths")
@@ -280,7 +268,7 @@ func loadDocumentsInBatches(task *BlobLoadingTask) {
 
 	} else if task.Operation == tasks.UpdateFilesInFolderOperation {
 		// Here, we have to update files in a single folder. So we generate the file paths w.r.t that folder
-		filePaths := tasks.GenerateFilePaths([]string{task.ExternalStorageExtras.FolderPath}, task.ExternalStorageExtras.FilesPerFolder, task.ExternalStorageExtras.FileFormat)
+		filePaths := GenerateFilePaths([]string{task.ExternalStorageExtras.FolderPath}, task.ExternalStorageExtras.FilesPerFolder, task.ExternalStorageExtras.FileFormat)
 		numOfBatches = int64(len(filePaths))
 
 		log.Println("file paths")

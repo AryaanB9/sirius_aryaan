@@ -12,17 +12,17 @@ configuration that is also available on a per-task basis:
  * [/clear_data](#clear_data)
  * [/count](#count)
  * [/create](#create)
+ * [/create-bucket](#create-bucket)
  * [/create-database](#create-database)
  * [/create-file](#create-file)
  * [/create-files-in-folders](#create-files-in-folders)
  * [/create-folder](#create-folder)
- * [/create-s3-bucket](#create-s3-bucket)
  * [/delete](#delete)
+ * [/delete-bucket](#delete-bucket)
  * [/delete-database](#delete-database)
  * [/delete-file](#delete-file)
  * [/delete-files-in-folder](#delete-files-in-folder)
  * [/delete-folder](#delete-folder)
- * [/delete-s3-bucket](#delete-s3-bucket)
  * [/get-info](#get-info)
  * [/list-database](#list-database)
  * [/read](#read)
@@ -161,6 +161,24 @@ Description : Do operation between range from [start,end)
 | `Extra` | `struct` | `json:extra`  |
 
 ---
+#### /create-bucket
+
+ REST : POST
+
+Description : Do operation between range from [start,end)
+
+| Name | Type | JSON Tag |
+| ---- | ---- | -------- |
+| `IdentifierToken` | `string` | `json:identifierToken`  |
+| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
+| `OperationConfig` | `ptr` | `json:operationConfig`  |
+| `DBType` | `string` | `json:dbType`  |
+| `ConnStr` | `string` | `json:connectionString`  |
+| `Username` | `string` | `json:username`  |
+| `Password` | `string` | `json:password`  |
+| `Extra` | `struct` | `json:extra`  |
+
+---
 #### /create-database
 
  REST : POST
@@ -232,24 +250,6 @@ Description : Do operation between range from [start,end)
 | `Extra` | `struct` | `json:extra`  |
 
 ---
-#### /create-s3-bucket
-
- REST : POST
-
-Description : Do operation between range from [start,end)
-
-| Name | Type | JSON Tag |
-| ---- | ---- | -------- |
-| `IdentifierToken` | `string` | `json:identifierToken`  |
-| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
-| `OperationConfig` | `ptr` | `json:operationConfig`  |
-| `DBType` | `string` | `json:dbType`  |
-| `ConnStr` | `string` | `json:connectionString`  |
-| `Username` | `string` | `json:username`  |
-| `Password` | `string` | `json:password`  |
-| `Extra` | `struct` | `json:extra`  |
-
----
 #### /delete
 
  REST : POST
@@ -259,6 +259,24 @@ Description : Do operation between range from [start,end)
 | Name | Type | JSON Tag |
 | ---- | ---- | -------- |
 | `IdentifierToken` | `string` | `json:identifierToken`  |
+| `OperationConfig` | `ptr` | `json:operationConfig`  |
+| `DBType` | `string` | `json:dbType`  |
+| `ConnStr` | `string` | `json:connectionString`  |
+| `Username` | `string` | `json:username`  |
+| `Password` | `string` | `json:password`  |
+| `Extra` | `struct` | `json:extra`  |
+
+---
+#### /delete-bucket
+
+ REST : POST
+
+Description : Do operation between range from [start,end)
+
+| Name | Type | JSON Tag |
+| ---- | ---- | -------- |
+| `IdentifierToken` | `string` | `json:identifierToken`  |
+| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
 | `OperationConfig` | `ptr` | `json:operationConfig`  |
 | `DBType` | `string` | `json:dbType`  |
 | `ConnStr` | `string` | `json:connectionString`  |
@@ -321,24 +339,6 @@ Description : Do operation between range from [start,end)
 
 ---
 #### /delete-folder
-
- REST : POST
-
-Description : Do operation between range from [start,end)
-
-| Name | Type | JSON Tag |
-| ---- | ---- | -------- |
-| `IdentifierToken` | `string` | `json:identifierToken`  |
-| `ExternalStorageExtras` | `struct` | `json:externalStorageExtras`  |
-| `OperationConfig` | `ptr` | `json:operationConfig`  |
-| `DBType` | `string` | `json:dbType`  |
-| `ConnStr` | `string` | `json:connectionString`  |
-| `Username` | `string` | `json:username`  |
-| `Password` | `string` | `json:password`  |
-| `Extra` | `struct` | `json:extra`  |
-
----
-#### /delete-s3-bucket
 
  REST : POST
 

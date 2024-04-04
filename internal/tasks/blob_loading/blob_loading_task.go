@@ -64,12 +64,12 @@ func newBlobLoadingTask(start, end, seed int64, operationConfig *OperationConfig
 func (l *blobLoadingTask) Run() {
 	switch l.operation {
 
-	case tasks.S3BucketCreateOperation:
+	case tasks.BucketCreateOperation:
 		{
 			createS3Bucket(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.externalStorageExtras, l.wg)
 		}
-	case tasks.S3BucketDeleteOperation:
+	case tasks.BucketDeleteOperation:
 		{
 			deleteS3Bucket(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.externalStorageExtras, l.wg)
@@ -86,18 +86,18 @@ func (l *blobLoadingTask) Run() {
 		}
 	case tasks.FileInsertOperation:
 		{
-			insertFiles(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
+			insertFile(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.externalStorageExtras, l.wg)
 		}
 
 	case tasks.FileUpdateOperation:
 		{
-			insertFiles(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
+			insertFile(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.externalStorageExtras, l.wg)
 		}
 	case tasks.FileDeleteOperation:
 		{
-			deleteFiles(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
+			deleteFile(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.externalStorageExtras, l.wg)
 		}
 	case tasks.InsertFilesInFoldersOperation:

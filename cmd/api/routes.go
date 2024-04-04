@@ -63,8 +63,8 @@ func (app *Config) routes() http.Handler {
 	mux.Post("/validate-columnar", app.validateColumnarTask)
 
 	// Endpoints for External/Blob Storage use case
-	mux.Post("/create-s3-bucket", app.createS3BucketTask)
-	mux.Post("/delete-s3-bucket", app.deleteS3BucketTask)
+	mux.Post("/create-bucket", app.createBucketTask)
+	mux.Post("/delete-bucket", app.deleteBucketTask)
 	mux.Post("/create-folder", app.folderInsertTask)
 	mux.Post("/delete-folder", app.folderDeleteTask)
 	mux.Post("/create-file", app.fileInsertTask)

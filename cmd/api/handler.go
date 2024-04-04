@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/AryaanB9/sirius_aryaan/internal/tasks/blob_loading"
 	"log"
 	"net/http"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/AryaanB9/sirius_aryaan/internal/external_storage"
 	"github.com/AryaanB9/sirius_aryaan/internal/task_result"
 	"github.com/AryaanB9/sirius_aryaan/internal/tasks"
+	"github.com/AryaanB9/sirius_aryaan/internal/tasks/blob_loading"
 	"github.com/AryaanB9/sirius_aryaan/internal/tasks/data_loading"
 	"github.com/AryaanB9/sirius_aryaan/internal/tasks/util_sirius"
 )
@@ -994,8 +994,8 @@ func (app *Config) WarmUpBucket(w http.ResponseWriter, r *http.Request) {
 	_ = app.writeJSON(w, http.StatusOK, resPayload)
 }
 
-// createS3BucketTask is used to create a bucket in S3.
-func (app *Config) createS3BucketTask(w http.ResponseWriter, r *http.Request) {
+// createBucketTask is used to create a bucket in the blob storage service like S3
+func (app *Config) createBucketTask(w http.ResponseWriter, r *http.Request) {
 	task := &blob_loading.BlobLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
@@ -1005,9 +1005,9 @@ func (app *Config) createS3BucketTask(w http.ResponseWriter, r *http.Request) {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
 	}
-	task.Operation = tasks.S3BucketCreateOperation
-	log.Print(task, tasks.S3BucketCreateOperation)
-	err := app.serverRequests.AddTask(task.IdentifierToken, tasks.S3BucketCreateOperation, task)
+	task.Operation = tasks.BucketCreateOperation
+	log.Print(task, tasks.BucketCreateOperation)
+	err := app.serverRequests.AddTask(task.IdentifierToken, tasks.BucketCreateOperation, task)
 	if err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
@@ -1036,8 +1036,8 @@ func (app *Config) createS3BucketTask(w http.ResponseWriter, r *http.Request) {
 	_ = app.writeJSON(w, http.StatusOK, resPayload)
 }
 
-// deleteS3BucketTask is used to delete a bucket in S3.
-func (app *Config) deleteS3BucketTask(w http.ResponseWriter, r *http.Request) {
+// deleteBucketTask is used to delete a bucket in S3.
+func (app *Config) deleteBucketTask(w http.ResponseWriter, r *http.Request) {
 	task := &blob_loading.BlobLoadingTask{}
 	if err := app.readJSON(w, r, task); err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
@@ -1047,9 +1047,9 @@ func (app *Config) deleteS3BucketTask(w http.ResponseWriter, r *http.Request) {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
 	}
-	task.Operation = tasks.S3BucketDeleteOperation
-	log.Print(task, tasks.S3BucketDeleteOperation)
-	err := app.serverRequests.AddTask(task.IdentifierToken, tasks.S3BucketDeleteOperation, task)
+	task.Operation = tasks.BucketDeleteOperation
+	log.Print(task, tasks.BucketDeleteOperation)
+	err := app.serverRequests.AddTask(task.IdentifierToken, tasks.BucketDeleteOperation, task)
 	if err != nil {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
