@@ -1,9 +1,10 @@
 package blob_loading
 
 import (
-	"bytes"
 	"encoding/json"
 	"log"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -22,20 +23,12 @@ import (
 	"github.com/parquet-go/parquet-go"
 )
 
-func createS3Bucket(start, end, seed int64, operationConfig *OperationConfig,
+func createBucket(start, end, seed int64, operationConfig *OperationConfig,
 	rerun bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
 	databaseInfo tasks.DatabaseInformation, extra external_storage.ExternalStorageExtras, wg *sync.WaitGroup) {
 
 	if wg != nil {
 		defer wg.Done()
-	}
-
-	skip := make(map[int64]struct{})
-	for _, offset := range state.KeyStates.Completed {
-		skip[offset] = struct{}{}
-	}
-	for _, offset := range state.KeyStates.Err {
-		skip[offset] = struct{}{}
 	}
 
 	extStorage, extStorageErr := external_storage.ConfigExternalStorage(databaseInfo.DBType)
@@ -69,20 +62,12 @@ func createS3Bucket(start, end, seed int64, operationConfig *OperationConfig,
 	}
 }
 
-func deleteS3Bucket(start, end, seed int64, operationConfig *OperationConfig,
+func deleteBucket(start, end, seed int64, operationConfig *OperationConfig,
 	rerun bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
 	databaseInfo tasks.DatabaseInformation, extra external_storage.ExternalStorageExtras, wg *sync.WaitGroup) {
 
 	if wg != nil {
 		defer wg.Done()
-	}
-
-	skip := make(map[int64]struct{})
-	for _, offset := range state.KeyStates.Completed {
-		skip[offset] = struct{}{}
-	}
-	for _, offset := range state.KeyStates.Err {
-		skip[offset] = struct{}{}
 	}
 
 	extStorage, extStorageErr := external_storage.ConfigExternalStorage(databaseInfo.DBType)
@@ -96,7 +81,7 @@ func deleteS3Bucket(start, end, seed int64, operationConfig *OperationConfig,
 	docId := gen.BuildKey(key)
 	keyValue = external_storage.KeyValue{
 		Key:    docId,
-		Doc:    nil,
+		Doc:    extra.Bucket,
 		Offset: 0,
 	}
 
@@ -122,14 +107,6 @@ func insertFolder(start, end, seed int64, operationConfig *OperationConfig,
 
 	if wg != nil {
 		defer wg.Done()
-	}
-
-	skip := make(map[int64]struct{})
-	for _, offset := range state.KeyStates.Completed {
-		skip[offset] = struct{}{}
-	}
-	for _, offset := range state.KeyStates.Err {
-		skip[offset] = struct{}{}
 	}
 
 	extStorage, extStorageErr := external_storage.ConfigExternalStorage(databaseInfo.DBType)
@@ -171,14 +148,6 @@ func deleteFolder(start, end, seed int64, operationConfig *OperationConfig,
 		defer wg.Done()
 	}
 
-	skip := make(map[int64]struct{})
-	for _, offset := range state.KeyStates.Completed {
-		skip[offset] = struct{}{}
-	}
-	for _, offset := range state.KeyStates.Err {
-		skip[offset] = struct{}{}
-	}
-
 	extStorage, extStorageErr := external_storage.ConfigExternalStorage(databaseInfo.DBType)
 	if extStorageErr != nil {
 		result.FailWholeBulkOperation(start, end, extStorageErr, state, gen, seed)
@@ -190,7 +159,7 @@ func deleteFolder(start, end, seed int64, operationConfig *OperationConfig,
 	docId := gen.BuildKey(key)
 	keyValue = external_storage.KeyValue{
 		Key:    docId,
-		Doc:    nil,
+		Doc:    extra.FolderPath,
 		Offset: 0,
 	}
 
@@ -210,20 +179,12 @@ func deleteFolder(start, end, seed int64, operationConfig *OperationConfig,
 	}
 }
 
-func insertFiles(start, end, seed int64, operationConfig *OperationConfig,
+func insertFile(start, end, seed int64, operationConfig *OperationConfig,
 	rerun bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
 	databaseInfo tasks.DatabaseInformation, extra external_storage.ExternalStorageExtras, wg *sync.WaitGroup) {
 
 	if wg != nil {
 		defer wg.Done()
-	}
-
-	skip := make(map[int64]struct{})
-	for _, offset := range state.KeyStates.Completed {
-		skip[offset] = struct{}{}
-	}
-	for _, offset := range state.KeyStates.Err {
-		skip[offset] = struct{}{}
 	}
 
 	extStorage, extStorageErr := external_storage.ConfigExternalStorage(databaseInfo.DBType)
@@ -233,208 +194,234 @@ func insertFiles(start, end, seed int64, operationConfig *OperationConfig,
 	}
 
 	var keyValues []external_storage.KeyValue
-	var docsArray []interface{}
-
-	for offset := start; offset < end; offset++ {
-		if _, ok := skip[offset]; ok {
-			continue
-		}
-
-		key := offset + seed
-		docId := gen.BuildKey(key)
-		fake := faker.NewFastFaker()
-		fake.Seed(key)
-		doc := gen.Template.GenerateDocument(fake, docId, operationConfig.DocSize)
-		keyValues = append(keyValues, external_storage.KeyValue{
-			Key:    docId,
-			Doc:    nil,
-			Offset: offset,
-		})
-		docsArray = append(docsArray, doc)
+	fileFormat := strings.ToLower(extra.FileFormat) // file format can be like "json" or "json, avro" or "json,parquet"
+	if fileFormat == "" {
+		log.Println("creating files to insert: file format not provided")
+		return
 	}
 
-	// Handling the Different File Formats
 	templateName := strings.ToLower(operationConfig.TemplateName)
-	var fileToUpload []byte
-	var errDocToFileFormat error
+	pathToFileOnDisk := TempFolderPath + generateRandomString(24) + "." + fileFormat
 
-	switch strings.ToLower(extra.FileFormat) {
-	case "json":
-		fileToUpload, errDocToFileFormat = json.MarshalIndent(docsArray, "", "  ")
-		if errDocToFileFormat != nil {
-			log.Println("In operations.go insertFiles(), error marshaling JSON:", errDocToFileFormat)
+	// Validating file format
+	if checkFileFormat := external_storage.ValidateFileFormat(fileFormat); checkFileFormat {
+		// Checking if file format extension in FilePath is correct
+		_, file := filepath.Split(extra.FilePath)
+		temp := strings.Split(file, ".")
+		tempFormat := temp[len(temp)-1]
+		if tempFormat != fileFormat {
+			log.Println("creating files to insert: file format of file path and file format provided does not match")
+			return
 		}
+	} else {
+		log.Println("creating files to insert: file format provided is invalid or is not supported")
+		return
+	}
+
+	// The file will be created on disk
+	file, err := os.OpenFile(pathToFileOnDisk, os.O_APPEND|os.O_CREATE|os.O_WRONLY, os.ModePerm)
+	if err != nil {
+		log.Println("creating files to insert: opening output file:", err)
+		return
+	}
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			log.Println("creating files to insert: closing output file:", err)
+			return
+		}
+	}(file)
+
+	// Handling the Different File Formats
+	switch fileFormat {
+	case "json":
+
+		encoder := json.NewEncoder(file)
+
+		timeFileGenStart := time.Now()
+		for offset := start; offset < end; offset++ {
+			key := offset + seed
+			docId := gen.BuildKey(key)
+			fake := faker.NewFastFaker()
+			fake.Seed(key)
+			doc := gen.Template.GenerateDocument(fake, docId, operationConfig.DocSize)
+			keyValues = append(keyValues, external_storage.KeyValue{
+				Key:    docId,
+				Doc:    nil,
+				Offset: offset,
+			})
+
+			if err := encoder.Encode(doc); err != nil {
+				log.Println("creating files to insert: encoding output json file:", err)
+				return
+			}
+		}
+		log.Println("time to create file", pathToFileOnDisk, "on disk:", time.Now().Sub(timeFileGenStart))
 
 	case "avro":
-		var bufferAvroFile bytes.Buffer
 
 		// Parsing the AVRO Schema
 		avroSchema, err := template.GetAvroSchema(templateName)
 		if err != nil {
-			log.Println("In operations.go insertFiles(), error getting avro schema:", err)
+			log.Println("creating files to insert: getting avro schema:", err)
+			return
 		}
 		// Getting the codec which is used in conversion between binary and struct (in form of [string]interface{})
 		codec, err := goavro.NewCodec(avroSchema)
 		if err != nil {
-			log.Println("In operations.go insertFiles(), error parsing avro schema:", err)
+			log.Println("creating files to insert: parsing avro schema:", err)
+			return
 		}
 
-		// Converting the documents into avro binary
-		for _, x := range docsArray {
-			avroDoc, err := codec.BinaryFromNative(nil, template.StructToMap(x))
+		timeFileGenStart := time.Now()
+		for offset := start; offset < end; offset++ {
+			key := offset + seed
+			docId := gen.BuildKey(key)
+			fake := faker.NewFastFaker()
+			fake.Seed(key)
+			doc := gen.Template.GenerateDocument(fake, docId, operationConfig.DocSize)
+			keyValues = append(keyValues, external_storage.KeyValue{
+				Key:    docId,
+				Doc:    nil,
+				Offset: offset,
+			})
+
+			// Converting the struct into avro binary. First struct is converted into map[string]interface{}, then that
+			// is converted to avro binary.
+			avroBytes, err := codec.BinaryFromNative(nil, template.StructToMap(doc))
 			if err != nil {
-				log.Println("In operations.go insertFiles(), error converting into avro:", err)
+				log.Println("creating files to insert: converting into avro:", err)
+				return
 			}
-			_, err = bufferAvroFile.Write(avroDoc)
+
+			// Writing the avro bytes to file
+			_, err = file.Write(avroBytes)
 			if err != nil {
-				log.Println("In operations.go insertFiles(), writing avro data to buffer failed:", err)
+				log.Println("creating files to insert: writing doc to avro file:", err)
+				return
 			}
 		}
-
-		fileToUpload = bufferAvroFile.Bytes()
-		bufferAvroFile.Reset()
-
-		// Converting Binary to Struct. For one doc
-		//docFromAvro, _, _ := codec.NativeFromBinary(fileToUpload)
-		//log.Println(template.StringMapToHotel(docFromAvro.(map[string]interface{})))
+		log.Println("time to create file", pathToFileOnDisk, "on disk:", time.Now().Sub(timeFileGenStart))
 
 	case "csv":
-		bufferCsvFile := &bytes.Buffer{}
-		csvFileWriter := struct2csv.NewWriter(bufferCsvFile)
+		csvFileWriter := struct2csv.NewWriter(file)
 
-		switch templateName {
-		case "hotel":
-			err := csvFileWriter.WriteColNames(*docsArray[0].(*template.Hotel))
-			if err != nil {
-				log.Println("In operations.go insertFiles(), error writing headers into csv:", err)
-			}
-			for _, x := range docsArray {
-				err := csvFileWriter.WriteStruct(*x.(*template.Hotel))
+		timeFileGenStart := time.Now()
+		for offset := start; offset < end; offset++ {
+			key := offset + seed
+			docId := gen.BuildKey(key)
+			fake := faker.NewFastFaker()
+			fake.Seed(key)
+			doc := gen.Template.GenerateDocument(fake, docId, operationConfig.DocSize)
+			keyValues = append(keyValues, external_storage.KeyValue{
+				Key:    docId,
+				Doc:    nil,
+				Offset: offset,
+			})
+
+			if offset == start {
+				// Writing the column names for the csv file
+				doc, _ := gen.Template.GetValues(doc)
+				err := csvFileWriter.WriteColNames(doc)
 				if err != nil {
-					log.Println("In operations.go insertFiles(), error converting into csv:", err)
+					log.Println("creating files to insert: writing header into csv:", err)
+					return
 				}
 			}
-		case "person":
-			err := csvFileWriter.WriteColNames(*docsArray[0].(*template.Person))
+
+			// Writing the csv row to file
+			doc, _ = gen.Template.GetValues(doc)
+			err = csvFileWriter.WriteStruct(doc)
 			if err != nil {
-				log.Println("In operations.go insertFiles(), error writing headers into csv:", err)
+				log.Println("creating files to insert: writing into csv file:", err)
+				return
 			}
-			for _, x := range docsArray {
-				err := csvFileWriter.WriteStruct(*x.(*template.Person))
-				if err != nil {
-					log.Println("In operations.go insertFiles(), error converting into csv:", err)
-				}
-			}
-		case "product":
-			err := csvFileWriter.WriteColNames(*docsArray[0].(*template.Product))
-			if err != nil {
-				log.Println("In operations.go insertFiles(), error writing headers into csv:", err)
-			}
-			for _, x := range docsArray {
-				err := csvFileWriter.WriteStruct(*x.(*template.Product))
-				if err != nil {
-					log.Println("In operations.go insertFiles(), error converting into csv:", err)
-				}
-			}
-		default:
-			panic("invalid template name")
 		}
 		csvFileWriter.Flush()
-		fileToUpload = bufferCsvFile.Bytes()
-		bufferCsvFile.Reset()
+		log.Println("time to create file", pathToFileOnDisk, "on disk:", time.Now().Sub(timeFileGenStart))
 
 	case "tsv":
-		bufferTsvFile := &bytes.Buffer{}
-		tsvFileWriter := struct2csv.NewWriter(bufferTsvFile)
+		tsvFileWriter := struct2csv.NewWriter(file)
 		var tabDelimiter rune
 		tabDelimiter = '\t'
 		tsvFileWriter.SetComma(tabDelimiter)
 
-		switch templateName {
-		case "hotel":
-			err := tsvFileWriter.WriteColNames(*docsArray[0].(*template.Hotel))
-			if err != nil {
-				log.Println("In operations.go insertFiles(), error writing headers into tsv:", err)
-			}
-			for _, x := range docsArray {
-				err := tsvFileWriter.WriteStruct(*x.(*template.Hotel))
+		timeFileGenStart := time.Now()
+		for offset := start; offset < end; offset++ {
+			key := offset + seed
+			docId := gen.BuildKey(key)
+			fake := faker.NewFastFaker()
+			fake.Seed(key)
+			doc := gen.Template.GenerateDocument(fake, docId, operationConfig.DocSize)
+			keyValues = append(keyValues, external_storage.KeyValue{
+				Key:    docId,
+				Doc:    nil,
+				Offset: offset,
+			})
+
+			if offset == start {
+				// Writing the column names for the tsv file
+				doc, _ := gen.Template.GetValues(doc)
+				err := tsvFileWriter.WriteColNames(doc)
 				if err != nil {
-					log.Println("In operations.go insertFiles(), error converting into tsv:", err)
+					log.Println("creating files to insert: writing headers into tsv:", err)
+					return
 				}
 			}
-		case "person":
-			err := tsvFileWriter.WriteColNames(*docsArray[0].(*template.Person))
+
+			// Writing the tsv row to file
+			doc, _ = gen.Template.GetValues(doc)
+			err = tsvFileWriter.WriteStruct(doc)
 			if err != nil {
-				log.Println("In operations.go insertFiles(), error writing headers into tsv:", err)
+				log.Println("creating files to insert: writing into tsv file:", err)
+				return
 			}
-			for _, x := range docsArray {
-				err := tsvFileWriter.WriteStruct(*x.(*template.Person))
-				if err != nil {
-					log.Println("In operations.go insertFiles(), error converting into tsv:", err)
-				}
-			}
-		case "product":
-			err := tsvFileWriter.WriteColNames(*docsArray[0].(*template.Product))
-			if err != nil {
-				log.Println("In operations.go insertFiles(), error writing headers into tsv:", err)
-			}
-			for _, x := range docsArray {
-				err := tsvFileWriter.WriteStruct(*x.(*template.Product))
-				if err != nil {
-					log.Println("In operations.go insertFiles(), error converting into tsv:", err)
-				}
-			}
-		default:
-			panic("invalid template name or template name not supported")
 		}
 		tsvFileWriter.Flush()
-		fileToUpload = bufferTsvFile.Bytes()
-		bufferTsvFile.Reset()
+		log.Println("time to create file", pathToFileOnDisk, "on disk:", time.Now().Sub(timeFileGenStart))
 
 	case "parquet":
-		bufferParquetFile := new(bytes.Buffer)
+
 		var writer *parquet.GenericWriter[interface{}]
 
 		// Defining the parquet schema and then creating a parquet writer instance with buffer as output
-		if strings.ToLower(templateName) == "hotel" {
-			schema := parquet.SchemaOf(new(template.Hotel))
-			writer = parquet.NewGenericWriter[interface{}](bufferParquetFile, schema)
+		schema := parquet.SchemaOf(template.InitialiseTemplate(templateName))
+		writer = parquet.NewGenericWriter[interface{}](file, schema)
 
-		} else if strings.ToLower(templateName) == "person" {
-			schema := parquet.SchemaOf(new(template.Person))
-			writer = parquet.NewGenericWriter[interface{}](bufferParquetFile, schema)
+		timeFileGenStart := time.Now()
+		for offset := start; offset < end; offset++ {
+			key := offset + seed
+			docId := gen.BuildKey(key)
+			fake := faker.NewFastFaker()
+			fake.Seed(key)
+			doc := gen.Template.GenerateDocument(fake, docId, operationConfig.DocSize)
+			keyValues = append(keyValues, external_storage.KeyValue{
+				Key:    docId,
+				Doc:    nil,
+				Offset: offset,
+			})
 
-		} else if strings.ToLower(templateName) == "product" {
-			schema := parquet.SchemaOf(new(template.Product))
-			writer = parquet.NewGenericWriter[interface{}](bufferParquetFile, schema)
-		}
-
-		// Writing the array of documents to parquet writer
-		_, err := writer.Write(docsArray)
-		if err != nil {
-			log.Println("In operations.go insertFiles(), error writing document into parquet:", err)
+			// Writing the array of documents to parquet writer
+			_, err := writer.Write([]interface{}{doc})
+			if err != nil {
+				log.Println("creating files to insert: writing document into parquet:", err)
+				return
+			}
 		}
 
 		// Closing the writer to flush buffers and write the file footer.
 		if err := writer.Close(); err != nil {
-			log.Println("In operations.go insertFiles(), error flushing Parquet writer:", err)
+			log.Println("creating files to insert: flushing parquet writer:", err)
+			return
 		}
-
-		fileToUpload = bufferParquetFile.Bytes()
-		bufferParquetFile.Reset()
+		log.Println("time to create file", pathToFileOnDisk, "on disk:", time.Now().Sub(timeFileGenStart))
 
 	default:
-		panic("invalid file format or file format not supported")
+		panic("creating files to insert: invalid file format or file format not supported")
 	}
 
-	// Emptying the created array of docs
-	docsArray = nil
-
 	initTime := time.Now().UTC().Format(time.RFC850)
-	bulkResult := extStorage.CreateFiles(&fileToUpload, keyValues, extra)
-
-	// Emptying created file
-	fileToUpload = nil
+	bulkResult := extStorage.CreateFile(pathToFileOnDisk, keyValues, extra)
 
 	for _, x := range keyValues {
 		if bulkResult.GetError(x.Key) != nil {
@@ -450,23 +437,16 @@ func insertFiles(start, end, seed int64, operationConfig *OperationConfig,
 		}
 
 	}
+
 	keyValues = nil
 }
 
-func deleteFiles(start, end, seed int64, operationConfig *OperationConfig,
+func deleteFile(start, end, seed int64, operationConfig *OperationConfig,
 	rerun bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
 	databaseInfo tasks.DatabaseInformation, extra external_storage.ExternalStorageExtras, wg *sync.WaitGroup) {
 
 	if wg != nil {
 		defer wg.Done()
-	}
-
-	skip := make(map[int64]struct{})
-	for _, offset := range state.KeyStates.Completed {
-		skip[offset] = struct{}{}
-	}
-	for _, offset := range state.KeyStates.Err {
-		skip[offset] = struct{}{}
 	}
 
 	extStorage, extStorageErr := external_storage.ConfigExternalStorage(databaseInfo.DBType)
@@ -477,10 +457,6 @@ func deleteFiles(start, end, seed int64, operationConfig *OperationConfig,
 
 	var keyValues []external_storage.KeyValue
 	for offset := start; offset < end; offset++ {
-		if _, ok := skip[offset]; ok {
-			continue
-		}
-
 		key := offset + seed
 		docId := gen.BuildKey(key)
 		keyValues = append(keyValues, external_storage.KeyValue{
@@ -489,7 +465,7 @@ func deleteFiles(start, end, seed int64, operationConfig *OperationConfig,
 	}
 
 	initTime := time.Now().UTC().Format(time.RFC850)
-	bulkResult := extStorage.DeleteFiles(keyValues, extra)
+	bulkResult := extStorage.DeleteFile(keyValues, extra)
 
 	for _, x := range keyValues {
 		if bulkResult.GetError(x.Key) != nil {
@@ -510,14 +486,14 @@ func insertFilesInFolders(start, end, seed int64, operationConfig *OperationConf
 	rerun bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
 	databaseInfo tasks.DatabaseInformation, extra external_storage.ExternalStorageExtras, wg *sync.WaitGroup) {
 
-	insertFiles(start, end, seed, operationConfig, rerun, gen, state, result, databaseInfo, extra, wg)
+	insertFile(start, end, seed, operationConfig, rerun, gen, state, result, databaseInfo, extra, wg)
 }
 
 func updateFilesInFolder(start, end, seed int64, operationConfig *OperationConfig,
 	rerun bool, gen *docgenerator.Generator, state *task_state.TaskState, result *task_result.TaskResult,
 	databaseInfo tasks.DatabaseInformation, extra external_storage.ExternalStorageExtras, wg *sync.WaitGroup) {
 
-	insertFiles(start, end, seed, operationConfig, rerun, gen, state, result, databaseInfo, extra, wg)
+	insertFile(start, end, seed, operationConfig, rerun, gen, state, result, databaseInfo, extra, wg)
 }
 
 func deleteFilesInFolder(start, end, seed int64, operationConfig *OperationConfig,
@@ -528,14 +504,6 @@ func deleteFilesInFolder(start, end, seed int64, operationConfig *OperationConfi
 		defer wg.Done()
 	}
 
-	skip := make(map[int64]struct{})
-	for _, offset := range state.KeyStates.Completed {
-		skip[offset] = struct{}{}
-	}
-	for _, offset := range state.KeyStates.Err {
-		skip[offset] = struct{}{}
-	}
-
 	extStorage, extStorageErr := external_storage.ConfigExternalStorage(databaseInfo.DBType)
 	if extStorageErr != nil {
 		result.FailWholeBulkOperation(start, end, extStorageErr, state, gen, seed)
@@ -544,10 +512,6 @@ func deleteFilesInFolder(start, end, seed int64, operationConfig *OperationConfi
 
 	var keyValues []external_storage.KeyValue
 	for offset := start; offset < end; offset++ {
-		if _, ok := skip[offset]; ok {
-			continue
-		}
-
 		key := offset + seed
 		docId := gen.BuildKey(key)
 		keyValues = append(keyValues, external_storage.KeyValue{

@@ -267,12 +267,66 @@ func loadDocumentsInBatches(task *BlobLoadingTask) {
 		return
 
 	} else if task.Operation == tasks.UpdateFilesInFolderOperation {
-		// Here, we have to update files in a single folder. So we generate the file paths w.r.t that folder
-		filePaths := GenerateFilePaths([]string{task.ExternalStorageExtras.FolderPath}, task.ExternalStorageExtras.FilesPerFolder, task.ExternalStorageExtras.FileFormat)
-		numOfBatches = int64(len(filePaths))
 
-		log.Println("file paths")
-		log.Println(filePaths)
+		// We have to update the files present in the given folder. So first, we get the bucket directory structure and
+		// then get the list of all files in the requested folder. Based on the file formats specified and num of folders
+		// to be updated we select the files to update and then pass them in separate batches.
+		extStorage, err := external_storage.ConfigExternalStorage(task.DBType)
+		if err != nil {
+			log.Println("load documents in batch:", err)
+			return
+		}
+
+		bucketStructure, err := extStorage.GetInfo(task.ExternalStorageExtras)
+		if err != nil {
+			log.Println("load documents in batch:", err)
+			return
+		}
+
+		folderPath := task.ExternalStorageExtras.FolderPath
+		folderLvl := strings.Count(folderPath, "/") // Stores the depth of the folder
+		subFolders := strings.Split(folderPath, "/")
+
+		folder := bucketStructure.(external_storage.Folder)
+		tempFolder := folder.Folders
+		tempFiles := folder.Files
+
+		// Traversing the folders in the bucket directory structure to get to the required folder of interest
+		for i := 0; i < folderLvl; i++ {
+			tempFiles = tempFolder[subFolders[i]].Files
+			tempFolder = tempFolder[subFolders[i]].Folders
+		}
+
+		// Now tempFiles has all the files present in the folder in which we want to update files
+		var probableFilePathsToUpdate, filePathsToUpdate []string
+		for key := range tempFiles {
+			probableFilePathsToUpdate = append(probableFilePathsToUpdate, folderPath+key)
+		}
+
+		if check := external_storage.ValidateFileFormat(task.ExternalStorageExtras.FileFormat); !check {
+			log.Println("load documents in batch: file format not correct")
+			return
+		}
+		fileFormatsArray := strings.Split(task.ExternalStorageExtras.FileFormat, ",")
+		fileFormatsMap := make(map[string]string)
+
+		for i := range fileFormatsArray {
+			fileFormatsArray[i] = strings.TrimSpace(fileFormatsArray[i])
+			formatExt := "." + fileFormatsArray[i]
+			fileFormatsMap[formatExt] = fileFormatsArray[i]
+		}
+		numFilesToBeUpdated := task.ExternalStorageExtras.FilesPerFolder
+
+		for i := 0; i < len(probableFilePathsToUpdate) && numFilesToBeUpdated > 0; i++ {
+			if _, ok := fileFormatsMap[filepath.Ext(probableFilePathsToUpdate[i])]; ok {
+				filePathsToUpdate = append(filePathsToUpdate, probableFilePathsToUpdate[i])
+				numFilesToBeUpdated--
+			}
+		}
+
+		// Here, we have to update files in a single folder. So we generate the file paths w.r.t that folder
+		//filePaths := GenerateFilePaths([]string{task.ExternalStorageExtras.FolderPath}, task.ExternalStorageExtras.FilesPerFolder, task.ExternalStorageExtras.FileFormat)
+		numOfBatches = int64(len(filePathsToUpdate))
 
 		// Batch Size = Num of Docs to generate to get file size somewhere between MinFileSize and MaxFileSize
 		var documentSize int64
@@ -296,8 +350,8 @@ func loadDocumentsInBatches(task *BlobLoadingTask) {
 			// Making required changes in order to start operation of File Insert
 			batchStart := i * batchSize
 			batchEnd := (i + 1) * batchSize
-			task.ExternalStorageExtras.FilePath = filePaths[i]
-			extractedFileFormat := filepath.Ext(filePaths[i])               // E.g. returns ".json"
+			task.ExternalStorageExtras.FilePath = filePathsToUpdate[i]
+			extractedFileFormat := filepath.Ext(filePathsToUpdate[i])       // E.g. returns ".json"
 			task.ExternalStorageExtras.FileFormat = extractedFileFormat[1:] // Now it is "json"
 
 			// Starting the Insert Task

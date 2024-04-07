@@ -1,16 +1,18 @@
 package external_storage
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/AryaanB9/sirius_aryaan/internal/sdk_s3"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
@@ -209,18 +211,18 @@ func (as3 AmazonS3) CreateBucket(keyValue KeyValue, extra ExternalStorageExtras)
 	result := newAmazonS3FolderOperation(keyValue.Key, keyValue.Doc, nil, false, 0)
 
 	if err := validateStrings(extra.AwsAccessKey, extra.AwsSecretKey, extra.AwsSessionToken, extra.AwsRegion); err != nil {
-		result.failFolderOperation(keyValue, errors.New("creating bucket: aws auth parameters missing: "+err.Error()))
+		result.failFolderOperation(keyValue, fmt.Errorf("create s3 bucket: aws auth parameters missing: %w", err))
 		return result
 	}
 
 	if err := validateStrings(extra.Bucket); err != nil {
-		result.failFolderOperation(keyValue.Doc, errors.New("creating bucket: bucket name is missing"))
+		result.failFolderOperation(keyValue.Doc, errors.New("create s3 bucket: bucket name is missing"))
 		return result
 	}
 
 	s3Client, err := as3.connectionManager.GetS3Cluster(extra.AwsAccessKey, extra.AwsSecretKey, extra.AwsSessionToken, extra.AwsRegion, nil)
 	if err != nil {
-		result.failFolderOperation(keyValue.Doc, errors.New("creating bucket: "+err.Error()))
+		result.failFolderOperation(keyValue.Doc, fmt.Errorf("create s3 bucket: get s3 client: %w", err))
 		return result
 	}
 
@@ -234,8 +236,8 @@ func (as3 AmazonS3) CreateBucket(keyValue KeyValue, extra ExternalStorageExtras)
 		},
 	})
 	if errUploadToS3 != nil {
-		log.Println("creating bucket: unable to create bucket in s3:", errUploadToS3)
-		result.failFolderOperation(keyValue.Doc, errors.New("creating bucket: unable to create bucket in s3: "+errUploadToS3.Error()))
+		log.Println("create s3 bucket:", errUploadToS3)
+		result.failFolderOperation(keyValue.Doc, fmt.Errorf("create s3 bucket: %w", errUploadToS3))
 		return result
 	}
 
@@ -248,18 +250,18 @@ func (as3 AmazonS3) DeleteBucket(keyValue KeyValue, extra ExternalStorageExtras)
 	result := newAmazonS3FolderOperation(keyValue.Key, keyValue.Doc, nil, false, 0)
 
 	if err := validateStrings(extra.AwsAccessKey, extra.AwsSecretKey, extra.AwsSessionToken, extra.AwsRegion); err != nil {
-		result.failFolderOperation(keyValue, errors.New("deleting bucket: aws auth parameters missing: "+err.Error()))
+		result.failFolderOperation(keyValue, fmt.Errorf("delete s3 bucket: aws auth parameters missing: %w", err))
 		return result
 	}
 
 	if err := validateStrings(extra.Bucket); err != nil {
-		result.failFolderOperation(keyValue.Doc, errors.New("deleting bucket: bucket name is missing"))
+		result.failFolderOperation(keyValue.Doc, errors.New("delete s3 bucket: bucket name is missing"))
 		return result
 	}
 
 	s3Client, err := as3.connectionManager.GetS3Cluster(extra.AwsAccessKey, extra.AwsSecretKey, extra.AwsSessionToken, extra.AwsRegion, nil)
 	if err != nil {
-		result.failFolderOperation(keyValue.Doc, errors.New("deleting bucket: "+err.Error()))
+		result.failFolderOperation(keyValue.Doc, fmt.Errorf("delete s3 bucket: %w", err))
 		return result
 	}
 
@@ -271,8 +273,8 @@ func (as3 AmazonS3) DeleteBucket(keyValue KeyValue, extra ExternalStorageExtras)
 		Bucket: &bucketName,
 	})
 	if err != nil {
-		log.Println("deleting bucket: unable to list objects in bucket:", err)
-		result.failFolderOperation(keyValue.Doc, errors.New("deleting bucket: unable to list objects in bucket: "+err.Error()))
+		log.Println("delete s3 bucket: list objects in bucket:", err)
+		result.failFolderOperation(keyValue.Doc, fmt.Errorf("delete s3 bucket: list objects in bucket: %w", err))
 		return result
 	}
 
@@ -285,8 +287,8 @@ func (as3 AmazonS3) DeleteBucket(keyValue KeyValue, extra ExternalStorageExtras)
 			MaxKeys: &numOfOutputKeys,
 		})
 		if err != nil {
-			log.Println("deleting bucket: unable to list objects in bucket:", err)
-			result.failFolderOperation(keyValue.Doc, errors.New("deleting bucket: unable to list objects in bucket: "+err.Error()))
+			log.Println("delete s3 bucket: list objects in bucket:", err)
+			result.failFolderOperation(keyValue.Doc, fmt.Errorf("delete s3 bucket: list objects in bucket: %w", err))
 			return result
 		}
 	}
@@ -298,8 +300,8 @@ func (as3 AmazonS3) DeleteBucket(keyValue KeyValue, extra ExternalStorageExtras)
 			Key:    obj.Key,
 		})
 		if err != nil {
-			log.Printf("deleting bucket: unable to delete object %s: %v\n", *obj.Key, err)
-			result.failFolderOperation(keyValue.Doc, errors.New(fmt.Sprintf("deleting bucket: unable to delete object %s: %v\n", *obj.Key, err)))
+			log.Printf("delete s3 bucket: unable to delete object %s: %v\n", *obj.Key, err)
+			result.failFolderOperation(keyValue.Doc, fmt.Errorf("delete s3 bucket: delete object %s: %w\n", *obj.Key, err))
 			return result
 		}
 	}
@@ -309,8 +311,8 @@ func (as3 AmazonS3) DeleteBucket(keyValue KeyValue, extra ExternalStorageExtras)
 		Bucket: &bucketName,
 	})
 	if errDeleteBucketS3 != nil {
-		log.Println("deleting bucket: unable to delete bucket in s3:", errDeleteBucketS3)
-		result.failFolderOperation(keyValue.Doc, errors.New("deleting bucket: unable to delete bucket in s3: "+errDeleteBucketS3.Error()))
+		log.Println("delete s3 bucket:", errDeleteBucketS3)
+		result.failFolderOperation(keyValue.Doc, fmt.Errorf("delete s3 bucket: %w", errDeleteBucketS3))
 		return result
 	}
 
@@ -323,18 +325,18 @@ func (as3 AmazonS3) CreateFolder(keyValue KeyValue, extra ExternalStorageExtras)
 	result := newAmazonS3FolderOperation(keyValue.Key, keyValue.Doc, nil, false, 0)
 
 	if err := validateStrings(extra.AwsAccessKey, extra.AwsSecretKey, extra.AwsSessionToken, extra.AwsRegion); err != nil {
-		result.failFolderOperation(keyValue, errors.New("creating folder: aws auth parameters missing: "+err.Error()))
+		result.failFolderOperation(keyValue, fmt.Errorf("create folder in s3 bucket: aws auth parameters missing: %w", err))
 		return result
 	}
 
 	if err := validateStrings(extra.Bucket, extra.FolderPath); err != nil {
-		result.failFolderOperation(keyValue.Doc, errors.New("creating folder: bucket name or folder path is missing"))
+		result.failFolderOperation(keyValue.Doc, errors.New("create folder in s3 bucket: bucket name or folder path is missing"))
 		return result
 	}
 
 	s3Client, err := as3.connectionManager.GetS3Cluster(extra.AwsAccessKey, extra.AwsSecretKey, extra.AwsSessionToken, extra.AwsRegion, nil)
 	if err != nil {
-		result.failFolderOperation(keyValue.Doc, errors.New("creating folder: "+err.Error()))
+		result.failFolderOperation(keyValue.Doc, fmt.Errorf("create folder in s3 bucket: %w", err))
 		return result
 	}
 
@@ -347,8 +349,8 @@ func (as3 AmazonS3) CreateFolder(keyValue KeyValue, extra ExternalStorageExtras)
 		Key:    &objectKey,
 	})
 	if errUploadToS3 != nil {
-		log.Println("creating folder: unable to create folder in S3:", errUploadToS3)
-		result.failFolderOperation(keyValue.Doc, errors.New("creating folder: unable to create folder in S3: "+errUploadToS3.Error()))
+		log.Println("create folder in s3 bucket:", errUploadToS3)
+		result.failFolderOperation(keyValue.Doc, fmt.Errorf("create folder in s3 bucket: %w", errUploadToS3))
 		return result
 	}
 
@@ -356,23 +358,24 @@ func (as3 AmazonS3) CreateFolder(keyValue KeyValue, extra ExternalStorageExtras)
 	return result
 }
 
+// DeleteFolder deletes a folder from s3 bucket. It first deletes all the files and sub folders inside the folder and then proceeds to delete the folder.
 func (as3 AmazonS3) DeleteFolder(keyValue KeyValue, extra ExternalStorageExtras) FolderOperationResult {
 
 	result := newAmazonS3FolderOperation(keyValue.Key, keyValue.Doc, nil, false, 0)
 
 	if err := validateStrings(extra.AwsAccessKey, extra.AwsSecretKey, extra.AwsSessionToken, extra.AwsRegion); err != nil {
-		result.failFolderOperation(keyValue, errors.New("deleting folder: aws auth parameters missing: "+err.Error()))
+		result.failFolderOperation(keyValue, fmt.Errorf("delete folder in s3 bucket: aws auth parameters missing: %w", err))
 		return result
 	}
 
 	if err := validateStrings(extra.Bucket, extra.FolderPath); err != nil {
-		result.failFolderOperation(keyValue.Doc, errors.New("deleting folder: bucket name or folder path is missing"))
+		result.failFolderOperation(keyValue.Doc, errors.New("delete folder in s3 bucket: bucket name or folder path is missing"))
 		return result
 	}
 
 	s3Client, err := as3.connectionManager.GetS3Cluster(extra.AwsAccessKey, extra.AwsSecretKey, extra.AwsSessionToken, extra.AwsRegion, nil)
 	if err != nil {
-		result.failFolderOperation(keyValue.Doc, errors.New("deleting folder: "+err.Error()))
+		result.failFolderOperation(keyValue.Doc, fmt.Errorf("delete folder in s3 bucket: %w", err))
 		return result
 	}
 
@@ -386,8 +389,8 @@ func (as3 AmazonS3) DeleteFolder(keyValue KeyValue, extra ExternalStorageExtras)
 		Prefix: &folderPath,
 	})
 	if err != nil {
-		log.Println("deleting folder: unable to list folder object in S3:", err)
-		result.failFolderOperation(keyValue.Doc, errors.New("deleting folder: unable to list folder object in S3: "+err.Error()))
+		log.Println("delete folder in s3 bucket: list folder object in S3:", err)
+		result.failFolderOperation(keyValue.Doc, fmt.Errorf("delete folder in s3 bucket: list folder object in S3: %w", err))
 		return result
 	}
 
@@ -400,8 +403,8 @@ func (as3 AmazonS3) DeleteFolder(keyValue KeyValue, extra ExternalStorageExtras)
 			MaxKeys: &numOfOutputKeys,
 		})
 		if err != nil {
-			log.Println("deleting bucket: unable to list objects in bucket:", err)
-			result.failFolderOperation(keyValue.Doc, errors.New("deleting bucket: unable to list objects in bucket: "+err.Error()))
+			log.Println("delete folder in s3 bucket: list objects in bucket:", err)
+			result.failFolderOperation(keyValue.Doc, fmt.Errorf("delete folder in s3 bucket: list folder object in S3: %w", err))
 			return result
 		}
 	}
@@ -413,8 +416,8 @@ func (as3 AmazonS3) DeleteFolder(keyValue KeyValue, extra ExternalStorageExtras)
 			Key:    obj.Key,
 		})
 		if err != nil {
-			log.Printf("deleting folder: unable to delete object %s in folder: %v\n", *obj.Key, err)
-			result.failFolderOperation(keyValue.Doc, errors.New(fmt.Sprintf("deleting folder: unable to delete object %s in folder: %v\n", *obj.Key, err)))
+			log.Printf("delete folder in s3 bucket: delete object %s in folder: %v\n", *obj.Key, err)
+			result.failFolderOperation(keyValue.Doc, fmt.Errorf("delete folder in s3 bucket: delete object %s in folder: %w", *obj.Key, err))
 			return result
 		}
 	}
@@ -425,8 +428,8 @@ func (as3 AmazonS3) DeleteFolder(keyValue KeyValue, extra ExternalStorageExtras)
 		Key:    &folderPath,
 	})
 	if errDeleteFromS3 != nil {
-		log.Println("deleting folder: unable to delete folder from S3:", errDeleteFromS3)
-		result.failFolderOperation(keyValue.Doc, errDeleteFromS3)
+		log.Println("delete folder in s3 bucket:", errDeleteFromS3)
+		result.failFolderOperation(keyValue.Doc, fmt.Errorf("delete folder in s3 bucket: %w", errDeleteFromS3))
 		return result
 	}
 
@@ -434,12 +437,12 @@ func (as3 AmazonS3) DeleteFolder(keyValue KeyValue, extra ExternalStorageExtras)
 	return result
 }
 
-func (as3 AmazonS3) CreateFiles(fileToUpload *[]byte, keyValues []KeyValue, extra ExternalStorageExtras) FileOperationResult {
+func (as3 AmazonS3) CreateFile(pathToFileOnDisk string, keyValues []KeyValue, extra ExternalStorageExtras) FileOperationResult {
 
 	result := newAmazonS3FileOperation()
 
 	if err := validateStrings(extra.AwsAccessKey, extra.AwsSecretKey, extra.AwsSessionToken, extra.AwsRegion); err != nil {
-		result.failFileOperation(keyValues, errors.New("creating files: aws auth parameters missing: "+err.Error()))
+		result.failFileOperation(keyValues, fmt.Errorf("upload file to s3: aws auth parameters missing: %w", err))
 		return result
 	}
 
@@ -449,36 +452,58 @@ func (as3 AmazonS3) CreateFiles(fileToUpload *[]byte, keyValues []KeyValue, extr
 	}
 
 	if err := validateStrings(extra.Bucket, extra.FileFormat, extra.FilePath); err != nil {
-		result.failFileOperation(keyValues, errors.New("creating files: bucket name or file format or file path is missing"))
+		result.failFileOperation(keyValues, errors.New("upload file to s3: bucket name or file format or file path is missing"))
 		return result
 	}
 
 	s3Client, err := as3.connectionManager.GetS3Cluster(extra.AwsAccessKey, extra.AwsSecretKey, extra.AwsSessionToken, extra.AwsRegion, nil)
 	if err != nil {
-		result.failFileOperation(keyValues, errors.New("creating files: "+err.Error()))
+		result.failFileOperation(keyValues, fmt.Errorf("upload file to s3: %w", err))
 		return result
 	}
 
 	bucketName := extra.Bucket
 	objectKey := extra.FilePath
 
-	// creating and uploading all the folders to S3 before inserting the file.
+	// creating and uploading all the folders to S3 before inserting the file
 	folderPath := filepath.Dir(objectKey)
 	err = extractFolderAndUploadToS3(context.TODO(), s3Client, bucketName, folderPath)
 	if err != nil {
-		result.failFileOperation(keyValues, errors.New("creating files: "+err.Error()))
+		result.failFileOperation(keyValues, fmt.Errorf("upload file to s3: %w", err))
 		return result
 	}
 
-	// Sending file to S3
-	_, errUploadToS3 := s3Client.PutObject(context.TODO(), &s3.PutObjectInput{
-		Bucket: &bucketName,
-		Key:    &objectKey,
-		Body:   bytes.NewReader(*fileToUpload),
-	})
-	if errUploadToS3 != nil {
-		log.Println("creating files: unable to upload file to S3:", errUploadToS3)
-		result.failFileOperation(keyValues, errUploadToS3)
+	// Sending File to S3 using S3 Manager Uploader
+
+	filePathToUpload, err := os.Open(pathToFileOnDisk)
+	if err != nil {
+		log.Println("upload file to s3: open file on disk:", err)
+		result.failFileOperation(keyValues, fmt.Errorf("upload file to s3: open file on disk: %w", err))
+		return result
+	}
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			log.Println("upload file to s3: close file on disk:", err)
+			result.failFileOperation(keyValues, fmt.Errorf("upload file to s3: close file on disk: %w", err))
+		}
+	}(filePathToUpload)
+
+	// Create an uploader instance
+	s3Uploader := manager.NewUploader(s3Client)
+
+	// Upload the file to S3
+	_, err = s3Uploader.Upload(
+		context.TODO(),
+		&s3.PutObjectInput{
+			Bucket: aws.String(bucketName),
+			Key:    aws.String(objectKey),
+			Body:   filePathToUpload,
+		},
+	)
+	if err != nil {
+		log.Println("upload file to s3: upload file to S3:", err)
+		result.failFileOperation(keyValues, fmt.Errorf("upload file to s3: %w", err))
 		return result
 	}
 
@@ -488,12 +513,12 @@ func (as3 AmazonS3) CreateFiles(fileToUpload *[]byte, keyValues []KeyValue, extr
 	return result
 }
 
-func (as3 AmazonS3) UpdateFiles(fileToUpload *[]byte, keyValues []KeyValue, extra ExternalStorageExtras) FileOperationResult {
+func (as3 AmazonS3) UpdateFile(pathToFileOnDisk string, keyValues []KeyValue, extra ExternalStorageExtras) FileOperationResult {
 
 	result := newAmazonS3FileOperation()
 
 	if err := validateStrings(extra.AwsAccessKey, extra.AwsSecretKey, extra.AwsSessionToken, extra.AwsRegion); err != nil {
-		result.failFileOperation(keyValues, errors.New("updating files: aws auth parameters missing: "+err.Error()))
+		result.failFileOperation(keyValues, fmt.Errorf("update file on s3: aws auth parameters missing: %w", err))
 		return result
 	}
 
@@ -503,13 +528,13 @@ func (as3 AmazonS3) UpdateFiles(fileToUpload *[]byte, keyValues []KeyValue, extr
 	}
 
 	if err := validateStrings(extra.Bucket, extra.FileFormat, extra.FilePath); err != nil {
-		result.failFileOperation(keyValues, errors.New("updating files: bucket name or file format or file path is missing"))
+		result.failFileOperation(keyValues, fmt.Errorf("update file on s3: bucket name or file format or file path is missing"))
 		return result
 	}
 
 	s3Client, err := as3.connectionManager.GetS3Cluster(extra.AwsAccessKey, extra.AwsSecretKey, extra.AwsSessionToken, extra.AwsRegion, nil)
 	if err != nil {
-		result.failFileOperation(keyValues, errors.New("updating files: "+err.Error()))
+		result.failFileOperation(keyValues, fmt.Errorf("update file on s3: %w", err))
 		return result
 	}
 
@@ -519,19 +544,41 @@ func (as3 AmazonS3) UpdateFiles(fileToUpload *[]byte, keyValues []KeyValue, extr
 	folderPath := filepath.Dir(objectKey)
 	err = extractFolderAndUploadToS3(context.TODO(), s3Client, bucketName, folderPath)
 	if err != nil {
-		result.failFileOperation(keyValues, errors.New("updating files: "+err.Error()))
+		result.failFileOperation(keyValues, fmt.Errorf("update file on s3: %w", err))
 		return result
 	}
 
-	// Sending file to S3
-	_, errUploadToS3 := s3Client.PutObject(context.TODO(), &s3.PutObjectInput{
-		Bucket: &bucketName,
-		Key:    &objectKey,
-		Body:   bytes.NewReader(*fileToUpload),
-	})
-	if errUploadToS3 != nil {
-		log.Println("updating files: unable to upload file to S3:", errUploadToS3)
-		result.failFileOperation(keyValues, errors.New("updating files: unable to upload file to S3: "+errUploadToS3.Error()))
+	// Sending File to S3 using S3 Manager Uploader
+	// Open the file
+	filePathToUpload, err := os.Open(pathToFileOnDisk)
+	if err != nil {
+		log.Println("update file on s3: open file on disk:", err)
+		result.failFileOperation(keyValues, fmt.Errorf("update file on s3: open file on disk: %w", err))
+		return result
+	}
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			log.Println("update file on s3: close file on disk:", err)
+			result.failFileOperation(keyValues, fmt.Errorf("update file on s3: close file on disk: %w", err))
+		}
+	}(filePathToUpload)
+
+	// Create an uploader instance
+	s3Uploader := manager.NewUploader(s3Client)
+
+	// Upload the file to S3
+	_, err = s3Uploader.Upload(
+		context.TODO(),
+		&s3.PutObjectInput{
+			Bucket: aws.String(bucketName),
+			Key:    aws.String(objectKey),
+			Body:   filePathToUpload,
+		},
+	)
+	if err != nil {
+		log.Println("update file on s3: upload file to S3:", err)
+		result.failFileOperation(keyValues, fmt.Errorf("update file on s3: upload file to S3:: %w", err))
 		return result
 	}
 
@@ -541,12 +588,12 @@ func (as3 AmazonS3) UpdateFiles(fileToUpload *[]byte, keyValues []KeyValue, extr
 	return result
 }
 
-func (as3 AmazonS3) DeleteFiles(keyValues []KeyValue, extra ExternalStorageExtras) FileOperationResult {
+func (as3 AmazonS3) DeleteFile(keyValues []KeyValue, extra ExternalStorageExtras) FileOperationResult {
 
 	result := newAmazonS3FileOperation()
 
 	if err := validateStrings(extra.AwsAccessKey, extra.AwsSecretKey, extra.AwsSessionToken, extra.AwsRegion); err != nil {
-		result.failFileOperation(keyValues, errors.New("deleting files: aws auth parameters missing: "+err.Error()))
+		result.failFileOperation(keyValues, fmt.Errorf("delete file from s3: aws auth parameters missing: %w", err))
 		return result
 	}
 
@@ -556,13 +603,13 @@ func (as3 AmazonS3) DeleteFiles(keyValues []KeyValue, extra ExternalStorageExtra
 	}
 
 	if err := validateStrings(extra.Bucket, extra.FilePath); err != nil {
-		result.failFileOperation(keyValues, errors.New("deleting files: bucket name or file format or file path is missing"))
+		result.failFileOperation(keyValues, fmt.Errorf("delete file from s3: bucket name or file format or file path is missing"))
 		return result
 	}
 
 	s3Client, err := as3.connectionManager.GetS3Cluster(extra.AwsAccessKey, extra.AwsSecretKey, extra.AwsSessionToken, extra.AwsRegion, nil)
 	if err != nil {
-		result.failFileOperation(keyValues, errors.New("deleting files: "+err.Error()))
+		result.failFileOperation(keyValues, fmt.Errorf("delete file from s3: %w", err))
 		return result
 	}
 
@@ -575,8 +622,8 @@ func (as3 AmazonS3) DeleteFiles(keyValues []KeyValue, extra ExternalStorageExtra
 		Key:    &objectKey,
 	})
 	if errDeleteS3Object != nil {
-		log.Println("deleting files: unable to delete file from S3:", errDeleteS3Object)
-		result.failFileOperation(keyValues, errors.New("deleting files: unable to delete file from S3: "+errDeleteS3Object.Error()))
+		log.Println("delete file from s3:", errDeleteS3Object)
+		result.failFileOperation(keyValues, fmt.Errorf("delete file from s3: %w", errDeleteS3Object))
 		return result
 	}
 
@@ -587,12 +634,12 @@ func (as3 AmazonS3) DeleteFiles(keyValues []KeyValue, extra ExternalStorageExtra
 }
 
 func (as3 AmazonS3) CreateFilesInFolder(keyValues []KeyValue, extra ExternalStorageExtras) FileOperationResult {
-	// This operation is handled in generic_loading.go and using CreateFiles()
+	// This operation is handled in blob_loading.go and using CreateFile()
 	return newAmazonS3FileOperation()
 }
 
 func (as3 AmazonS3) UpdateFilesInFolder(keyValues []KeyValue, extra ExternalStorageExtras) FileOperationResult {
-	// This operation is handled in generic_loading.go and using CreateFiles()
+	// This operation is handled in blob_loading.go and using CreateFile()
 	return newAmazonS3FileOperation()
 }
 
@@ -601,14 +648,14 @@ func (as3 AmazonS3) UpdateFilesInFolder(keyValues []KeyValue, extra ExternalStor
  * The number of files to be deleted is to be specified in ExternalStorageExtras.NumFiles
  * If ExternalStorageExtras.NumFiles = 0, then it will delete all the files in the folder
  * The file formats specified in ExternalStorageExtras.FileFormat will be deleted.
- * If the ExternalStorageExtras.FileFormat is not provided then files of all/any formats will be deleted.
+ * If the ExternalStorageExtras.FileFormat is not provided then files of all supported formats will be deleted.
  */
 func (as3 AmazonS3) DeleteFilesInFolder(keyValues []KeyValue, extra ExternalStorageExtras) FileOperationResult {
 
 	result := newAmazonS3FileOperation()
 
 	if err := validateStrings(extra.AwsAccessKey, extra.AwsSecretKey, extra.AwsSessionToken, extra.AwsRegion); err != nil {
-		result.failFileOperation(keyValues, errors.New("deleting files in a folder: aws auth parameters missing: "+err.Error()))
+		result.failFileOperation(keyValues, fmt.Errorf("delete files in a folder from s3: aws auth parameters missing: %w", err))
 		return result
 	}
 
@@ -617,28 +664,40 @@ func (as3 AmazonS3) DeleteFilesInFolder(keyValues []KeyValue, extra ExternalStor
 		keyToOffset[x.Key] = x.Offset
 	}
 
-	if err := validateStrings(extra.Bucket, extra.FolderPath); err != nil {
-		result.failFileOperation(keyValues, errors.New("deleting files in a folder: bucket name or folder path is missing"))
+	if err := validateStrings(extra.Bucket); err != nil {
+		result.failFileOperation(keyValues, fmt.Errorf("delete files in a folder from s3: bucket name"))
 		return result
 	}
 
 	s3Client, err := as3.connectionManager.GetS3Cluster(extra.AwsAccessKey, extra.AwsSecretKey, extra.AwsSessionToken, extra.AwsRegion, nil)
 	if err != nil {
-		result.failFileOperation(keyValues, errors.New("deleting files in a folder: "+err.Error()))
+		result.failFileOperation(keyValues, fmt.Errorf("delete files in a folder from s3: %w", err))
 		return result
 	}
 
 	bucketName := extra.Bucket
 	objectKey := extra.FolderPath
+	fileFormat := extra.FileFormat
 
-	fileFormatsArray := strings.Split(extra.FileFormat, ",")
-	if extra.FileFormat == "" {
-		fileFormatsArray = []string{".json", ".avro", ".parquet", ".csv", ".tsv", ".gz"}
-		log.Println("deleting files in a folder: file format not provided. All file formats will be considered for deletion")
+	// Validating file format
+	if checkFileFormat := ValidateFileFormat(fileFormat); !checkFileFormat {
+		result.failFileOperation(keyValues, errors.New("delete files in a folder from s3: file format provided is invalid or is not supported"))
+		return result
+	}
+
+	fileFormatsArray := strings.Split(fileFormat, ",")
+	fileFormatsMap := make(map[string]string) // stores all the file extensions which are to be deleted
+	if fileFormat == "" {
+		for key := range GetSupportedFileFormats() {
+			keyExt := "." + key
+			fileFormatsMap[keyExt] = key
+		}
+		log.Println("delete files in a folder from s3: file format not provided. All file formats will be considered for deletion")
 	} else {
-		for i := range fileFormatsArray {
-			fileFormatsArray[i] = strings.TrimSpace(fileFormatsArray[i])
-			fileFormatsArray[i] = "." + fileFormatsArray[i] // "json" -> ".json"
+		for _, format := range fileFormatsArray {
+			format = strings.TrimSpace(format)
+			formatExt := "." + format // "json" -> ".json"
+			fileFormatsMap[formatExt] = format
 		}
 	}
 
@@ -649,8 +708,8 @@ func (as3 AmazonS3) DeleteFilesInFolder(keyValues []KeyValue, extra ExternalStor
 		Prefix: &objectKey,
 	})
 	if err != nil {
-		log.Println("deleting files in a folder: unable to list objects of folder in s3:", err)
-		result.failFileOperation(keyValues, errors.New("deleting files in a folder: unable to list objects of folder in s3: "+err.Error()))
+		log.Println("delete files in a folder from s3: list objects of folder in s3:", err)
+		result.failFileOperation(keyValues, fmt.Errorf("delete files in a folder from s3: list objects of folder in s3: %w", err))
 		return result
 	}
 
@@ -663,8 +722,8 @@ func (as3 AmazonS3) DeleteFilesInFolder(keyValues []KeyValue, extra ExternalStor
 			MaxKeys: &numOfOutputKeys,
 		})
 		if err != nil {
-			log.Println("deleting files in a folder: unable to list objects in bucket:", err)
-			result.failFileOperation(keyValues, errors.New("deleting files in a folder: unable to list objects in bucket: "+err.Error()))
+			log.Println("delete files in a folder from s3: list objects in bucket:", err)
+			result.failFileOperation(keyValues, fmt.Errorf("delete files in a folder from s3: list objects of folder in s3: %w", err))
 			return result
 		}
 	}
@@ -675,22 +734,36 @@ func (as3 AmazonS3) DeleteFilesInFolder(keyValues []KeyValue, extra ExternalStor
 	}
 	numFilesToBeDeleted := extra.FilesPerFolder
 
-	// Delete the number of objects as specified in numFiles and of the file formats as specified in fileFormat
+	// When we get the list of objects from S3, it has all the files of the prefix folder as well as all the files contained
+	// in all the sub folders that might be present. Hence, we need to filter the results.
+	var actualFilesToBeDeleted []string
+	folderLevel := strings.Count(objectKey, "/")
 	for _, obj := range listObjectsOutput.Contents {
-		for i := range fileFormatsArray {
-			if strings.Contains(*obj.Key, fileFormatsArray[i]) {
-				_, err := s3Client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
-					Bucket: &bucketName,
-					Key:    obj.Key,
-				})
-				if err != nil {
-					log.Printf("deleting files in a folder: error deleting object %s: %v\n", *obj.Key, err)
-					result.AddResult(*obj.Key, nil, err, false, 0)
-				}
-				numFilesToBeDeleted--
-				if numFilesToBeDeleted == 0 {
-					break
-				}
+		if strings.Count(*obj.Key, "/") != folderLevel {
+			// Ignoring all the sub folders and their files
+			continue
+		}
+		// Only the files present in the specified FolderPath will be deleted
+		actualFilesToBeDeleted = append(actualFilesToBeDeleted, *obj.Key)
+	}
+
+	// Delete the number of objects as specified in numFiles and of the file formats as specified in fileFormat
+	for _, filePath := range actualFilesToBeDeleted {
+		// We extract the file extension and then check if it has been marked to be deleted
+		fileExtension := filepath.Ext(filePath)
+
+		if _, ok := fileFormatsMap[fileExtension]; ok {
+			_, err := s3Client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
+				Bucket: &bucketName,
+				Key:    aws.String(filePath),
+			})
+			if err != nil {
+				log.Printf("delete files in a folder from s3: delete object %s: %v\n", filePath, err)
+				result.AddResult(filePath, nil, fmt.Errorf("delete files in a folder from s3: delete object %s: %w", filePath, err), false, 0)
+			}
+			numFilesToBeDeleted--
+			if numFilesToBeDeleted == 0 {
+				break
 			}
 		}
 		if numFilesToBeDeleted == 0 {
@@ -734,16 +807,16 @@ func (as3 AmazonS3) DeleteFilesInFolder(keyValues []KeyValue, extra ExternalStor
 func (as3 AmazonS3) GetInfo(extra ExternalStorageExtras) (interface{}, error) {
 
 	if err := validateStrings(extra.AwsAccessKey, extra.AwsSecretKey, extra.AwsSessionToken, extra.AwsRegion); err != nil {
-		return nil, errors.New("getting bucket directory structure: aws auth parameters missing: " + err.Error())
+		return nil, fmt.Errorf("get s3 bucket directory structure: aws auth parameters missing: %w", err)
 	}
 
 	if err := validateStrings(extra.Bucket); err != nil {
-		return nil, errors.New("getting bucket directory structure: bucket name is missing")
+		return nil, errors.New("get s3 bucket directory structure: bucket name is missing")
 	}
 
 	s3Client, err := as3.connectionManager.GetS3Cluster(extra.AwsAccessKey, extra.AwsSecretKey, extra.AwsSessionToken, extra.AwsRegion, nil)
 	if err != nil {
-		return nil, errors.New("getting bucket directory structure: " + err.Error())
+		return nil, fmt.Errorf("get s3 bucket directory structure: %w", err)
 	}
 
 	bucketName := extra.Bucket
@@ -756,8 +829,8 @@ func (as3 AmazonS3) GetInfo(extra ExternalStorageExtras) (interface{}, error) {
 		Prefix: &prefix,
 	})
 	if err != nil {
-		log.Println("getting bucket directory structure: unable to list objects in bucket:", err.Error())
-		return nil, errors.New("getting bucket directory structure: unable to list objects in bucket: " + err.Error())
+		log.Println("get s3 bucket directory structure: list objects in bucket:", err.Error())
+		return nil, fmt.Errorf("get s3 bucket directory structure: list objects in bucket: %w", err)
 	}
 
 	// We check if the output of list objects is truncated, then we increase the size of ListObjectsV2Input.MaxKeys
@@ -770,8 +843,8 @@ func (as3 AmazonS3) GetInfo(extra ExternalStorageExtras) (interface{}, error) {
 			MaxKeys: &numOfOutputKeys,
 		})
 		if err != nil {
-			log.Println("getting bucket directory structure: unable to list objects in bucket:", err.Error())
-			return nil, errors.New("getting bucket directory structure: unable to list objects in bucket: " + err.Error())
+			log.Println("get s3 bucket directory structure: list objects in bucket:", err.Error())
+			return nil, fmt.Errorf("get s3 bucket directory structure: list objects in bucket: %w", err)
 		}
 	}
 
@@ -789,9 +862,9 @@ func (as3 AmazonS3) GetInfo(extra ExternalStorageExtras) (interface{}, error) {
 			// For a sub folder
 			subFolder := Folder{}
 			traverseFolder(context.TODO(), s3Client, bucketName, *obj.Key, &subFolder, lvl+1)
-
 			rootFolder.Folders[tempString[len(prefix):len(tempString)-1]] = subFolder
 			rootFolder.NumFolders++
+
 		} else if tempString[len(tempString)-1] != '/' && strings.Count(tempString, "/") == lvl-1 {
 			// For file
 			rootFolder.Files[tempString[len(prefix):]] = File{Size: *obj.Size}
@@ -806,15 +879,15 @@ func (as3 AmazonS3) GetInfo(extra ExternalStorageExtras) (interface{}, error) {
 func (as3 AmazonS3) Warmup(extra ExternalStorageExtras) error {
 	s3Client, errClient := as3.connectionManager.GetS3Cluster(extra.AwsAccessKey, extra.AwsSecretKey, extra.AwsSessionToken, extra.AwsRegion, nil)
 	if errClient != nil {
-		log.Println("warming up s3: unable to get client:", errClient)
-		return errors.New("warming up s3: unable to get client: " + errClient.Error())
+		log.Println("s3 warm up:", errClient)
+		return fmt.Errorf("s3 warm up: %w", errClient)
 	}
 
 	// Checking if the cluster is reachable or not, by listing the buckets
 	_, err := s3Client.ListBuckets(context.TODO(), &s3.ListBucketsInput{})
 	if err != nil {
-		fmt.Println("warming up s3: unable to list buckets:", err)
-		return errors.New("warming up s3: unable to list buckets: " + err.Error())
+		fmt.Println("s3 warm up: list buckets:", err)
+		return fmt.Errorf("s3 warm up: list buckets: %w", err)
 	}
 	return nil
 }

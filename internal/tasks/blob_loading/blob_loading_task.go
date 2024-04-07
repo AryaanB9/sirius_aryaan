@@ -66,12 +66,12 @@ func (l *blobLoadingTask) Run() {
 
 	case tasks.BucketCreateOperation:
 		{
-			createS3Bucket(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
+			createBucket(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.externalStorageExtras, l.wg)
 		}
 	case tasks.BucketDeleteOperation:
 		{
-			deleteS3Bucket(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
+			deleteBucket(l.start, l.end, l.seed, l.operationConfig, l.rerun, l.gen, l.state, l.result,
 				l.databaseInfo, l.externalStorageExtras, l.wg)
 		}
 	case tasks.FolderInsertOperation:

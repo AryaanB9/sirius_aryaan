@@ -291,6 +291,16 @@ func TestAmazonS3(t *testing.T) {
 		}
 
 		fileToUpload, err := getFile(fileFormats[i], "hotel", docsArray)
+		pathToFileOnDisk := "temp/test." + fileFormats[i]
+		file, err := os.OpenFile(pathToFileOnDisk, os.O_APPEND|os.O_CREATE|os.O_WRONLY, os.ModePerm)
+		if err != nil {
+			log.Println("opening output file:", err)
+			return
+		}
+
+		file.Write(fileToUpload)
+		file.Close()
+
 		if err != nil {
 			t.Error("unable to generate file:", err)
 		}
@@ -299,7 +309,7 @@ func TestAmazonS3(t *testing.T) {
 
 		tempExtra.FilePath = folder + "doc." + fileFormats[i]
 		tempExtra.FileFormat = fileFormats[i]
-		bulkResult := extStorage.CreateFiles(&fileToUpload, keyValues, tempExtra)
+		bulkResult := extStorage.CreateFile(pathToFileOnDisk, keyValues, tempExtra)
 		for _, keyVal := range keyValues {
 			if bulkResult.GetError(keyVal.Key) != nil {
 				t.Error(bulkResult.GetError(keyVal.Key))

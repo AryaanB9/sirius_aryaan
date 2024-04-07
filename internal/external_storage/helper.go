@@ -120,3 +120,41 @@ func traverseFolder(ctx context.Context, s3Client *s3.Client, bucketName, prefix
 		}
 	}
 }
+
+// GetSupportedFileFormats returns the list of supported file formats for external storage file operations
+func GetSupportedFileFormats() map[string]string {
+	return map[string]string{
+		"json":    ".json",
+		"csv":     ".csv",
+		"tsv":     ".tsv",
+		"avro":    ".avro",
+		"parquet": ".parquet",
+	}
+}
+
+// ValidateFileFormat validates whether the provided file format is supported or not.
+func ValidateFileFormat(fileFormat string) bool {
+	if fileFormat == "" {
+		return false
+	}
+
+	checkFileFormat := false
+	fileFormats := strings.Split(fileFormat, ",") // file format can be like "json" or "json, avro" or "json,parquet"
+	supportedFileFormats := GetSupportedFileFormats()
+
+	// Checking if the file format is supported
+	for _, format := range fileFormats {
+		format = strings.TrimSpace(format)
+		if format == "" {
+			continue
+		}
+		if _, ok := supportedFileFormats[format]; ok {
+			checkFileFormat = true
+		} else {
+			checkFileFormat = false
+			break
+		}
+	}
+
+	return checkFileFormat
+}

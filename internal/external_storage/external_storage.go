@@ -33,9 +33,9 @@ type ExternalStorage interface {
 	DeleteBucket(keyValue KeyValue, extra ExternalStorageExtras) FolderOperationResult
 	CreateFolder(keyValue KeyValue, extra ExternalStorageExtras) FolderOperationResult
 	DeleteFolder(keyValue KeyValue, extra ExternalStorageExtras) FolderOperationResult
-	CreateFiles(fileToUpload *[]byte, keyValues []KeyValue, extra ExternalStorageExtras) FileOperationResult
-	UpdateFiles(fileToUpload *[]byte, keyValues []KeyValue, extra ExternalStorageExtras) FileOperationResult
-	DeleteFiles(keyValues []KeyValue, extra ExternalStorageExtras) FileOperationResult
+	CreateFile(pathToFileOnDisk string, keyValues []KeyValue, extra ExternalStorageExtras) FileOperationResult
+	UpdateFile(pathToFileOnDisk string, keyValues []KeyValue, extra ExternalStorageExtras) FileOperationResult
+	DeleteFile(keyValues []KeyValue, extra ExternalStorageExtras) FileOperationResult
 	CreateFilesInFolder(keyValues []KeyValue, extra ExternalStorageExtras) FileOperationResult
 	UpdateFilesInFolder(keyValues []KeyValue, extra ExternalStorageExtras) FileOperationResult
 	DeleteFilesInFolder(keyValues []KeyValue, extra ExternalStorageExtras) FileOperationResult
