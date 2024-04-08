@@ -4,10 +4,10 @@ import (
 	"log"
 	"time"
 
-	"github.com/AryaanB9/sirius_aryaan/internal/db"
-	"github.com/AryaanB9/sirius_aryaan/internal/err_sirius"
-	"github.com/AryaanB9/sirius_aryaan/internal/task_result"
-	"github.com/AryaanB9/sirius_aryaan/internal/tasks"
+	"github.com/couchbaselabs/sirius/internal/db"
+	"github.com/couchbaselabs/sirius/internal/err_sirius"
+	"github.com/couchbaselabs/sirius/internal/task_result"
+	"github.com/couchbaselabs/sirius/internal/tasks"
 )
 
 type BucketWarmUpTask struct {

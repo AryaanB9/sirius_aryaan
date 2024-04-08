@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/AryaanB9/sirius_aryaan/internal/tasks"
+	"github.com/couchbaselabs/sirius/internal/tasks"
 )
 
 const ServerRequestsPath = "./internal/server_requests/server_requests_logs"

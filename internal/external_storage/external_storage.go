@@ -3,7 +3,7 @@ package external_storage
 import (
 	"sync"
 
-	"github.com/AryaanB9/sirius_aryaan/internal/err_sirius"
+	"github.com/couchbaselabs/sirius/internal/err_sirius"
 )
 
 const (

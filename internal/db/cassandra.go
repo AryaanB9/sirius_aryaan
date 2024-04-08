@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/AryaanB9/sirius_aryaan/internal/sdk_cassandra"
-	"github.com/AryaanB9/sirius_aryaan/internal/template"
+	"github.com/couchbaselabs/sirius/internal/sdk_cassandra"
+	"github.com/couchbaselabs/sirius/internal/template"
 
 	"github.com/gocql/gocql"
 )

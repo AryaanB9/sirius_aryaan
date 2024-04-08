@@ -7,8 +7,8 @@ import (
 	"log"
 	"strings"
 
-	"github.com/AryaanB9/sirius_aryaan/internal/sdk_mysql"
-	"github.com/AryaanB9/sirius_aryaan/internal/template"
+	"github.com/couchbaselabs/sirius/internal/sdk_mysql"
+	"github.com/couchbaselabs/sirius/internal/template"
 	_ "github.com/go-sql-driver/mysql"
 )
 

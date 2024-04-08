@@ -3,7 +3,7 @@ package tasks
 import (
 	"runtime"
 
-	"github.com/AryaanB9/sirius_aryaan/internal/db"
+	"github.com/couchbaselabs/sirius/internal/db"
 
 	"github.com/shettyh/threadpool"
 )

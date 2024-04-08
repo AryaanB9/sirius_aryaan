@@ -4,8 +4,8 @@ import (
 	"log"
 	"testing"
 
-	"github.com/AryaanB9/sirius_aryaan/internal/template"
 	"github.com/bgadrian/fastfaker/faker"
+	"github.com/couchbaselabs/sirius/internal/template"
 )
 
 func TestGenerator_GetNextKey(t *testing.T) {

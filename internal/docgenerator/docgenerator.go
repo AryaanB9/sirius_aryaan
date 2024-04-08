@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AryaanB9/sirius_aryaan/internal/template"
+	"github.com/couchbaselabs/sirius/internal/template"
 )
 
 type DocumentType string

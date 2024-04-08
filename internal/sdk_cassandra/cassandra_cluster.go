@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/AryaanB9/sirius_aryaan/internal/err_sirius"
+	"github.com/couchbaselabs/sirius/internal/err_sirius"
 	"github.com/gocql/gocql"
 )
 

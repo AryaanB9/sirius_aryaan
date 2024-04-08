@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/AryaanB9/sirius_aryaan/internal/err_sirius"
 	"github.com/couchbase/gocb/v2"
+	"github.com/couchbaselabs/sirius/internal/err_sirius"
 )
 
 // ConnectionManager contains different cluster information and connections to them.
