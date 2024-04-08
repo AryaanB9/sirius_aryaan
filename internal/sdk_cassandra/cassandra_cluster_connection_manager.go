@@ -1,6 +1,7 @@
 package sdk_cassandra
 
 import (
+	"fmt"
 	"log"
 	"sync"
 
@@ -43,9 +44,8 @@ func (cm *CassandraConnectionManager) getCassandraClusterObject(connStr, usernam
 
 		cassandraSession, err := cassClusterConfig.CreateSession()
 		if err != nil {
-			log.Println("Unable to connect to Cassandra!")
-			log.Println(err)
-			return nil, err
+			log.Println("get cassandra cluster object:", err)
+			return nil, fmt.Errorf("get cassandra cluster object: %w", err)
 		}
 
 		c := &CassandraClusterObject{

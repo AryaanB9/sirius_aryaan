@@ -71,9 +71,8 @@ func (cassandraClusterObj *CassandraClusterObject) getCassandraKeyspaceObject(ca
 
 		cassandraSession, err := cassClusterConfig.CreateSession()
 		if err != nil {
-			log.Println("Unable to connect to Cassandra!")
-			log.Println(err)
-			return nil, err
+			log.Println("get cassandra cluster keyspace object:", err)
+			return nil, fmt.Errorf("get cassandra cluster keyspace object: %w", err)
 		}
 
 		cassKeyspaceObj := &CassandraKeyspaceObject{

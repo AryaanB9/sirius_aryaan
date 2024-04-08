@@ -506,6 +506,6 @@ func GetCassandraSchema(templateName, tableName string) ([]string, error) {
 		cassSchemeDefinitions = []string{createTableQuery}
 		return cassSchemeDefinitions, nil
 	default:
-		return nil, errors.New("invalid template name OR cassandra schema not defined for given template name")
+		return nil, errors.New("get cassandra scheme: invalid template name OR cassandra schema not defined for given template name")
 	}
 }
