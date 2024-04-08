@@ -3,11 +3,7 @@ package data_loading
 import (
 	"encoding/json"
 	"errors"
-	"github.com/shettyh/threadpool"
-	"log"
-	"reflect"
-	"time"
-
+	"github.com/bgadrian/fastfaker/faker"
 	"github.com/couchbaselabs/sirius/internal/cb_sdk"
 	"github.com/couchbaselabs/sirius/internal/db"
 	"github.com/couchbaselabs/sirius/internal/docgenerator"
@@ -15,8 +11,10 @@ import (
 	"github.com/couchbaselabs/sirius/internal/task_result"
 	"github.com/couchbaselabs/sirius/internal/task_state"
 	"github.com/couchbaselabs/sirius/internal/tasks"
-
-	"github.com/bgadrian/fastfaker/faker"
+	"github.com/shettyh/threadpool"
+	"log"
+	"reflect"
+	"time"
 )
 
 // Exceptions will have list of errors to be ignored or to be retried

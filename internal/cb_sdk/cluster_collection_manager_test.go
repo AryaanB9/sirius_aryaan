@@ -2,15 +2,14 @@ package cb_sdk
 
 import (
 	"errors"
-	"log"
-	"strings"
-	"testing"
-
 	"github.com/bgadrian/fastfaker/faker"
 	"github.com/couchbase/gocb/v2"
 	"github.com/couchbaselabs/sirius/internal/docgenerator"
 	"github.com/couchbaselabs/sirius/internal/meta_data"
 	"github.com/couchbaselabs/sirius/internal/template"
+	"log"
+	"strings"
+	"testing"
 )
 
 func TestConfigConnectionManager(t *testing.T) {
