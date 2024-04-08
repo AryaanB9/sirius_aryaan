@@ -57,6 +57,7 @@ type ResultHelper struct {
 
 // TaskResult defines the type of result stored in a response after an operation.
 type TaskResult struct {
+	Count         int64                            `json:"Count"`
 	ResultSeed    int64                            `json:"resultSeed"`
 	Operation     string                           `json:"operation"`
 	ErrorOther    string                           `json:"otherErrors"`
@@ -73,7 +74,7 @@ type TaskResult struct {
 }
 
 // ConfigTaskResult returns a new instance of TaskResult
-func ConfigTaskResult(operation string, resultSeed int64) *TaskResult {
+func ConfigTaskResult(operation string, resultSeed int64, count int64) *TaskResult {
 	ctx, cancel := context.WithCancel(context.Background())
 	taskResult := &TaskResult{}
 
@@ -85,13 +86,14 @@ func ConfigTaskResult(operation string, resultSeed int64) *TaskResult {
 		taskResult.lock = sync.Mutex{}
 	} else {
 		taskResult = &TaskResult{
+			Count:         count,
 			ResultSeed:    resultSeed,
 			Operation:     operation,
 			BulkError:     make(map[string][]FailedDocument),
 			RetriedError:  make(map[string][]FailedDocument),
 			QueryError:    make(map[string][]FailedQuery),
 			SingleResult:  make(map[string]SingleOperationResult),
-			ResultChannel: make(chan ResultHelper, ResultChannelLimit),
+			ResultChannel: make(chan ResultHelper, count),
 			lock:          sync.Mutex{},
 			ctx:           ctx,
 			cancel:        cancel,
@@ -239,7 +241,7 @@ func (t *TaskResult) FailWholeSingleOperation(docIds []string, err error) {
 
 func (t *TaskResult) StoreResult() {
 	go func() {
-		var resultList []ResultHelper
+		resultList := make([]ResultHelper, 0, t.Count)
 		d := time.NewTicker(10 * time.Second)
 		defer d.Stop()
 		if t.ctx.Err() != nil {
@@ -261,19 +263,12 @@ func (t *TaskResult) StoreResult() {
 				{
 					resultList = append(resultList, s)
 				}
-			case <-d.C:
-				{
-					t.StoreResultList(resultList)
-					resultList = resultList[:0]
-				}
 			}
 		}
 	}()
 }
 
 func (t *TaskResult) StoreResultList(resultList []ResultHelper) {
-	defer t.lock.Unlock()
-	t.lock.Lock()
 	for _, x := range resultList {
 		if x.err == nil {
 			continue
@@ -294,15 +289,17 @@ func (t *TaskResult) StoreResultList(resultList []ResultHelper) {
 			Offset: x.offset,
 		})
 	}
+	t.Success = t.Count - t.Failure
+	_ = t.SaveResultIntoFile()
+	log.Println(t.ResultSeed, "result saved on disk")
 }
 
 func (t *TaskResult) StopStoringResult() {
 	if t.ctx.Err() != nil {
 		return
 	}
-	close(t.ResultChannel)
 	t.cancel()
-	time.Sleep(5 * time.Second)
+	close(t.ResultChannel)
 }
 
 // DeleteResultFile deletes the result file

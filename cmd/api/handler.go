@@ -923,7 +923,6 @@ func (app *Config) RetryExceptionTask(w http.ResponseWriter, r *http.Request) {
 		_ = app.errorJSON(w, err, http.StatusUnprocessableEntity)
 		return
 	}
-
 	task.Operation = tasks.RetryExceptionOperation
 	log.Print(task, tasks.RetryExceptionOperation)
 	req, err := app.serverRequests.GetRequestOfIdentifier(task.IdentifierToken)

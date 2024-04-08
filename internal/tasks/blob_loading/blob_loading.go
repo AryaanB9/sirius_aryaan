@@ -138,7 +138,7 @@ func (t *BlobLoadingTask) TearUp() error {
 
 func (t *BlobLoadingTask) Do() {
 
-	t.Result = task_result.ConfigTaskResult(t.Operation, t.ResultSeed)
+	t.Result = task_result.ConfigTaskResult(t.Operation, t.ResultSeed, 0)
 
 	externalStorage, err := external_storage.ConfigExternalStorage(t.DBType)
 	if err != nil {
@@ -502,7 +502,7 @@ func (t *BlobLoadingTask) MatchResultSeed(resultSeed string) (bool, error) {
 			return true, err_sirius.TaskInPendingState
 		}
 		if t.Result == nil {
-			t.Result = task_result.ConfigTaskResult(t.Operation, t.ResultSeed)
+			t.Result = task_result.ConfigTaskResult(t.Operation, t.ResultSeed, 0)
 		}
 		return true, nil
 	}

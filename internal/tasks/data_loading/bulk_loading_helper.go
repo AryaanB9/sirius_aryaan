@@ -401,9 +401,6 @@ func configExtraParameters(dbType string, d *db.Extras) error {
 		}
 	}
 	if dbType == db.MongoDb {
-		// TODO
-		// If a Database query comes up which doesn't require a collection then it will throw an error.
-		// Example, task to create a database. It does not require collection name.
 		if d.Collection == "" {
 			return err_sirius.CollectionIsMissing
 		}

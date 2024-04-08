@@ -54,16 +54,15 @@ func TestCouchbase(t *testing.T) {
 	m := meta_data.NewMetaData()
 	cm1 := m.GetCollectionMetadata("x")
 
-	temp := template.InitialiseTemplate("person")
+	temp := template.InitialiseTemplate("hotel")
 	g := docgenerator.Generator{
 		Template: temp,
 	}
 	gen := &docgenerator.Generator{
 		KeySize:  0,
 		DocType:  "json",
-		Template: template.InitialiseTemplate("person"),
+		Template: template.InitialiseTemplate("hotel"),
 	}
-
 	// update
 	for i := int64(0); i < int64(10); i++ {
 		key := i + cm1.Seed

@@ -58,6 +58,7 @@ func TestCassandraDB(t *testing.T) {
 
 	if err := db.Connect(connStr, username, password, extra); err != nil {
 		t.Error("connecting to cassandra cluster:", err)
+		t.FailNow()
 	}
 
 	m := meta_data.NewMetaData()
