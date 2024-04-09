@@ -10,11 +10,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/bgadrian/fastfaker/faker"
-	"github.com/couchbaselabs/sirius/internal/docgenerator"
-	"github.com/couchbaselabs/sirius/internal/meta_data"
-	"github.com/couchbaselabs/sirius/internal/template"
 )
 
 func TestCouchbase(t *testing.T) {

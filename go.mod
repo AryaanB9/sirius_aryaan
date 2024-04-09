@@ -1,6 +1,5 @@
-module github.com/AryaanB9/sirius_aryaan
+module github.com/couchbaselabs/sirius
 
-// module /Users/bgoyal/Documents/project/sirius_temp/sirius
 go 1.19
 
 require (
