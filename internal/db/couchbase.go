@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/AryaanB9/sirius_aryaan/internal/cb_sdk"
-	"github.com/AryaanB9/sirius_aryaan/internal/template"
 	"github.com/couchbase/gocb/v2"
+	"github.com/couchbaselabs/sirius/internal/cb_sdk"
+	"github.com/couchbaselabs/sirius/internal/template"
 )
 
 type perDocResult struct {

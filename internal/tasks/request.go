@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/AryaanB9/sirius_aryaan/internal/meta_data"
+	"github.com/couchbaselabs/sirius/internal/meta_data"
 )
 
 const RequestPath = "./internal/tasks/request_logs"

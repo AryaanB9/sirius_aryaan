@@ -2,8 +2,8 @@ package meta_data
 
 //import (
 //	"github.com/bgadrian/fastfaker/faker"
-//	"github.com/AryaanB9/sirius_aryaan/internal/docgenerator"
-//	"github.com/AryaanB9/sirius_aryaan/internal/template"
+//	"github.com/couchbaselabs/sirius/internal/docgenerator"
+//	"github.com/couchbaselabs/sirius/internal/template"
 //	"sync"
 //	"time"
 //)

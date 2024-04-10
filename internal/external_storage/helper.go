@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/AryaanB9/sirius_aryaan/internal/err_sirius"
+	"github.com/couchbaselabs/sirius/internal/err_sirius"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )

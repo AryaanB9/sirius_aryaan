@@ -3,9 +3,9 @@ package data_loading
 import (
 	"fmt"
 
-	"github.com/AryaanB9/sirius_aryaan/internal/err_sirius"
-	"github.com/AryaanB9/sirius_aryaan/internal/task_state"
-	"github.com/AryaanB9/sirius_aryaan/internal/tasks"
+	"github.com/couchbaselabs/sirius/internal/err_sirius"
+	"github.com/couchbaselabs/sirius/internal/task_state"
+	"github.com/couchbaselabs/sirius/internal/tasks"
 )
 
 type RetryExceptions struct {

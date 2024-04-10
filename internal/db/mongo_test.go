@@ -5,9 +5,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/AryaanB9/sirius_aryaan/internal/docgenerator"
-	"github.com/AryaanB9/sirius_aryaan/internal/meta_data"
-	"github.com/AryaanB9/sirius_aryaan/internal/template"
+	"github.com/couchbaselabs/sirius/internal/docgenerator"
+	"github.com/couchbaselabs/sirius/internal/meta_data"
+	"github.com/couchbaselabs/sirius/internal/template"
 
 	"github.com/bgadrian/fastfaker/faker"
 )

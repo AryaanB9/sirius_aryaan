@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/AryaanB9/sirius_aryaan/internal/sdk_s3"
+	"github.com/couchbaselabs/sirius/internal/sdk_s3"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"

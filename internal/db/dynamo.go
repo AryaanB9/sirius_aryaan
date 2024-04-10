@@ -8,12 +8,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/AryaanB9/sirius_aryaan/internal/sdk_dynamodb"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/couchbaselabs/sirius/internal/sdk_dynamodb"
 )
 
 type Dynamo struct {

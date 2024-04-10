@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/AryaanB9/sirius_aryaan/internal/db"
-	"github.com/AryaanB9/sirius_aryaan/internal/docgenerator"
-	"github.com/AryaanB9/sirius_aryaan/internal/task_state"
+	"github.com/couchbaselabs/sirius/internal/db"
+	"github.com/couchbaselabs/sirius/internal/docgenerator"
+	"github.com/couchbaselabs/sirius/internal/task_state"
 	"golang.org/x/sync/errgroup"
 )
 

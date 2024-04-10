@@ -1,10 +1,10 @@
 package sirius_documentation
 
 import (
-	"github.com/AryaanB9/sirius_aryaan/internal/task_result"
-	"github.com/AryaanB9/sirius_aryaan/internal/tasks/blob_loading"
-	"github.com/AryaanB9/sirius_aryaan/internal/tasks/data_loading"
-	"github.com/AryaanB9/sirius_aryaan/internal/tasks/util_sirius"
+	"github.com/couchbaselabs/sirius/internal/task_result"
+	"github.com/couchbaselabs/sirius/internal/tasks/blob_loading"
+	"github.com/couchbaselabs/sirius/internal/tasks/data_loading"
+	"github.com/couchbaselabs/sirius/internal/tasks/util_sirius"
 )
 
 type TaskRegister struct {

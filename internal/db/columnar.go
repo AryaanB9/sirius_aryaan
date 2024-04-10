@@ -5,7 +5,7 @@ import (
 
 	"github.com/couchbase/gocb/v2"
 
-	"github.com/AryaanB9/sirius_aryaan/internal/sdk_columnar"
+	"github.com/couchbaselabs/sirius/internal/sdk_columnar"
 )
 
 type columnarOperationResult struct {

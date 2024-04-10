@@ -7,7 +7,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/AryaanB9/sirius_aryaan/internal/sdk_mongo"
+	"github.com/couchbaselabs/sirius/internal/sdk_mongo"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"

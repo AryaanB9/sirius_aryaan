@@ -10,12 +10,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/AryaanB9/sirius_aryaan/internal/docgenerator"
-	"github.com/AryaanB9/sirius_aryaan/internal/err_sirius"
-	"github.com/AryaanB9/sirius_aryaan/internal/external_storage"
-	"github.com/AryaanB9/sirius_aryaan/internal/task_result"
-	"github.com/AryaanB9/sirius_aryaan/internal/task_state"
-	"github.com/AryaanB9/sirius_aryaan/internal/tasks"
+	"github.com/couchbaselabs/sirius/internal/docgenerator"
+	"github.com/couchbaselabs/sirius/internal/err_sirius"
+	"github.com/couchbaselabs/sirius/internal/external_storage"
+	"github.com/couchbaselabs/sirius/internal/task_result"
+	"github.com/couchbaselabs/sirius/internal/task_state"
+	"github.com/couchbaselabs/sirius/internal/tasks"
 
 	"github.com/shettyh/threadpool"
 )
