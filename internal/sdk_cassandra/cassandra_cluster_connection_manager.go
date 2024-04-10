@@ -95,7 +95,7 @@ func (cm *CassandraConnectionManager) Disconnect(connStr string) error {
 	clusterIdentifier := connStr
 	cassClusterObj, ok := cm.Clusters[clusterIdentifier]
 	if ok {
-		cassClusterObj.CassandraClusterClient.Close()
+		_ = Close(cassClusterObj)
 	}
 	return nil
 }
@@ -106,7 +106,7 @@ func (cm *CassandraConnectionManager) DisconnectAll() {
 	cm.lock.Lock()
 	for cS, v := range cm.Clusters {
 		if v.CassandraClusterClient != nil {
-			v.CassandraClusterClient.Close()
+			_ = Close(v)
 			delete(cm.Clusters, cS)
 		}
 		v = nil

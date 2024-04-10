@@ -424,12 +424,15 @@ func (c *Cassandra) InsertSubDoc(connStr, username, password, key string, keyVal
 	keyspaceName := extra.Keyspace
 	columnName := extra.SubDocPath
 	if err := validateStrings(tableName); err != nil {
+		log.Println("insert sub document in cassandra: table name is missing")
 		return newCassandraSubDocOperationResult(key, nil, errors.New("insert sub document in cassandra: table name is missing"), false, offset)
 	}
 	if err := validateStrings(keyspaceName); err != nil {
-		return newCassandraSubDocOperationResult(key, nil, errors.New("insert sub document in cassandra: keyspace is missing"), false, offset)
+		log.Println("insert sub document in cassandra: keyspace name is missing")
+		return newCassandraSubDocOperationResult(key, nil, errors.New("insert sub document in cassandra: keyspace name is missing"), false, offset)
 	}
 	if err := validateStrings(columnName); err != nil {
+		log.Println("insert sub document in cassandra: sub doc path is missing")
 		return newCassandraSubDocOperationResult(key, keyValues, errors.New("insert sub document in cassandra: sub doc path is missing"), false, offset)
 	}
 
@@ -441,8 +444,13 @@ func (c *Cassandra) InsertSubDoc(connStr, username, password, key string, keyVal
 
 	for _, x := range keyValues {
 		// Checking if the column for sub doc exists or not
-		if !cassandraColumnExists(cassandraSession, keyspaceName, tableName, columnName) {
-			alterQuery := fmt.Sprintf("ALTER TABLE %s.%s ADD %s text", keyspaceName, tableName, columnName)
+		check, err := cassandraColumnExists(cassandraSession, keyspaceName, tableName, columnName)
+		if err != nil {
+			log.Println("insert sub document in cassandra:", err)
+			return newCassandraSubDocOperationResult(key, keyValues, fmt.Errorf("insert sub document in cassandra: %w", err), false, offset)
+		}
+		if !check {
+			alterQuery := fmt.Sprintf("ALTER TABLE %s.%s ADD IF NOT EXISTS %s text", keyspaceName, tableName, columnName)
 			err := cassandraSession.Query(alterQuery).Exec()
 			if err != nil {
 				log.Println("insert sub document in cassandra: add sub doc column:", err)
@@ -452,7 +460,7 @@ func (c *Cassandra) InsertSubDoc(connStr, username, password, key string, keyVal
 
 		// Inserting the sub doc
 		insertSubDocQuery := fmt.Sprintf("UPDATE %s SET %s='%s' WHERE ID = ?", tableName, columnName, x.Doc)
-		err := cassandraSession.Query(insertSubDocQuery, key).Exec()
+		err = cassandraSession.Query(insertSubDocQuery, key).Exec()
 		if err != nil {
 			log.Println("insert sub document in cassandra:", err)
 			return newCassandraSubDocOperationResult(key, keyValues, fmt.Errorf("insert sub document in cassandra: %w", err), false, offset)
@@ -471,12 +479,15 @@ func (c *Cassandra) UpsertSubDoc(connStr, username, password, key string, keyVal
 	keyspaceName := extra.Keyspace
 	columnName := extra.SubDocPath
 	if err := validateStrings(tableName); err != nil {
+		log.Println("update sub document in cassandra: table name is missing")
 		return newCassandraSubDocOperationResult(key, nil, errors.New("update sub document in cassandra: table name is missing"), false, offset)
 	}
 	if err := validateStrings(keyspaceName); err != nil {
-		return newCassandraSubDocOperationResult(key, nil, errors.New("update sub document in cassandra: keyspace is missing"), false, offset)
+		log.Println("update sub document in cassandra: keyspace name is missing")
+		return newCassandraSubDocOperationResult(key, nil, errors.New("update sub document in cassandra: keyspace name is missing"), false, offset)
 	}
 	if err := validateStrings(columnName); err != nil {
+		log.Println("update sub document in cassandra: sub doc path is missing")
 		return newCassandraSubDocOperationResult(key, keyValues, errors.New("update sub document in cassandra: sub doc path is missing"), false, offset)
 	}
 
@@ -488,8 +499,13 @@ func (c *Cassandra) UpsertSubDoc(connStr, username, password, key string, keyVal
 
 	for _, x := range keyValues {
 		// Checking if the column for sub doc exists or not
-		if !cassandraColumnExists(cassandraSession, keyspaceName, tableName, columnName) {
-			alterQuery := fmt.Sprintf("ALTER TABLE %s.%s ADD %s text", keyspaceName, tableName, columnName)
+		check, err := cassandraColumnExists(cassandraSession, keyspaceName, tableName, columnName)
+		if err != nil {
+			log.Println("update sub document in cassandra:", err)
+			return newCassandraSubDocOperationResult(key, keyValues, fmt.Errorf("update sub document in cassandra: %w", err), false, offset)
+		}
+		if !check {
+			alterQuery := fmt.Sprintf("ALTER TABLE %s.%s ADD IF NOT EXISTS %s text", keyspaceName, tableName, columnName)
 			err := cassandraSession.Query(alterQuery).Exec()
 			if err != nil {
 				log.Println("update sub document in cassandra: add sub doc column:", err)
@@ -540,12 +556,15 @@ func (c *Cassandra) ReplaceSubDoc(connStr, username, password, key string, keyVa
 	keyspaceName := extra.Keyspace
 	columnName := extra.SubDocPath
 	if err := validateStrings(tableName); err != nil {
+		log.Println("replace sub document in cassandra: table name is missing")
 		return newCassandraSubDocOperationResult(key, nil, errors.New("replace sub document in cassandra: table name is missing"), false, offset)
 	}
 	if err := validateStrings(keyspaceName); err != nil {
-		return newCassandraSubDocOperationResult(key, nil, errors.New("replace sub document in cassandra: keyspace is missing"), false, offset)
+		log.Println("replace sub document in cassandra: keyspace name is missing")
+		return newCassandraSubDocOperationResult(key, nil, errors.New("replace sub document in cassandra: keyspace name is missing"), false, offset)
 	}
 	if err := validateStrings(columnName); err != nil {
+		log.Println("replace sub document in cassandra: sub doc path is missing")
 		return newCassandraSubDocOperationResult(key, keyValues, errors.New("replace sub document in cassandra: sub doc path is missing"), false, offset)
 	}
 
@@ -557,8 +576,13 @@ func (c *Cassandra) ReplaceSubDoc(connStr, username, password, key string, keyVa
 
 	for _, x := range keyValues {
 		// Checking if the column for sub doc exists or not
-		if !cassandraColumnExists(cassandraSession, keyspaceName, tableName, columnName) {
-			alterQuery := fmt.Sprintf("ALTER TABLE %s.%s ADD %s text", keyspaceName, tableName, columnName)
+		check, err := cassandraColumnExists(cassandraSession, keyspaceName, tableName, columnName)
+		if err != nil {
+			log.Println("replace sub document in cassandra:", err)
+			return newCassandraSubDocOperationResult(key, keyValues, fmt.Errorf("replace sub document in cassandra: %w", err), false, offset)
+		}
+		if !check {
+			alterQuery := fmt.Sprintf("ALTER TABLE %s.%s ADD IF NOT EXISTS %s text", keyspaceName, tableName, columnName)
 			err := cassandraSession.Query(alterQuery).Exec()
 			if err != nil {
 				log.Println("replace sub document in cassandra: add sub doc column:", err)
@@ -603,12 +627,15 @@ func (c *Cassandra) ReadSubDoc(connStr, username, password, key string, keyValue
 	keyspaceName := extra.Keyspace
 	columnName := extra.SubDocPath
 	if err := validateStrings(tableName); err != nil {
+		log.Println("read sub document from cassandra: table name is missing")
 		return newCassandraSubDocOperationResult(key, nil, errors.New("read sub document from cassandra: table name is missing"), false, offset)
 	}
 	if err := validateStrings(keyspaceName); err != nil {
-		return newCassandraSubDocOperationResult(key, nil, errors.New("read sub document from cassandra: keyspace is missing"), false, offset)
+		log.Println("read sub document from cassandra: keyspace name is missing")
+		return newCassandraSubDocOperationResult(key, nil, errors.New("read sub document from cassandra: keyspace name is missing"), false, offset)
 	}
 	if err := validateStrings(columnName); err != nil {
+		log.Println("read sub document from cassandra: sub doc path is missing")
 		return newCassandraSubDocOperationResult(key, keyValues, errors.New("read sub document from cassandra: sub doc path is missing"), false, offset)
 	}
 
@@ -620,7 +647,12 @@ func (c *Cassandra) ReadSubDoc(connStr, username, password, key string, keyValue
 
 	for range keyValues {
 		// Checking if the column for sub doc exists or not
-		if !cassandraColumnExists(cassandraSession, keyspaceName, tableName, columnName) {
+		check, err := cassandraColumnExists(cassandraSession, keyspaceName, tableName, columnName)
+		if err != nil {
+			log.Println("read sub document from cassandra:", err)
+			return newCassandraSubDocOperationResult(key, keyValues, fmt.Errorf("read sub document from cassandra: %w", err), false, offset)
+		}
+		if !check {
 			return newCassandraSubDocOperationResult(key, keyValues, errors.New("read sub document from cassandra: sub doc field not found"), false, offset)
 		}
 
@@ -653,12 +685,15 @@ func (c *Cassandra) DeleteSubDoc(connStr, username, password, key string, keyVal
 	keyspaceName := extra.Keyspace
 	columnName := extra.SubDocPath
 	if err := validateStrings(tableName); err != nil {
+		log.Println("delete sub document from cassandra: table name is missing")
 		return newCassandraSubDocOperationResult(key, nil, errors.New("delete sub document from cassandra: table name is missing"), false, offset)
 	}
 	if err := validateStrings(keyspaceName); err != nil {
-		return newCassandraSubDocOperationResult(key, nil, errors.New("delete sub document from cassandra: keyspace is missing"), false, offset)
+		log.Println("delete sub document from cassandra: keyspace name is missing")
+		return newCassandraSubDocOperationResult(key, nil, errors.New("delete sub document from cassandra: keyspace name is missing"), false, offset)
 	}
 	if err := validateStrings(columnName); err != nil {
+		log.Println("delete sub document from cassandra: sub doc path is missing")
 		return newCassandraSubDocOperationResult(key, keyValues, errors.New("delete sub document from cassandra: sub doc path is missing"), false, offset)
 	}
 
@@ -670,7 +705,12 @@ func (c *Cassandra) DeleteSubDoc(connStr, username, password, key string, keyVal
 
 	for range keyValues {
 		// Checking if the column for sub doc exists or not
-		if !cassandraColumnExists(cassandraSession, keyspaceName, tableName, columnName) {
+		check, err := cassandraColumnExists(cassandraSession, keyspaceName, tableName, columnName)
+		if err != nil {
+			log.Println("delete sub document from cassandra:", err)
+			return newCassandraSubDocOperationResult(key, keyValues, fmt.Errorf("delete sub document from cassandra: %w", err), false, offset)
+		}
+		if !check {
 			return newCassandraSubDocOperationResult(key, keyValues, errors.New("delete sub document from cassandra: sub doc column is not present"), false, offset)
 		}
 
@@ -707,10 +747,12 @@ func (c *Cassandra) CreateBulk(connStr, username, password string, keyValues []K
 	}
 
 	if err := validateStrings(extra.Keyspace); err != nil {
+		log.Println("bulk insert documents into cassandra: keyspace name is missing")
 		result.failBulk(keyValues, errors.New("bulk insert documents into cassandra: keyspace name is missing"))
 		return result
 	}
 	if err := validateStrings(extra.Table); err != nil {
+		log.Println("bulk insert documents into cassandra: table name is missing")
 		result.failBulk(keyValues, errors.New("bulk insert documents into cassandra: table name is missing"))
 		return result
 	}
@@ -783,10 +825,12 @@ func (c *Cassandra) UpdateBulk(connStr, username, password string, keyValues []K
 	}
 
 	if err := validateStrings(extra.Keyspace); err != nil {
+		log.Println("bulk update documents into cassandra: keyspace name is missing")
 		result.failBulk(keyValues, errors.New("bulk update documents into cassandra: keyspace name is missing"))
 		return result
 	}
 	if err := validateStrings(extra.Table); err != nil {
+		log.Println("bulk update documents into cassandra: table name is missing")
 		result.failBulk(keyValues, errors.New("bulk update documents into cassandra: table name is missing"))
 		return result
 	}
@@ -861,10 +905,12 @@ func (c *Cassandra) ReadBulk(connStr, username, password string, keyValues []Key
 	keysToString = keysToString[:len(keysToString)-1] + ")"
 
 	if err := validateStrings(extra.Keyspace); err != nil {
+		log.Println("bulk read documents from cassandra: keyspace name is missing")
 		result.failBulk(keyValues, errors.New("bulk read documents from cassandra: keyspace name is missing"))
 		return result
 	}
 	if err := validateStrings(extra.Table); err != nil {
+		log.Println("bulk read documents from cassandra: table name is missing")
 		result.failBulk(keyValues, errors.New("bulk read documents from cassandra: table name is missing"))
 		return result
 	}
@@ -904,10 +950,12 @@ func (c *Cassandra) DeleteBulk(connStr, username, password string, keyValues []K
 	}
 
 	if err := validateStrings(extra.Keyspace); err != nil {
+		log.Println("bulk delete documents from cassandra: keyspace name is missing")
 		result.failBulk(keyValues, errors.New("bulk delete documents from cassandra: keyspace name is missing"))
 		return result
 	}
 	if err := validateStrings(extra.Table); err != nil {
+		log.Println("bulk delete documents from cassandra: table name is missing")
 		result.failBulk(keyValues, errors.New("bulk delete documents from cassandra: table name is missing"))
 		return result
 	}
