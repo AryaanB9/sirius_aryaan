@@ -276,7 +276,7 @@ func (t *TaskResult) StoreResultList(resultList []ResultHelper) {
 		t.Failure++
 		v, errorString := db.CheckSDKException(x.err)
 		if v == "unknown exception" {
-			v += errorString
+			v += ": " + errorString
 		}
 		t.BulkError[v] = append(t.BulkError[v], FailedDocument{
 			SDKTiming: SDKTiming{

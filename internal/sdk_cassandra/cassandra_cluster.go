@@ -34,7 +34,7 @@ func ValidateClusterConfig(connStr, username, password string, c *CassandraClust
 		return err_sirius.InvalidConnectionString
 	}
 	if username == "" || password == "" {
-		return fmt.Errorf("connection string : %s | %w", connStr, err_sirius.CredentialMissing)
+		return fmt.Errorf("connection string %s: %w", connStr, err_sirius.CredentialMissing)
 	}
 	return nil
 }
@@ -54,6 +54,8 @@ func (cassandraClusterObj *CassandraClusterObject) setCassandraKeyspaceObject(ca
 	cassandraClusterObj.CassandraKeyspaces[cassKeyspaceName] = cassKeyspaceObj
 }
 
+// getCassandraKeyspaceObject returns CassandraKeyspaceObject if cluster is already setup.
+// If cluster is not setup, then it sets it up using setCassandraKeyspaceObject.
 func (cassandraClusterObj *CassandraClusterObject) getCassandraKeyspaceObject(cassKeyspaceName string) (*CassandraKeyspaceObject, error) {
 	_, ok := cassandraClusterObj.CassandraKeyspaces[cassKeyspaceName]
 
@@ -63,7 +65,7 @@ func (cassandraClusterObj *CassandraClusterObject) getCassandraKeyspaceObject(ca
 
 		// Trying some cluster configurations here
 		//log.Println("In getCassandraKeyspaceObject()")
-		//cassClusterConfig.NumConns = 100
+		//cassClusterConfig.NumConns = 500
 		//cassClusterConfig.RetryPolicy = &gocql.SimpleRetryPolicy{NumRetries: 3}
 		//cassClusterConfig.Timeout = 10 * time.Second
 		//cassClusterConfig.WriteTimeout = 10 * time.Second
@@ -71,9 +73,8 @@ func (cassandraClusterObj *CassandraClusterObject) getCassandraKeyspaceObject(ca
 
 		cassandraSession, err := cassClusterConfig.CreateSession()
 		if err != nil {
-			log.Println("Unable to connect to Cassandra!")
-			log.Println(err)
-			return nil, err
+			log.Println("get cassandra cluster keyspace object:", err)
+			return nil, fmt.Errorf("get cassandra cluster keyspace object: %w", err)
 		}
 
 		cassKeyspaceObj := &CassandraKeyspaceObject{

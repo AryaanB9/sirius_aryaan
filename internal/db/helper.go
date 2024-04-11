@@ -2,7 +2,6 @@ package db
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/gocql/gocql"
@@ -71,24 +70,21 @@ func validateStrings(values ...string) error {
 	return nil
 }
 
-func cassandraColumnExists(session *gocql.Session, keyspace, tableName, columnName string) bool {
+func cassandraColumnExists(session *gocql.Session, keyspace, tableName, columnName string) (bool, error) {
 	keyspaceMetadata, err := session.KeyspaceMetadata(keyspace)
 	if err != nil {
-		log.Fatal(err)
-	}
-
-	if err != nil {
-		log.Fatal(err)
+		return false, fmt.Errorf("check existence of column: %w", err)
 	}
 
 	tableMetadata, found := keyspaceMetadata.Tables[tableName]
 	if !found {
-		return false
+		return false, fmt.Errorf("check existence of column: meta data for table '%s' not found", tableName)
 	}
+
 	for _, column := range tableMetadata.Columns {
 		if strings.EqualFold(column.Name, columnName) {
-			return true
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }
